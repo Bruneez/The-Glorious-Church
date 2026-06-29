@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glorious Church - Creative Arts</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/shared-modals.js"></script>
+    <script src="js/shared-nav.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <!-- Mobile sidebar overlay backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden"></div>
+
+    <!-- Global Layout Shell Nodes -->
+    <div id="mobile-top-bar" class="md:hidden"></div>
+    <aside id="sidebar-container"></aside>
+
+    <!-- Hidden file picker for inline card photo updates -->
+    <input type="file" id="global-group-file-picker" accept="image/*" class="hidden" onchange="handleInlineGroupPhoto(event)">
+
+    <div class="flex-1 h-screen flex flex-col overflow-hidden">
+        <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 hidden md:flex justify-between items-center shrink-0">
+            <div>
+                <h2 class="text-base font-bold text-white tracking-wide">Creative Arts Sectors</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Our Ministries: Find your place. Discover your calling. Be part of a movement changing lives for Jesus. (Colossians 3:16)</p>
+            </div>
+            <button onclick="openGroupModal()" class="bg-indigo-600 hover:bg-indigo-500 text-xs text-white px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer shadow">
+                <i data-lucide="plus"></i> Add Custom Group
+            </button>
+        </header>
+
+        <!-- Mobile action bar -->
+        <div class="md:hidden bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shrink-0">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Creative Arts</span>
+            <button onclick="openGroupModal()" class="bg-indigo-600 hover:bg-indigo-500 text-xs text-white px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer shadow">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Group
+            </button>
+        </div>
+
+        <main class="p-4 md:p-6 overflow-y-auto flex-1 max-w-7xl w-full mx-auto">
+            <div id="groups-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                <!-- Populated Dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Ministry Group Modal -->
+    <div id="add-group-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm p-4 space-y-4 text-xs">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <h3 id="modal-headline" class="font-bold text-white text-sm">Add Creative Arts Node</h3>
+                <button onclick="closeGroupModal()" class="text-slate-400 hover:text-white cursor-pointer"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <form id="add-group-form" onsubmit="handleGroupSubmit(event)" class="space-y-3">
+                <input type="hidden" id="g-id" value="">
+                <div>
+                    <label class="block text-slate-400 mb-1">Group Cover Image Photo</label>
+                    <div class="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
+                        <div id="group-image-preview" class="w-10 h-10 rounded bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center">
+                            <i data-lucide="palette" class="w-5 h-5 text-slate-500"></i>
+                        </div>
+                        <input type="file" id="g-photo" accept="image/*" onchange="previewGroupImage(event)" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer">
+                    </div>
+                </div>
+                <div><label class="block text-slate-400 mb-1">Group Name</label><input type="text" id="g-name" required placeholder="e.g. Choir" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"></div>
+                <div><label class="block text-slate-400 mb-1">Creative Arts Leader</label><input type="text" id="g-leader" required placeholder="Leader Name" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"></div>
+                <div><label class="block text-slate-400 mb-1">Slogan/Subtitle</label><input type="text" id="g-subtitle" placeholder="Harmony & Worship" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"></div>
+                <div><label class="block text-slate-400 mb-1">Ministry Vision Description</label><textarea id="g-desc" required rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none resize-none" placeholder="Unite voices and hearts together..."></textarea></div>
+                <div><label class="block text-slate-400 mb-1">Scripture Reference</label><input type="text" id="g-scripture" placeholder="Romans 12:1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"></div>
+                
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                    <button type="button" onclick="closeGroupModal()" class="bg-slate-700 px-3 py-1.5 rounded-lg cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg cursor-pointer">Save Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Enhanced View Group Info Panel (Includes Large Profile/Avatar Image Block) -->
+    <div id="view-group-members-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4 relative text-xs flex flex-col max-h-[90vh]">
+            <button onclick="closeGroupMembersModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer bg-slate-900/40 p-1.5 rounded-lg border border-slate-700/50 z-10"><i data-lucide="x" class="w-4 h-4"></i></button>
+            
+            <div class="flex flex-col items-center border-b border-slate-700/60 pb-4 text-center">
+                <!-- Large Profile Photo Holder -->
+                <div id="group-modal-image-frame" class="w-24 h-24 rounded-full bg-indigo-500/10 border-2 border-indigo-500/30 overflow-hidden flex items-center justify-center mb-3 shadow-lg">
+                    <!-- Target image or placeholder icon injected here dynamically -->
+                </div>
+                
+                <h3 id="group-modal-title" class="text-base font-black text-white tracking-wide uppercase"></h3>
+                <p id="group-modal-leader" class="text-[11px] text-indigo-400 font-bold tracking-wider uppercase mt-1"></p>
+                <p id="group-modal-scripture" class="text-[10px] text-amber-400/90 font-mono mt-1 italic"></p>
+                
+                <p id="group-modal-desc" class="text-slate-400 text-[11px] mt-3 bg-slate-900/50 p-2.5 rounded-xl border border-slate-700/40 w-full text-left leading-relaxed"></p>
+            </div>
+
+            <!-- Members List Structure Container Section -->
+            <div class="flex-1 flex flex-col min-h-0 space-y-2">
+                <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider pl-1">Members:</h4>
+                <div id="group-members-list" class="space-y-2 overflow-y-auto pr-1 flex-1">
+                    <!-- Filtered team records matching group names append here dynamically -->
+                </div>
+            </div>
+            
+            <div class="pt-2 border-t border-slate-700 flex justify-end shrink-0">
+                <button onclick="closeGroupMembersModal()" class="bg-slate-900 text-slate-300 font-semibold px-4 py-1.5 rounded-lg hover:bg-slate-700 transition cursor-pointer">Close Info</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const db = firebase.firestore();
+
+        let creativeGroups = [];
+        let globalMembers = [];
+        let customGroupPhotoBase64 = "";
+        let inlineTargetGroupId = null;
+        let currentUserRole = "";
+
+        // Fallback default modules setup schema references
+        const seedData = [
+            {
+                name: "Dancing Stars",
+                leader: "Destiny Manuel",
+                subtitle: "Dance Ministry",
+                desc: "Worship God through expressive movement, choreography, praise dance, and kingdom creativity.",
+                scripture: "1 Peter 4:10",
+                photo: ""
+            },
+            {
+                name: "The Choir",
+                leader: "Jade Mienies",
+                subtitle: "Harmony & Worship",
+                desc: "Unite voices and hearts together to glorify God through powerful choral worship and music excellence.",
+                scripture: "Romans 12:1",
+                photo: ""
+            },
+            {
+                name: "Film Stars",
+                leader: "Chelsie Ross",
+                subtitle: "Film Ministry",
+                desc: "Capture revival moments through cameras, graphics, editing, photography, livestreaming, and media.",
+                scripture: "Colossians 3:16",
+                photo: ""
+            }
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => { 
+            initializeDatabaseSetup();
+            listenToAuthSession();
+        });
+
+        function listenToAuthSession() {
+            buildSecuredNavigation("creative-arts.html");
+
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    db.collection('staff').where("email", "==", user.email).get().then(staffSnapshot => {
+                        if (staffSnapshot.empty) {
+                            alert("Access Denied!");
+                            firebase.auth().signOut().then(() => { window.location.href = "login.html"; });
+                            return;
+                        }
+                        let staffData = staffSnapshot.docs[0].data();
+                        currentUserRole = staffData.role;
+                        buildSecuredNavigation("creative-arts.html");
+                    }).catch(err => {
+                        console.error("Authorization snapshot verification failed:", err);
+                        window.location.href = "login.html";
+                    });
+                } else {
+                    currentUserRole = "";
+                    window.location.href = "login.html";
+                }
+            });
+        }
+
+        function initializeDatabaseSetup() {
+            db.collection('creative_arts').onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    seedData.forEach(group => db.collection('creative_arts').add(group));
+                    return;
+                }
+                
+                creativeGroups = [];
+                snapshot.forEach(doc => {
+                    creativeGroups.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Track dynamic counter values inside local arrays from global collection links
+                db.collection('members').onSnapshot(memSnapshot => {
+                    globalMembers = [];
+                    memSnapshot.forEach(mDoc => {
+                        globalMembers.push({ id: mDoc.id, ...mDoc.data() });
+                    });
+                    refreshGrid();
+                });
+            }, err => console.error("Error connecting to creative groups data stream: ", err));
+        }
+
+        function openGroupModal() {
+            document.getElementById("add-group-form")?.reset();
+            document.getElementById("g-id").value = "";
+            document.getElementById("modal-headline").innerText = "Add Creative Arts Node";
+            customGroupPhotoBase64 = "";
+            document.getElementById("group-image-preview").innerHTML = `<i data-lucide="palette" class="w-5 h-5 text-slate-500"></i>`;
+            lucide.createIcons();
+            showModal("add-group-modal");
+        }
+        
+        function closeGroupModal() { hideModal("add-group-modal"); }
+
+        function previewGroupImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customGroupPhotoBase64 = e.target.result;
+                    document.getElementById("group-image-preview").innerHTML = `<img src="${customGroupPhotoBase64}" class="w-full h-full object-cover">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function triggerInlineGroupPhoto(id, event) {
+            event.stopPropagation();
+            inlineTargetGroupId = id;
+            document.getElementById("global-group-file-picker").click();
+        }
+
+        function handleInlineGroupPhoto(event) {
+            const file = event.target.files[0];
+            if (file && inlineTargetGroupId) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    db.collection('creative_arts').doc(inlineTargetGroupId).update({
+                        photo: e.target.result
+                    }).catch(err => alert("Error writing media binary payload: " + err.message));
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleGroupSubmit(e) {
+            e.preventDefault();
+            const idValue = document.getElementById("g-id").value;
+            
+            const dataPackage = {
+                name: document.getElementById("g-name").value,
+                leader: document.getElementById("g-leader").value,
+                subtitle: document.getElementById("g-subtitle").value,
+                desc: document.getElementById("g-desc").value,
+                scripture: document.getElementById("g-scripture").value
+            };
+
+            if (customGroupPhotoBase64) {
+                dataPackage.photo = customGroupPhotoBase64;
+            }
+
+            if (idValue) {
+                db.collection('creative_arts').doc(idValue).update(dataPackage)
+                .then(() => { closeGroupModal(); e.target.reset(); })
+                .catch(err => alert("Modification submission failure: " + err.message));
+            } else {
+                dataPackage.photo = customGroupPhotoBase64 || "";
+                db.collection('creative_arts').add(dataPackage)
+                .then(() => { closeGroupModal(); e.target.reset(); })
+                .catch(err => alert("Creation error instance occurred: " + err.message));
+            }
+        }
+
+        function editGroup(id, event) {
+            event.stopPropagation();
+            const g = creativeGroups.find(item => item.id === id);
+            if (!g) return;
+
+            document.getElementById("modal-headline").innerText = "Modify Creative Arts Node";
+            document.getElementById("g-id").value = g.id;
+            document.getElementById("g-name").value = g.name || "";
+            document.getElementById("g-leader").value = g.leader || "";
+            document.getElementById("g-subtitle").value = g.subtitle || "";
+            document.getElementById("g-desc").value = g.desc || "";
+            document.getElementById("g-scripture").value = g.scripture || "";
+            
+            customGroupPhotoBase64 = g.photo || "";
+            document.getElementById("group-image-preview").innerHTML = g.photo 
+                ? `<img src="${g.photo}" class="w-full h-full object-cover">`
+                : `<i data-lucide="palette" class="w-5 h-5 text-slate-500"></i>`;
+                
+            lucide.createIcons();
+            showModal("add-group-modal");
+        }
+
+        function deleteGroup(id, event) {
+            event.stopPropagation();
+            if(confirm("Are you sure you want to completely erase this creative arts department?")) {
+                db.collection('creative_arts').doc(id).delete()
+                .catch(err => alert("Error deleting module layout: " + err.message));
+            }
+        }
+
+        // Generates the comprehensive info modal layout featuring the large profile avatar and member list
+        function showGroupRoster(id) {
+            const g = creativeGroups.find(item => item.id === id);
+            if (!g) return;
+
+            // Injects large structural imagery header
+            const imgHolder = document.getElementById("group-modal-image-frame");
+            if (g.photo) {
+                imgHolder.innerHTML = `<img src="${g.photo}" class="w-full h-full object-cover">`;
+            } else {
+                imgHolder.innerHTML = `<i data-lucide="palette" class="w-10 h-10 text-indigo-400"></i>`;
+            }
+
+            document.getElementById("group-modal-title").innerText = g.name;
+            document.getElementById("group-modal-leader").innerText = `Creative Arts Leader: ${g.leader}`;
+            document.getElementById("group-modal-desc").innerText = g.desc || "No ministry overview details defined.";
+            document.getElementById("group-modal-scripture").innerText = g.scripture ? `Scripture: ${g.scripture}` : "";
+            
+            const container = document.getElementById("group-members-list");
+            container.innerHTML = "";
+            
+            // Standardizes department matching strings safely
+            const groupMatchKey = (g.name || "").trim().toLowerCase();
+            const matchedStaff = globalMembers.filter(m => {
+                const targetDept = (m.dept || "").trim().toLowerCase();
+                // Normalizes variations like 'dancers' vs 'dancing stars' safely
+                return targetDept === groupMatchKey || targetDept.includes(groupMatchKey) || groupMatchKey.includes(targetDept);
+            });
+            
+            if(matchedStaff.length === 0) {
+                container.innerHTML = `
+                <div class="py-6 text-center bg-slate-900/30 rounded-xl border border-slate-700/30 border-dashed">
+                    <p class="text-slate-500 text-[11px]">0 active team members assigned to this category registry.</p>
+                </div>`;
+            } else {
+                matchedStaff.forEach(m => {
+                    const avatar = m.photo 
+                        ? `<img src="${m.photo}" class="w-7 h-7 rounded-full object-cover">`
+                        : `<div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white uppercase text-[10px]">${(m.name || 'N').charAt(0)}</div>`;
+                    
+                    container.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-900/40 p-2.5 rounded-xl border border-slate-700/40">
+                        <div class="flex items-center gap-2.5">
+                            ${avatar}
+                            <div>
+                                <p class="font-bold text-white">${m.name}</p>
+                                <p class="text-[10px] text-slate-400 font-mono mt-0.5">${m.phone || 'No Contact Num'} • ${m.occ || 'Member'}</p>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            
+            lucide.createIcons();
+            showModal("view-group-members-modal");
+        }
+
+        function closeGroupMembersModal() { hideModal("view-group-members-modal"); }
+
+        function refreshGrid() {
+            const grid = document.getElementById("groups-grid");
+            if (!grid) return;
+            grid.innerHTML = "";
+            
+            creativeGroups.forEach(g => {
+                const imgBox = g.photo 
+                    ? `<img src="${g.photo}" class="w-full h-full object-cover">`
+                    : `<i data-lucide="palette" class="w-5 h-5 text-indigo-400"></i>`;
+                
+                const groupMatchKey = (g.name || "").trim().toLowerCase();
+                const count = globalMembers.filter(m => {
+                    const targetDept = (m.dept || "").trim().toLowerCase();
+                    return targetDept === groupMatchKey || targetDept.includes(groupMatchKey) || groupMatchKey.includes(targetDept);
+                }).length;
+                
+                const controlButtonsVisibility = (currentUserRole === "Admin" || currentUserRole === "Pastor") ? "" : "hidden";
+
+                grid.innerHTML += `
+                <div onclick="showGroupRoster('${g.id}')" class="bg-slate-800 p-4 rounded-xl border border-slate-700/70 flex items-center justify-between shadow-sm hover:border-indigo-500 transition-all duration-200 cursor-pointer group">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="relative w-11 h-11 bg-indigo-500/10 rounded-lg flex items-center justify-center font-bold text-sm border border-indigo-500/20 shrink-0 overflow-hidden group/avatar">
+                            ${imgBox}
+                            <div onclick="triggerInlineGroupPhoto('${g.id}', event)" class="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition duration-150" title="Upload Cover Image">
+                                <i data-lucide="camera" class="w-3.5 h-3.5 text-white"></i>
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h4 class="font-bold text-white text-sm group-hover:text-indigo-400 transition-colors truncate">${g.name}</h4>
+                            <p class="text-slate-400 text-[11px] mt-0.5 truncate">Leader: <span class="text-slate-200 font-medium">${g.leader}</span></p>
+                            <div class="mt-1 flex items-center gap-1.5">
+                                <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">${count} ${count === 1 ? 'Member' : 'Members'}</span>
+                                ${g.scripture ? `<span class="text-slate-500 text-[10px] font-mono truncate">${g.scripture}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ${controlButtonsVisibility}">
+                        <button onclick="editGroup('${g.id}', event)" class="text-slate-500 hover:text-indigo-400 p-1.5 rounded hover:bg-slate-900/50 transition cursor-pointer" title="Edit Group Data"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                        <button onclick="deleteGroup('${g.id}', event)" class="text-slate-500 hover:text-rose-400 p-1.5 rounded hover:bg-slate-900/50 transition cursor-pointer" title="Delete Group"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                </div>`;
+            });
+            lucide.createIcons();
+        }
+
+    </script>
+    <script src="profile-global.js"></script>
+</body>
+</html>

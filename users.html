@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glorious Church - Staff Controls</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/shared-modals.js"></script>
+    <script src="js/shared-nav.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <!-- Mobile sidebar overlay backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden"></div>
+
+    <!-- Universal Shared Layout Scaffold Targets -->
+    <div id="mobile-top-bar" class="md:hidden"></div>
+    <aside id="sidebar-container"></aside>
+
+    <div class="flex-1 h-screen flex flex-col overflow-hidden">
+        <!-- Desktop Header Content Area -->
+        <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 hidden md:flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <h2 class="text-base font-bold text-white tracking-wide">Staff Access Control Directory</h2>
+                <div class="text-[11px] text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded font-medium border border-indigo-500/20">Administrative Node</div>
+            </div>
+        </header>
+
+        <!-- Mobile action bar -->
+        <div class="md:hidden bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center shrink-0">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Staff Controls</span>
+            <button id="add-user-btn-mobile" onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer shadow hidden">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Add User
+            </button>
+        </div>
+
+        <main class="p-4 md:p-6 overflow-y-auto flex-1 max-w-7xl w-full mx-auto">
+            <section class="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm">
+                
+                <div class="p-4 border-b border-slate-700/70 bg-slate-800/40 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Staff Controls</span>
+                        <button onclick="toggleSort()" class="bg-slate-900 text-[11px] text-slate-300 px-2.5 py-1.5 border border-slate-700 rounded-lg hover:text-white flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="arrow-up-z-a" class="w-3.5 h-3.5"></i> Sort Name: A-Z (<span id="sort-indicator">Asc</span>)
+                        </button>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <input id="search-input" oninput="filterStaff()" type="text" placeholder="Search staff members..." class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-3 py-1.5 text-[11px] text-white focus:outline-none flex-1 min-w-[140px]">
+                        
+                        <select id="filter-role" onchange="filterStaff()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-slate-300 focus:outline-none cursor-pointer">
+                            <option value="all">All Administrative Roles</option>
+                            <option value="Admin">Admin Only</option>
+                            <option value="Pastor">Pastors Only</option>
+                            <option value="Creative Arts Leader">Creative Arts Leaders</option>
+                        </select>
+
+                        <button id="add-user-btn" onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold py-1.5 px-3 rounded-lg transition hidden md:flex items-center justify-center gap-1.5 cursor-pointer shadow">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Add User
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-700/60 bg-slate-900/30 text-[10px] uppercase tracking-wider text-slate-400">
+                                <th class="py-2.5 px-4 w-[60px]">Avatar</th>
+                                <th class="py-2.5 px-4">Staff Member Name</th>
+                                <th class="py-2.5 px-4">Secure Log Email</th>
+                                <th class="py-2.5 px-4">Assigned Portal Role</th>
+                                <th id="table-actions-header" class="py-2.5 px-4 text-right hidden">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-table-body" class="divide-y divide-slate-700/40 text-[11px] text-slate-300">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Provisioning Modal -->
+    <div id="add-staff-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm shadow-xl p-4 space-y-3 text-xs overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <h3 id="modal-title" class="font-bold text-white text-sm flex items-center gap-1.5">
+                    <i data-lucide="user-plus" class="text-indigo-400"></i> Provision Authorized Account
+                </h3>
+                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white cursor-pointer"><i data-lucide="x"></i></button>
+            </div>
+            
+            <form id="add-staff-form" onsubmit="handleFormSubmit(event)" class="space-y-3">
+                <input type="hidden" id="edit-id" value="">
+                
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Profile Photo</label>
+                    <div class="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
+                        <div id="image-preview-container" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center">
+                            <i data-lucide="user" class="w-5 h-5 text-slate-500"></i>
+                        </div>
+                        <input type="file" id="s-photo" accept="image/*" onchange="previewImage(event)" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Full Name</label>
+                    <input type="text" id="s-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Authentication Email Address</label>
+                    <input type="email" id="s-email" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                </div>
+
+                <div id="password-field-wrapper">
+                    <label class="block text-slate-400 mb-0.5">Account System Password</label>
+                    <input type="password" id="s-password" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none" placeholder="Min 6 characters">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Assigned Portal Role Mapping</label>
+                    <select id="s-role" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-300 focus:outline-none cursor-pointer">
+                        <option value="Admin">Admin</option>
+                        <option value="Pastor">Pastor</option>
+                        <option value="Creative Arts Leader">Creative Arts Leader</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                    <button type="button" onclick="closeModal()" class="bg-slate-700 px-3 py-1.5 rounded-lg cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium cursor-pointer">Save Credentials</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const staffCollection = db.collection('staff');
+
+        let staffMembers = [];
+        let sortAsc = true;
+        let currentPhotoBase64 = "";
+        let currentUserRole = "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            listenToLocalAuthSession();
+        });
+
+function listenToLocalAuthSession() {
+            auth.onAuthStateChanged(user => {
+                if (!user) {
+                    currentUserRole = "";
+                    window.location.href = "login.html";
+                    return;
+                }
+                staffCollection.where("email", "==", user.email).get().then(snapshot => {
+                    if (snapshot.empty) {
+                        alert("Access Denied!");
+                        auth.signOut().then(() => { window.location.href = "login.html"; });
+                        return;
+                    }
+                    let userData = snapshot.docs[0].data();
+                    currentUserRole = userData.role;
+
+                    if (currentUserRole === "CA Leader" || currentUserRole === "Creative Arts Leader") {
+                        window.location.href = "index.html";
+                        return;
+                    }
+                    
+                    buildSecuredNavigation("users.html");
+                    applyRoleVisibilityRules();
+                    loadStaffData();
+                }).catch(err => {
+                    console.error("Auth security loop error: ", err);
+                });
+            });
+        }
+
+        function applyRoleVisibilityRules() {
+            const role = (currentUserRole || "").trim().toLowerCase();
+            if (role === "admin" || role === "pastor") {
+                const addUserBtn = document.getElementById('add-user-btn');
+                const addUserBtnMobile = document.getElementById('add-user-btn-mobile');
+                const actionsHeader = document.getElementById('table-actions-header');
+                if (addUserBtn) addUserBtn.classList.remove('hidden');
+                if (addUserBtnMobile) addUserBtnMobile.classList.remove('hidden');
+                if (actionsHeader) actionsHeader.classList.remove('hidden');
+            }
+        }
+
+        function loadStaffData() {
+            staffCollection.onSnapshot(snapshot => {
+                staffMembers = [];
+                snapshot.forEach(doc => {
+                    staffMembers.push({ id: doc.id, ...doc.data() });
+                });
+                renderStaffTable();
+            });
+        }
+
+        function renderStaffTable() {
+            const tbody = document.getElementById('staff-table-body');
+            if (!tbody) return;
+
+            let records = [...staffMembers];
+
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            if (searchVal) {
+                records = records.filter(r => 
+                    (r.name || "").toLowerCase().includes(searchVal) || 
+                    (r.email || "").toLowerCase().includes(searchVal)
+                );
+            }
+
+            const roleFilter = document.getElementById('filter-role').value;
+            if (roleFilter !== "all") {
+                records = records.filter(r => r.role === roleFilter);
+            }
+
+            records.sort((a, b) => {
+                const nameA = (a.name || "").toLowerCase();
+                const nameB = (b.name || "").toLowerCase();
+                return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+            });
+
+            const role = (currentUserRole || "").trim().toLowerCase();
+            const isPrivileged = (role === "admin" || role === "pastor");
+
+            if (records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500 italic">No corresponding staff profiles located.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = records.map(staff => {
+                const avatarContent = staff.photo 
+                    ? `<img src="${staff.photo}" class="w-7 h-7 rounded-full object-cover border border-slate-700">`
+                    : `<div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-300 uppercase">${(staff.name || "S").charAt(0)}</div>`;
+
+                const actionButtons = isPrivileged ? `
+                    <td class="py-2 px-4 text-right space-x-1 whitespace-nowrap">
+                        <button onclick="editStaff('${staff.id}')" class="bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white p-1 rounded transition cursor-pointer inline-flex items-center"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                        <button onclick="deleteStaff('${staff.id}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 p-1 rounded transition cursor-pointer inline-flex items-center"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    </td>
+                ` : `<td class="hidden"></td>`;
+
+                return `
+                    <tr class="hover:bg-slate-800/30 transition-colors duration-150">
+                        <td class="py-2 px-4">${avatarContent}</td>
+                        <td class="py-2 px-4 font-medium text-white">${staff.name || 'Unnamed'}</td>
+                        <td class="py-2 px-4 font-mono text-slate-400">${staff.email || '—'}</td>
+                        <td class="py-2 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-900 border border-slate-700/60 text-indigo-300">${staff.role || 'Staff'}</span></td>
+                        ${actionButtons}
+                    </tr>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function filterStaff() {
+            renderStaffTable();
+        }
+
+        function toggleSort() {
+            sortAsc = !sortAsc;
+            document.getElementById('sort-indicator').innerText = sortAsc ? "Asc" : "Desc";
+            renderStaffTable();
+        }
+
+        function openAddModal() {
+            document.getElementById('add-staff-form').reset();
+            document.getElementById('edit-id').value = "";
+            document.getElementById('modal-title').innerHTML = `<i data-lucide="user-plus" class="text-indigo-400"></i> Provision Authorized Account`;
+            document.getElementById('password-field-wrapper').classList.remove('hidden');
+            document.getElementById('s-password').required = true;
+            document.getElementById('image-preview-container').innerHTML = `<i data-lucide="user" class="w-5 h-5 text-slate-500"></i>`;
+            currentPhotoBase64 = "";
+            showModal('add-staff-modal');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            hideModal('add-staff-modal');
+        }
+
+        // local image tools for creating user records
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentPhotoBase64 = e.target.result;
+                document.getElementById('image-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-full h-full object-cover">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function editStaff(id) {
+            const staff = staffMembers.find(s => s.id === id);
+            if (!staff) return;
+
+            document.getElementById('edit-id').value = staff.id;
+            document.getElementById('s-name').value = staff.name || "";
+            document.getElementById('s-email').value = staff.email || "";
+            document.getElementById('s-role').value = staff.role || "Admin";
+            
+            document.getElementById('password-field-wrapper').classList.add('hidden');
+            document.getElementById('s-password').required = false;
+
+            if (staff.photo) {
+                currentPhotoBase64 = staff.photo;
+                document.getElementById('image-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-full h-full object-cover">`;
+            } else {
+                currentPhotoBase64 = "";
+                document.getElementById('image-preview-container').innerHTML = `<i data-lucide="user" class="w-5 h-5 text-slate-500"></i>`;
+            }
+
+            document.getElementById('modal-title').innerHTML = `<i data-lucide="edit-3" class="text-indigo-400"></i> Modify Account Parameters`;
+            showModal('add-staff-modal');
+            lucide.createIcons();
+        }
+
+        function deleteStaff(id) {
+            if (confirm("Permanently strip permissions and eliminate this staff configuration?")) {
+                staffCollection.doc(id).delete()
+                    .then(() => alert("Staff entry purged successfully."))
+                    .catch(err => alert("Error pruning data node: " + err.message));
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('s-name').value.trim();
+            const email = document.getElementById('s-email').value.trim();
+            const role = document.getElementById('s-role').value;
+
+            const payload = { name, email, role, photo: currentPhotoBase64 };
+
+            if (id) {
+                staffCollection.doc(id).update(payload)
+                    .then(() => {
+                        closeModal();
+                        alert("Account profile updated.");
+                    })
+                    .catch(err => alert("Error updating registry: " + err.message));
+            } else {
+                const password = document.getElementById('s-password').value;
+                if (password.length < 6) {
+                    alert("System password must evaluate to 6 characters minimum.");
+                    return;
+                }
+                staffCollection.add(payload)
+                    .then(() => {
+                        closeModal();
+                        alert("Authorized user provisioned successfully.");
+                    })
+                    .catch(err => alert("Provisioning failed: " + err.message));
+            }
+        }
+    </script>
+    <script src="profile-global.js"></script>
+</body>
+</html>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glorious Church - Calendar</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/shared-modals.js"></script>
+    <script src="js/shared-nav.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <!-- Mobile sidebar overlay backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden"></div>
+
+    <!-- Mobile Navigation Top Bar -->
+    <div id="mobile-top-bar" class="md:hidden"></div>
+    
+    <!-- Sidebar Container -->
+    <aside id="sidebar-container"></aside>
+
+    <!-- Main Workspace Content Layout Area -->
+    <div class="flex-1 h-screen flex flex-col overflow-hidden">
+        
+        <!-- Standard Header Panel Context -->
+        <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 hidden md:flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <h2 class="text-base font-bold text-white tracking-wide">Congregation Calendar Hub</h2>
+                <div class="text-[11px] text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded font-medium border border-indigo-500/20">Upcoming Schedule</div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button id="add-event-btn" onclick="openEventModal()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow">
+                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Add Event
+                </button>
+
+                <!-- Profile Menu Dropdown Matrix -->
+                <div class="relative inline-block text-left z-50">
+                    <!-- CHANGED: Linked click handler explicitly to open the interactive profile management dashboard modal -->
+                    <button id="profile-menu-button" onclick="toggleProfileDropdown(event)" class="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-lg px-3 py-1.5 text-[11px] text-white transition font-medium cursor-pointer shadow-sm select-none">
+                        <div id="header-profile-avatar" class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] uppercase font-bold text-white overflow-hidden shrink-0 border border-indigo-400/30">
+                            <i data-lucide="user" class="w-3 h-3"></i>
+                        </div>
+                        <span class="pointer-events-none">My profile</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 pointer-events-none"></i>
+                    </button>
+
+                    <div id="profile-dropdown-menu" class="hidden absolute right-0 mt-2 w-48 rounded-lg bg-slate-800 border border-slate-700 shadow-xl py-1 text-[11px] z-50">
+                        <div class="px-3 py-2 border-b border-slate-700/60 bg-slate-900/20">
+                            <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Signed In As</p>
+                            <p id="dropdown-user-email" class="text-slate-200 font-mono truncate mt-0.5">Guest Identity</p>
+                        </div>
+                        <!-- CHANGED: Added action anchor option point to safely display the brand new settings canvas window -->
+                        <button onclick="openUserProfileModal()" class="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-700/50 flex items-center gap-2 cursor-pointer transition">
+                            <i data-lucide="sliders" class="w-3.5 h-3.5 text-indigo-400"></i> Account Settings
+                        </button>
+                        <button onclick="handleSystemSignOut()" class="w-full text-left px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer border-t border-slate-700/40 transition">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> End Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Display Content Workspace Grid System -->
+        <main class="p-4 md:p-6 overflow-y-auto flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 xl:grid-cols-3 gap-6">
+            
+            <!-- Mobile action bar -->
+            <div class="xl:col-span-3 md:hidden flex justify-between items-center -mb-2">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Calendar</span>
+                <button id="add-event-btn-mobile" onclick="openEventModal()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow">
+                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Add Event
+                </button>
+            </div>
+            
+            <!-- Grid Cell Block 1: Calendar Navigation Component Window -->
+            <section class="xl:col-span-2 bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm flex flex-col">
+                <div class="p-4 border-b border-slate-700/70 bg-slate-800/40 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+                        <h3 id="calendar-month-year-title" class="text-sm font-bold text-white tracking-wide"></h3>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="shiftMonth(-1)" class="p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:text-white transition cursor-pointer">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="jumpToToday()" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium hover:text-white transition cursor-pointer">
+                            Today
+                        </button>
+                        <button onclick="shiftMonth(1)" class="p-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:text-white transition cursor-pointer">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-7 text-center py-2 bg-slate-900/30 border-b border-slate-700/40 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+
+                <div id="calendar-days-grid" class="grid grid-cols-7 flex-1 bg-slate-800 divide-x divide-y divide-slate-700/40 border-b border-slate-700/40 min-h-[280px] md:min-h-[400px]">
+                </div>
+            </section>
+
+            <!-- Grid Cell Block 2: Quick Look Timeline / Event Log Sidebar Desk -->
+            <section class="bg-slate-800 rounded-xl border border-slate-700/70 p-4 shadow-sm flex flex-col space-y-4 max-h-[600px] xl:max-h-none overflow-y-auto">
+                <div class="border-b border-slate-700/60 pb-2 flex items-center justify-between">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
+                        <i data-lucide="clock" class="text-indigo-400 w-4 h-4"></i> Schedule Stream
+                    </h3>
+                    <span id="events-count-badge" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">0 Programmed</span>
+                </div>
+
+                <div id="events-list-stack" class="space-y-2.5 flex-1 overflow-y-auto">
+                    <div class="text-center py-8 text-slate-500 text-xs font-medium">
+                        No scheduled church events listed for this selection.
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Slide-out form component modal for inputting and validating upcoming calendar items -->
+    <div id="add-event-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-xl p-4 space-y-3 text-xs">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
+                    <i data-lucide="calendar-plus" class="text-indigo-400"></i> Schedule Church Event
+                </h3>
+                <button type="button" onclick="closeEventModal()" class="text-slate-400 hover:text-white cursor-pointer"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            
+            <form id="add-event-form" onsubmit="handleEventFormSubmit(event)" class="space-y-3 text-slate-300">
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Event Title / Description</label>
+                    <input type="text" id="ev-title" required placeholder="e.g. Youth Worship Night" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-0.5">Calendar Date</label>
+                        <input type="date" id="ev-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-0.5">Start Time</label>
+                        <input type="time" id="ev-time" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-0.5">Location / Venue</label>
+                    <input type="text" id="ev-location" required placeholder="e.g. Main Sanctuary" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+                </div>
+                
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                    <button type="button" onclick="closeEventModal()" class="bg-slate-700 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-slate-600 transition text-white">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium cursor-pointer hover:bg-indigo-500 transition">Save to Calendar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADDED: Interactive User Profile & Security Configuration Sheet Layer -->
+    <!-- Matches UI Layout and Structural Requirements from WhatsApp Image 2026-06-16 at 01.17.58.jpeg -->
+    <div id="user-profile-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl p-6 relative flex flex-col items-center">
+            
+            <!-- Close icon toggle -->
+            <button onclick="closeUserProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Dynamic Picture Target Circle Frame Area -->
+            <div class="relative group mt-2 mb-3">
+                <label for="profile-avatar-upload" class="cursor-pointer block relative">
+                    <div id="modal-profile-avatar" class="w-20 h-20 rounded-full bg-indigo-600 ring-4 ring-indigo-500/30 flex items-center justify-center text-2xl font-bold uppercase text-white overflow-hidden shadow-inner">
+                        <i data-lucide="user" class="w-8 h-8"></i>
+                    </div>
+                    <div class="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-[9px] text-slate-200 font-semibold">
+                        <i data-lucide="camera" class="w-4 h-4 mb-0.5"></i>
+                        <span>Upload Pic</span>
+                    </div>
+                </label>
+                <input type="file" id="profile-avatar-upload" accept="image/*" onchange="processAvatarImageUpload(event)" class="hidden">
+            </div>
+
+            <!-- Profile Primary Roles Meta Metadata Info Blocks -->
+            <h3 id="modal-user-role" class="text-white font-bold text-sm tracking-wide text-center">Active Core User</h3>
+            <p id="modal-user-clearance" class="text-[10px] text-indigo-400 font-extrabold tracking-wider uppercase mt-0.5 text-center">Unmapped System Clearance</p>
+
+            <hr class="w-full border-slate-700/60 my-4">
+
+            <!-- Comprehensive Info Details Rows Elements Stack Layout from Attachment -->
+            <div class="w-full space-y-3.5 text-[11px] text-slate-300">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-500 mt-0.5"></i>
+                    <div>
+                        <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Contact Mobile</span>
+                        <span id="modal-info-phone" class="font-semibold text-slate-200">N/A</span>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500 mt-0.5"></i>
+                    <div>
+                        <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Home Address</span>
+                        <span id="modal-info-address" class="font-semibold text-slate-200">Not Configured</span>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-slate-500 mt-0.5"></i>
+                    <div>
+                        <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Date Of Birth</span>
+                        <span id="modal-info-dob" class="font-semibold text-slate-200">Not Configured</span>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 bg-slate-900/30 p-2.5 rounded-lg border border-slate-700/40">
+                    <i data-lucide="briefcase" class="w-3.5 h-3.5 text-slate-500 mt-0.5"></i>
+                    <div class="truncate flex-1">
+                        <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Occupation & Affiliation</span>
+                        <span id="modal-info-email" class="font-mono text-slate-300 truncate block mt-0.5">guest@thegloriouschurch.org</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Reset Component Management Drop Window Interface Panel Container -->
+            <div class="w-full mt-4 pt-3 border-t border-slate-700/60">
+                <form id="profile-password-form" onsubmit="handleUserPasswordChangeSubmit(event)" class="space-y-2">
+                    <div>
+                        <label class="block text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">Update Security Password</label>
+                        <div class="flex gap-1.5">
+                            <input type="password" id="profile-new-password" required minlength="6" placeholder="Enter new password" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 transition text-white px-3 py-2 rounded-lg text-[11px] font-bold shadow shrink-0 cursor-pointer">
+                                Update
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <button onclick="closeUserProfileModal()" class="w-full mt-5 bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold py-2 rounded-lg transition shadow-sm cursor-pointer text-center">
+                Close Profile
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Handling Mechanisms -->
+    <script>
+        // Firebase instance initialized from shared js/firebase-init.js
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const eventsCollection = db.collection('events');
+
+        let currentCalendarDate = new Date();
+        let databaseEventsArray = [];
+        let currentUserRole = "";
+        let currentStaffDocumentId = ""; // Track current document context reference
+
+        document.addEventListener("DOMContentLoaded", () => {
+            listenToAuthSession();
+            listenToCloudEvents();
+
+            document.addEventListener('click', function(e) {
+                const dropMenu = document.getElementById("profile-dropdown-menu");
+                const profileBtn = document.getElementById("profile-menu-button");
+                if (dropMenu && profileBtn && !profileBtn.contains(e.target) && !dropMenu.contains(e.target)) {
+                    dropMenu.classList.add("hidden");
+                }
+            });
+        });
+
+        function listenToAuthSession() {
+            auth.onAuthStateChanged(user => {
+                const emailContainer = document.getElementById("dropdown-user-email");
+                
+                if (user) {
+                    db.collection('staff').where("email", "==", user.email).get().then(staffSnapshot => {
+                        if (staffSnapshot.empty) {
+                            alert("Access Denied! Your email is not registered in the staff database registry.");
+                            auth.signOut().then(() => { window.location.href = "login.html"; });
+                            return;
+                        }
+
+                        const staffDoc = staffSnapshot.docs[0];
+                        currentStaffDocumentId = staffDoc.id;
+                        const staffData = staffDoc.data();
+                        currentUserRole = staffData.role;
+                        
+                        if (emailContainer) emailContainer.innerText = user.email;
+
+                        // Synchronize application runtime image context changes across navigation bars
+                        updateAvatarUIRenderers(staffData.avatar || "");
+
+                        const addEventBtn = document.getElementById("add-event-btn");
+                        const addEventBtnMobile = document.getElementById("add-event-btn-mobile");
+                        if (currentUserRole === "Admin" || currentUserRole === "Pastor") {
+                            if (addEventBtn) addEventBtn.classList.remove("hidden");
+                            if (addEventBtnMobile) addEventBtnMobile.classList.remove("hidden");
+                        }
+
+                        buildSecuredNavigation("calendar.html");
+                    }).catch(err => {
+                        window.location.href = "login.html";
+                    });
+                } else {
+                    window.location.href = "login.html";
+                }
+            });
+        }
+
+        // ADDED: Avatar view sync system state helper
+        function updateAvatarUIRenderers(base64Data) {
+            const headerAvatar = document.getElementById("header-profile-avatar");
+            const modalAvatar = document.getElementById("modal-profile-avatar");
+
+            if (base64Data) {
+                const imgMarkup = `<img src="${base64Data}" class="w-full h-full object-cover rounded-full" alt="User Pic"/>`;
+                if (headerAvatar) headerAvatar.innerHTML = imgMarkup;
+                if (modalAvatar) modalAvatar.innerHTML = imgMarkup;
+            } else {
+                const placeholder = `<i data-lucide="user" class="w-3 h-3"></i>`;
+                if (headerAvatar) {
+                    headerAvatar.innerHTML = placeholder;
+                    headerAvatar.className = "w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] uppercase font-bold text-white overflow-hidden shrink-0 border border-indigo-400/30";
+                }
+                if (modalAvatar) {
+                    modalAvatar.innerHTML = `<i data-lucide="user" class="w-8 h-8"></i>`;
+                }
+                lucide.createIcons();
+            }
+        }
+
+        // ADDED: Profile display engine management configurations referencing WhatsApp Image 2026-06-16 at 01.17.58.jpeg details
+        function openUserProfileModal() {
+            if (!currentStaffDocumentId) return;
+            
+            document.getElementById("profile-dropdown-menu").classList.add("hidden");
+            document.getElementById("profile-password-form").reset();
+
+            db.collection('staff').doc(currentStaffDocumentId).get().then(doc => {
+                if (!doc.exists) return;
+                const data = doc.data();
+
+                // Inject accurate details from Firestore or use the layout defaults from WhatsApp Image 2026-06-16 at 01.17.58.jpeg
+                document.getElementById("modal-user-role").innerText = data.name || "Active Core User";
+                document.getElementById("modal-user-clearance").innerText = (data.role || "Unmapped System Clearance") + " Clearance";
+                document.getElementById("modal-info-phone").innerText = data.phone || "N/A";
+                document.getElementById("modal-info-address").innerText = data.address || "Not Configured";
+                document.getElementById("modal-info-dob").innerText = data.dob || "Not Configured";
+                document.getElementById("modal-info-email").innerText = data.email || "guest@thegloriouschurch.org";
+
+                updateAvatarUIRenderers(data.avatar || "");
+                showModal("user-profile-modal");
+            });
+        }
+
+        function closeUserProfileModal() {
+            hideModal("user-profile-modal");
+        }
+
+        // ADDED: Process image file to string array payload mapping and sync seamlessly to Firestore records
+        function processAvatarImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentStaffDocumentId) return;
+
+            // Enforce basic image payload limits safely
+            if (file.size > 1.5 * 1024 * 1024) {
+                alert("The image is too large! Please choose an avatar under 1.5MB.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const base64String = reader.result;
+                
+                // Save avatar to the current staff member's Firestore document
+                db.collection('staff').doc(currentStaffDocumentId).update({
+                    avatar: base64String
+                }).then(() => {
+                    updateAvatarUIRenderers(base64String);
+                }).catch(err => {
+                    alert("Failed to synchronize profile photo context layout: " + err.message);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ADDED: Safe live direct account authorization mutation routines
+        function handleUserPasswordChangeSubmit(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById("profile-new-password").value;
+            const user = auth.currentUser;
+
+            if (user) {
+                user.updatePassword(newPassword).then(() => {
+                    alert("Security password refreshed completely and successfully.");
+                    document.getElementById("profile-password-form").reset();
+                }).catch(err => {
+                    // Handle security verification re-login blocks gracefully if the session is stale
+                    if (err.code === "auth/requires-recent-login") {
+                        alert("For security, this action requires you to log out and sign back in before refreshing credentials.");
+                    } else {
+                        alert("Security change processing exception: " + err.message);
+                    }
+                });
+            }
+        }
+
+        function listenToCloudEvents() {
+            eventsCollection.onSnapshot(snapshot => {
+                databaseEventsArray = [];
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    data.id = doc.id;
+                    databaseEventsArray.push(data);
+                });
+                renderInteractiveCalendar();
+                renderEventsSidebarTimeline();
+            }, error => {
+                console.error("Event system framework parsing exception: ", error);
+            });
+        }
+
+        function openEventModal() {
+            document.getElementById("add-event-form").reset();
+            showModal("add-event-modal");
+            lucide.createIcons();
+        }
+
+        function closeEventModal() {
+            hideModal("add-event-modal");
+        }
+
+        function handleEventFormSubmit(e) {
+            e.preventDefault();
+            
+            const newEventData = {
+                title: document.getElementById("ev-title").value,
+                date: document.getElementById("ev-date").value, 
+                time: document.getElementById("ev-time").value,
+                location: document.getElementById("ev-location").value
+            };
+
+            eventsCollection.add(newEventData)
+                .then(() => {
+                    closeEventModal();
+                })
+                .catch(err => {
+                    alert("Failed to save calendar option context: " + err.message);
+                });
+        }
+
+        function deleteEvent(eventId) {
+            if (confirm("Are you sure you want to permanently remove this event from the calendar log?")) {
+                eventsCollection.doc(eventId).delete().catch(err => alert("Cloud delete fail: " + err.message));
+            }
+        }
+
+        function toggleProfileDropdown(event) {
+            if (event) event.stopPropagation();
+            document.getElementById("profile-dropdown-menu").classList.toggle("hidden");
+        }
+
+        function handleSystemSignOut() {
+            if (confirm("Are you sure you want to log out and terminate this session?")) {
+                auth.signOut().then(() => { window.location.href = "login.html"; });
+            }
+        }
+
+        function shiftMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderInteractiveCalendar();
+            renderEventsSidebarTimeline();
+        }
+
+        function jumpToToday() {
+            currentCalendarDate = new Date();
+            renderInteractiveCalendar();
+            renderEventsSidebarTimeline();
+        }
+
+        function renderInteractiveCalendar() {
+            const gridContainer = document.getElementById("calendar-days-grid");
+            const headingTitle = document.getElementById("calendar-month-year-title");
+            
+            if(!gridContainer) return;
+            gridContainer.innerHTML = "";
+
+            const targetYear = currentCalendarDate.getFullYear();
+            const targetMonth = currentCalendarDate.getMonth();
+
+            const monthsArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            headingTitle.innerText = `${monthsArray[targetMonth]} ${targetYear}`;
+
+            const standardFirstDayIndex = new Date(targetYear, targetMonth, 1).getDay();
+            const numericalTotalDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const totalDaysInPreviousMonth = new Date(targetYear, targetMonth, 0).getDate();
+
+            for (let i = standardFirstDayIndex - 1; i >= 0; i--) {
+                const calculatedDayNumber = totalDaysInPreviousMonth - i;
+                gridContainer.innerHTML += `
+                    <div class="p-2 min-h-[70px] bg-slate-900/10 text-slate-600 text-[11px] font-bold select-none border-slate-700/30">
+                        ${calculatedDayNumber}
+                    </div>`;
+            }
+
+            const currentSystemTodayDate = new Date();
+            for (let dayCounter = 1; dayCounter <= numericalTotalDaysInMonth; dayCounter++) {
+                const isTodayActiveMatch = (dayCounter === currentSystemTodayDate.getDate() && targetMonth === currentSystemTodayDate.getMonth() && targetYear === currentSystemTodayDate.getFullYear());
+                
+                const computedDateKey = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
+                const matchedDayEvents = databaseEventsArray.filter(e => e.date === computedDateKey);
+
+                let inlineEventBubblesHtml = "";
+                matchedDayEvents.slice(0, 2).forEach(ev => {
+                    let typeBadgeColor = "bg-indigo-500/20 text-indigo-400 border-indigo-500/30";
+
+                    inlineEventBubblesHtml += `
+                        <div class="truncate text-[9px] font-semibold px-1 py-0.5 mt-1 rounded border ${typeBadgeColor}" title="${ev.title}">
+                            ${ev.title}
+                        </div>`;
+                });
+
+                if(matchedDayEvents.length > 2) {
+                    inlineEventBubblesHtml += `<div class="text-[8px] text-slate-400 font-bold mt-0.5 text-right">+${matchedDayEvents.length - 2} more</div>`;
+                }
+
+                gridContainer.innerHTML += `
+                    <div class="p-1.5 min-h-[75px] bg-slate-800/60 hover:bg-slate-800 text-[11px] font-bold text-slate-300 transition flex flex-col justify-between border-slate-700/30 relative">
+                        <span class="${isTodayActiveMatch ? 'bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow' : ''}">
+                            ${dayCounter}
+                        </span>
+                        <div class="w-full flex-1 flex flex-col justify-end mt-1">
+                            ${inlineEventBubblesHtml}
+                        </div>
+                    </div>`;
+            }
+            lucide.createIcons();
+        }
+
+        function renderEventsSidebarTimeline() {
+            const listStack = document.getElementById("events-list-stack");
+            const badgeCounter = document.getElementById("events-count-badge");
+            
+            if(!listStack) return;
+
+            const selectedMonthStr = String(currentCalendarDate.getMonth() + 1).padStart(2, '0');
+            const selectedYearStr = String(currentCalendarDate.getFullYear());
+
+            let monthlyEvents = databaseEventsArray.filter(e => {
+                if(!e.date) return false;
+                const dateSegments = e.date.split('-');
+                return dateSegments[0] === selectedYearStr && dateSegments[1] === selectedMonthStr;
+            });
+
+            monthlyEvents.sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+            badgeCounter.innerText = `${monthlyEvents.length} Programmed`;
+
+            if (monthlyEvents.length === 0) {
+                listStack.innerHTML = `
+                    <div class="text-center py-12 text-slate-500 text-[11px] font-medium border border-dashed border-slate-700/60 rounded-xl bg-slate-900/10">
+                        No calendar notifications found for this month range.
+                    </div>`;
+                return;
+            }
+
+            const displayActions = (currentUserRole === "Admin" || currentUserRole === "Pastor") ? "" : "hidden";
+
+            listStack.innerHTML = "";
+            monthlyEvents.forEach(ev => {
+                let leftBorderHighlight = "border-l-indigo-500";
+                let tagTextClass = "text-indigo-400 bg-indigo-500/10 border-indigo-500/20";
+
+                let humanReadableDay = ev.date;
+                try {
+                    const d = new Date(ev.date);
+                    if(!isNaN(d)) humanReadableDay = d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+                } catch(e){}
+
+                listStack.innerHTML += `
+                    <div class="bg-slate-900/40 hover:bg-slate-900/70 p-3 rounded-xl border border-slate-700/40 border-l-3 ${leftBorderHighlight} transition flex flex-col space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="text-[11px] font-bold text-white tracking-wide">${ev.title || "Untitled Activity"}</h4>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${tagTextClass}">Event</span>
+                                <button type="button" onclick="deleteEvent('${ev.id}')" class="text-rose-400 hover:text-rose-300 p-0.5 rounded hover:bg-slate-800 transition cursor-pointer ${displayActions}">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-semibold">
+                            <div class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3 text-slate-500"></i> ${humanReadableDay}</div>
+                            <div class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3 text-slate-500"></i> ${ev.time || "N/A"}</div>
+                            <div class="flex items-center gap-1 truncate max-w-[150px]"><i data-lucide="map-pin" class="w-3 h-3 text-slate-500"></i> ${ev.location || "Sanctuary"}</div>
+                        </div>
+                    </div>`;
+            });
+            lucide.createIcons();
+        }
+
+    </script>
+    <script src="profile-global.js"></script>
+</body>
+</html>

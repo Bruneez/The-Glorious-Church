@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glorious Church - High School Mapping Network</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/shared-nav.js"></script>
+    <style>
+        .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 0.5rem; }
+        .leaflet-popup-tip { background: #1e293b; border: 1px solid #475569; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">
+    <!-- Mobile sidebar overlay backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileMenu()" class="hidden fixed inset-0 bg-black/50 z-30 md:hidden"></div>
+
+    <div id="mobile-top-bar" class="md:hidden"></div>
+    <aside id="sidebar-container"></aside>
+
+    <div class="flex-1 h-screen flex flex-col overflow-hidden">
+        <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 hidden md:flex justify-between items-center shrink-0">
+            <div class="flex flex-col">
+                <h2 class="text-base font-bold text-white tracking-wide">Regional High School Outreach Map</h2>
+                <p class="text-[10px] text-slate-400">Targeting outreach networks across Belhar, Delft, and neighboring Cape Town districts</p>
+            </div>
+            <div class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                Outreach Core Tracker
+            </div>
+        </header>
+
+        <main class="p-4 md:p-6 flex-1 flex flex-col overflow-hidden">
+            <div class="bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden shadow-xl flex-1 flex flex-col relative">
+                <div class="p-3 border-b border-slate-700/70 bg-slate-800/40 flex justify-between items-center shrink-0 z-10">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-400"></i> Local Institutional Markers
+                    </span>
+                    <span class="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded" id="school-counter">
+                        8 Schools Placed
+                    </span>
+                </div>
+
+                <div id="high-school-map" class="w-full flex-1 z-0 bg-slate-950"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentUserRole = ""; // Tracks administrative authorization clearances globally
+
+        // Fix missing Leaflet marker icons on live production hosting deployments
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initHighSchoolMap();
+            listenToAuthSession(); // Run secure role checks on DOM load
+        });
+
+        // Verifies credentials via cloud database to assign proper user view states
+        function listenToAuthSession() {
+            // Build the sidebar layout instantly on load so it never disappears or flickers
+            buildSecuredNavigation("schools-map.html");
+
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    firebase.firestore().collection('staff').where("email", "==", user.email).get().then(staffSnapshot => {
+                        if (staffSnapshot.empty) {
+                            alert("Access Denied! Your email is not registered in the staff database registry.");
+                            firebase.auth().signOut().then(() => { window.location.href = "login.html"; });
+                            return;
+                        }
+
+                        // Extract administrative role context safely
+                        let staffData = staffSnapshot.docs[0].data();
+                        currentUserRole = staffData.role;
+
+                        // Re-run the navigation builder now that we know the role to filter restricted pages safely
+                        buildSecuredNavigation("schools-map.html");
+                    }).catch(err => {
+                        console.error("Authorization snapshot look up failure:", err);
+                        window.location.href = "login.html";
+                    });
+                } else {
+                    currentUserRole = "";
+                    // Route Guard: Send unauthenticated actions away to login page instantly
+                    window.location.href = "login.html";
+                }
+            });
+        }
+
+        function initHighSchoolMap() {
+            // Centers view directly over the Belhar / Delft borders in Cape Town
+            const map = L.map('high-school-map').setView([-33.9535, 18.6120], 13);
+
+            // Switched to a production-ready elegant alternative tile layer that doesn't block keys on Vercel
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            }).addTo(map);
+
+            // Geographically accurate coordinates for Schools across Belhar, Delft, and neighboring grids
+            const highSchools = [
+                { name: "Belhar High School", coords: [-33.9458, 18.6185], desc: "Core community school in Belhar. Active youth network target." },
+                { name: "Carlton Van Heerden Secondary", coords: [-33.9412, 18.6090], desc: "Located within the Belhar regional zone." },
+                { name: "Symphony High School", coords: [-33.9550, 18.6145], desc: "Bordering Belhar and Delft networks along Symphony Way." },
+                { name: "Delft Technical High School", coords: [-33.9740, 18.5912], desc: "Major institutional asset servicing the Delft central community." },
+                { name: "Voorbrug Secondary School", coords: [-33.9815, 18.5955], desc: "Established secondary community school situated deep in Delft." },
+                { name: "Rosendaal High School", coords: [-33.9680, 18.5990], desc: "Delft regional school network partner." },
+                { name: "Excelsior Secondary School", coords: [-33.9350, 18.5980], desc: "Positioned close by in the neighboring Elsies River region." },
+                { name: "Bellville High School", coords: [-33.8895, 18.6320], desc: "Wider Cape Town North regional connection point." }
+            ];
+
+            // Map custom marker style setup using native canvas layers or pins
+            highSchools.forEach(school => {
+                const marker = L.marker(school.coords).addTo(map);
+                
+                const popupContent = `
+                    <div class="p-1">
+                        <h4 class="font-bold text-indigo-400 text-xs mb-0.5">${school.name}</h4>
+                        <p class="text-[10px] text-slate-300 leading-relaxed font-sans">${school.desc}</p>
+                        <div class="mt-2 pt-1 border-t border-slate-700/60 text-[9px] text-slate-400 flex items-center gap-1">
+                            <i data-lucide="graduation-cap" class="w-3 h-3 text-emerald-400"></i> Cape Town Metro Region
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+            });
+
+            // Initialize icons for popups when triggered dynamically
+            map.on('popupopen', () => { lucide.createIcons(); });
+
+            // Document metrics update tracking
+            const counterEl = document.getElementById("school-counter");
+            if (counterEl) counterEl.innerText = `${highSchools.length} Schools Placed`;
+        }
+
+        // Shared universal dynamic template sidebar frame logic injection
+    </script>
+    <script src="profile-global.js"></script>
+</body>
+</html>
