@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthErrorMessage } from '@/services/authService';
@@ -8,6 +8,7 @@ import AlertBanner from '@/components/ui/AlertBanner';
 export default function LoginPage() {
   const { signIn, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +20,14 @@ export default function LoginPage() {
     return <Navigate to={redirectTo} replace />;
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
+        <p className="text-sm text-slate-400">Verifying session...</p>
+      </div>
+    );
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -26,6 +35,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email.trim(), password);
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       console.error('Authentication Failure:', err);
       setError(getAuthErrorMessage(err));
@@ -50,6 +60,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none"
@@ -62,6 +73,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none"
@@ -78,6 +90,13 @@ export default function LoginPage() {
             {isSubmitting ? 'Verifying Identity...' : 'Sign In to Portal'}
           </button>
         </form>
+
+        <p className="text-center text-slate-400 pt-1">
+          First time here?{' '}
+          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );

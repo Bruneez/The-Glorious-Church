@@ -3,7 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { AuthContext } from '@/hooks/useAuth';
 import { resolveStaffProfile } from '@/services/staffService';
-import { signIn as authSignIn, signOut as authSignOut } from '@/services/authService';
+import { signIn as authSignIn, signOut as authSignOut, signUp as authSignUp } from '@/services/authService';
 
 export function AuthProvider({ children }) {
   const [firebaseUser, setFirebaseUser] = useState(null);
@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [staffProfile, setStaffProfile] = useState(null);
   const [role, setRole] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState(null);
 
   const clearStaffSession = useCallback(() => {
@@ -22,52 +23,61 @@ export function AuthProvider({ children }) {
   const loadStaffSession = useCallback(async (user) => {
     const resolved = await resolveStaffProfile(user);
     if (!resolved) {
-      clearStaffSession();
-      return false;
+      setStaffDocId(null);
+      setStaffProfile({
+        id: null,
+        email: user.email,
+        name: user.displayName || 'Staff Member',
+        role: '',
+      });
+      setRole('');
+      return true;
     }
 
     setStaffDocId(resolved.staffDocId);
     setStaffProfile(resolved.staffProfile);
     setRole(resolved.role);
     return true;
-  }, [clearStaffSession]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setIsLoading(true);
       setFirebaseUser(user);
+
+      if (!authInitialized) {
+        setAuthInitialized(true);
+        setIsLoading(false);
+      }
 
       if (!user) {
         clearStaffSession();
-        setIsLoading(false);
         return;
       }
 
-      try {
-        await loadStaffSession(user);
-      } catch (error) {
+      loadStaffSession(user).catch((error) => {
         console.error('Staff profile resolution failed:', error);
         clearStaffSession();
-      } finally {
-        setIsLoading(false);
-      }
+      });
     });
 
     return unsubscribe;
-  }, [clearStaffSession, loadStaffSession]);
+  }, [authInitialized, clearStaffSession, loadStaffSession]);
 
   const signIn = useCallback(async (email, password) => {
     setAuthError(null);
     const user = await authSignIn(email, password);
-    const isStaff = await loadStaffSession(user);
+    loadStaffSession(user).catch((error) => {
+      console.error('Staff profile resolution failed after sign-in:', error);
+    });
+    return user;
+  }, [loadStaffSession]);
 
-    if (!isStaff) {
-      await authSignOut();
-      const error = new Error('Access Denied. Your email is not registered in the staff database.');
-      error.code = 'custom/not-staff';
-      throw error;
-    }
-
+  const signUp = useCallback(async (email, password) => {
+    setAuthError(null);
+    const user = await authSignUp(email, password);
+    loadStaffSession(user).catch((error) => {
+      console.error('Staff profile resolution failed after sign-up:', error);
+    });
     return user;
   }, [loadStaffSession]);
 
@@ -87,11 +97,12 @@ export function AuthProvider({ children }) {
       staffDocId,
       staffProfile,
       role,
-      isAuthenticated: Boolean(firebaseUser && staffProfile),
+      isAuthenticated: Boolean(firebaseUser),
       isLoading,
       authError,
       setAuthError,
       signIn,
+      signUp,
       signOut,
       refreshStaffProfile,
     }),
@@ -103,6 +114,7 @@ export function AuthProvider({ children }) {
       isLoading,
       authError,
       signIn,
+      signUp,
       signOut,
       refreshStaffProfile,
     ],

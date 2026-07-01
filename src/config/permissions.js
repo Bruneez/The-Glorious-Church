@@ -4,7 +4,7 @@ const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.CA_LEADER];
 
 export const ROUTE_ACCESS = {
   '/dashboard': ALL_STAFF,
-  '/users': [ROLES.ADMIN, ROLES.PASTOR],
+  '/users': ALL_STAFF,
   '/members': ALL_STAFF,
   '/creative-arts': ALL_STAFF,
   '/schools/primary': ALL_STAFF,
@@ -14,14 +14,14 @@ export const ROUTE_ACCESS = {
   '/maps/schools': ALL_STAFF,
   '/attendance': ALL_STAFF,
   '/offerings': ALL_STAFF,
-  '/transport': [ROLES.ADMIN, ROLES.PASTOR],
+  '/transport': ALL_STAFF,
   '/calendar': ALL_STAFF,
 };
 
 export function canAccessRoute(role, pathname) {
   const allowedRoles = ROUTE_ACCESS[pathname];
   if (!allowedRoles) return true;
-  return allowedRoles.includes(role);
+  return allowedRoles.includes(role) || !role;
 }
 
 export const ACTIONS = {

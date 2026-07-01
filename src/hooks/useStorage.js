@@ -2,20 +2,37 @@ import { useState } from 'react';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '@/config/firebase';
 
+export async function uploadFile(file, path) {
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
+
+export async function uploadImage(file, folder = 'images') {
+  const timestamp = Date.now();
+  const filename = `${timestamp}_${file.name}`;
+  const path = `${folder}/${filename}`;
+  return uploadFile(file, path);
+}
+
+export async function deleteFile(path) {
+  const storageRef = ref(storage, path);
+  await deleteObject(storageRef);
+  return true;
+}
+
 export function useStorage() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
 
-  const uploadFile = async (file, path) => {
+  const uploadFileWithState = async (file, path) => {
     setUploading(true);
     setProgress(0);
     setError(null);
 
     try {
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
+      const downloadURL = await uploadFile(file, path);
       setProgress(100);
       setUploading(false);
       return downloadURL;
@@ -27,18 +44,16 @@ export function useStorage() {
     }
   };
 
-  const uploadImage = async (file, folder = 'images') => {
+  const uploadImageWithState = async (file, folder = 'images') => {
     const timestamp = Date.now();
     const filename = `${timestamp}_${file.name}`;
     const path = `${folder}/${filename}`;
-    return uploadFile(file, path);
+    return uploadFileWithState(file, path);
   };
 
-  const deleteFile = async (path) => {
+  const deleteFileWithState = async (path) => {
     try {
-      const storageRef = ref(storage, path);
-      await deleteObject(storageRef);
-      return true;
+      return await deleteFile(path);
     } catch (err) {
       console.error('Error deleting file:', err);
       throw err;
@@ -46,11 +61,11 @@ export function useStorage() {
   };
 
   return {
-    uploadFile,
-    uploadImage,
-    deleteFile,
+    uploadFile: uploadFileWithState,
+    uploadImage: uploadImageWithState,
+    deleteFile: deleteFileWithState,
     uploading,
     progress,
-    error
+    error,
   };
 }

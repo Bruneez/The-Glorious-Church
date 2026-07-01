@@ -16,7 +16,7 @@ import {
 
 export const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, roles: null },
-  { path: '/users', label: 'System Users', icon: ShieldCheck, roles: ['Admin', 'Pastor'] },
+  { path: '/users', label: 'System Users', icon: ShieldCheck, roles: null },
   { path: '/members', label: 'Members Directory', icon: Users, roles: null },
   { path: '/creative-arts', label: 'Creative Arts', icon: Palette, roles: null },
   { path: '/schools/primary', label: 'Primary Schools', icon: School, roles: null },
@@ -26,7 +26,7 @@ export const NAV_ITEMS = [
   { path: '/maps/schools', label: 'High Schools Map', icon: MapPin, roles: null },
   { path: '/attendance', label: 'Attendance Tracker', icon: CalendarCheck, roles: null },
   { path: '/offerings', label: 'Offerings Log', icon: Banknote, roles: null },
-  { path: '/transport', label: 'Saturday Transport', icon: Bus, roles: ['Admin', 'Pastor'] },
+  { path: '/transport', label: 'Saturday Transport', icon: Bus, roles: null },
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
 ];
 
