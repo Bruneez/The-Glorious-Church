@@ -54,40 +54,63 @@ export default function LoginPage() {
 
         <AlertBanner message={error} />
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-slate-400 mb-1 font-medium">Secure Log Email</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Email Address
+            </label>
+
             <input
               type="email"
               required
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="name@thegloriouschurch.org"
             />
           </div>
 
           <div>
-            <label className="block text-slate-400 mb-1 font-medium">Portal Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Password
+            </label>
+
             <input
               type="password"
               required
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="••••••••"
             />
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-slate-600">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Remember me
+            </label>
+
+            <button
+              type="button"
+              className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+            >
+              Forgot password?
+            </button>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow mt-4 text-xs disabled:opacity-60"
+            className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 transition flex items-center justify-center gap-2 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <LogIn className="w-3.5 h-3.5" />
-            {isSubmitting ? 'Verifying Identity...' : 'Sign In to Portal'}
+            <LogIn className="w-4 h-4" />
+            {isSubmitting ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
@@ -99,5 +122,5 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
-  );
-}
+  </div>
+);
