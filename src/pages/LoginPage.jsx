@@ -115,10 +115,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-slate-400 pt-1">
-          First time here?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Create an account
-          </Link>
+          New staff accounts are created by an administrator. Please contact your admin if you need access.
         </p>
       </div>
     </div>
