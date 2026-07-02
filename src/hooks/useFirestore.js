@@ -22,6 +22,7 @@ export function useCollection(collectionName, options = {}) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.info(`useCollection: subscribing to '${collectionName}'`, { constraints: options.constraints });
     setLoading(true);
     let q = collection(db, collectionName);
 
@@ -32,6 +33,7 @@ export function useCollection(collectionName, options = {}) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        console.info(`useCollection: received snapshot for '${collectionName}' (docs=${snapshot.size})`);
         const documents = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -41,7 +43,7 @@ export function useCollection(collectionName, options = {}) {
         setError(null);
       },
       (err) => {
-        console.error(`Error fetching collection ${collectionName}:`, err);
+        console.error(`useCollection: error fetching collection ${collectionName}:`, err);
         setError(err);
         setLoading(false);
       }

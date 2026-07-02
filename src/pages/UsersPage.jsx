@@ -7,13 +7,14 @@ import Button from '@/components/ui/Button';
 import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
 import { addDocument, updateDocument, deleteDocument } from '@/hooks/useFirestore';
+import { signUp } from '@/services/authService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { ROLES } from '@/config/roles';
 import { getInitials } from '@/utils/formatters';
 
 export default function UsersPage() {
   const { data: staff = [], loading } = useCollection(COLLECTIONS.STAFF);
-  const { role: currentUserRole } = useRoleAccess();
+  const { role: currentUserRole, canPerformAction } = useRoleAccess();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -59,17 +60,26 @@ export default function UsersPage() {
   };
 
   const handleFormSubmit = async (formData) => {
+    const staffData = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      phone: formData.phone,
+      photo: formData.photo || ''
+    };
+
     try {
       if (editingUser) {
-        await updateDocument(COLLECTIONS.STAFF, editingUser.id, formData);
+        await updateDocument(COLLECTIONS.STAFF, editingUser.id, staffData);
       } else {
-        await addDocument(COLLECTIONS.STAFF, formData);
+        await signUp(formData.email, formData.password);
+        await addDocument(COLLECTIONS.STAFF, staffData);
       }
       setIsFormOpen(false);
       setEditingUser(null);
     } catch (error) {
       console.error('Error saving staff member:', error);
-      alert('Failed to save staff member. Please try again.');
+      alert(error?.message || 'Failed to save staff member. Please try again.');
     }
   };
 
@@ -82,7 +92,10 @@ export default function UsersPage() {
     }
   };
 
-  const canManageStaff = currentUserRole === ROLES.ADMIN || currentUserRole === ROLES.PASTOR;
+  const canManageStaff = canPerformAction('MANAGE_STAFF');
+  const canCreateInitialStaff = staff.length === 0 && !currentUserRole;
+  const canManageStaffOrBootstrap = canManageStaff || canCreateInitialStaff;
+  const showPermissionNote = !canManageStaff && !canCreateInitialStaff && currentUserRole;
 
   const columns = [
     {
@@ -156,6 +169,10 @@ export default function UsersPage() {
         badge="Administrative Node"
       />
 
+      <p className="text-[11px] text-slate-400">
+        Signed in as: <span className="font-semibold text-slate-100">{currentUserRole || 'Unassigned Staff Role'}</span>
+      </p>
+
       <div className="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-700/70 bg-slate-800/40 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
@@ -192,12 +209,17 @@ export default function UsersPage() {
               <option value={ROLES.CA_LEADER}>Creative Arts Leaders</option>
             </select>
 
-            {canManageStaff && (
+            {canManageStaffOrBootstrap && (
               <Button icon={UserPlus} onClick={handleAddUser}>
                 Add User
               </Button>
             )}
           </div>
+          {showPermissionNote && (
+            <p className="text-[11px] text-slate-400 mt-2">
+              Add user access is reserved for Admin or Pastor accounts. Please login with an admin account or ask your administrator to assign you the correct role.
+            </p>
+          )}
         </div>
 
         {loading ? (

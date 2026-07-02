@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UserPlus, X } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -14,15 +14,46 @@ const ROLE_OPTIONS = [
 
 export default function UserForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    email: initialData?.email || '',
-    role: initialData?.role || ROLES.CA_LEADER,
-    phone: initialData?.phone || '',
-    photo: initialData?.photo || ''
+    name: '',
+    email: '',
+    role: ROLES.CA_LEADER,
+    phone: '',
+    photo: '',
+    password: '',
+    confirmPassword: ''
   });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setFormData({
+      name: initialData?.name || '',
+      email: initialData?.email || '',
+      role: initialData?.role || ROLES.CA_LEADER,
+      phone: initialData?.phone || '',
+      photo: initialData?.photo || '',
+      password: '',
+      confirmPassword: ''
+    });
+    setError('');
+  }, [initialData, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
+
+    if (!initialData) {
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+    }
+
     onSubmit(formData);
   };
 
@@ -70,6 +101,32 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
           onChange={handleChange}
           placeholder="012 345 6789"
         />
+
+        {!initialData && (
+          <>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter a secure password"
+              required
+            />
+
+            <Input
+              label="Confirm Password"
+              name="confirmPassword"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Re-enter password"
+              required
+            />
+          </>
+        )}
+
+        {error && <p className="text-rose-400 text-[11px]">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
           <Button type="button" variant="secondary" onClick={onClose}>

@@ -7,8 +7,13 @@ import {
 import { auth } from '@/config/firebase';
 
 export async function signIn(email, password) {
-  const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
-  return credential.user;
+  try {
+    const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+    return credential.user;
+  } catch (error) {
+    console.error('Firebase signIn error code:', error?.code, 'message:', error?.message, 'full:', error);
+    throw error;
+  }
 }
 
 export async function signUp(email, password) {

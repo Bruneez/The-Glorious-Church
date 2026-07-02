@@ -5,8 +5,14 @@ export const ROLES = {
 };
 
 export function normalizeRole(role) {
-  if (role === 'CA Leader') return ROLES.CA_LEADER;
-  return role || '';
+  const value = String(role || '').trim();
+  if (!value) return '';
+
+  const lower = value.toLowerCase();
+  if (lower === 'admin' || lower === 'administrator') return ROLES.ADMIN;
+  if (lower === 'pastor') return ROLES.PASTOR;
+  if (lower === 'ca leader' || lower === 'creative arts leader') return ROLES.CA_LEADER;
+  return value;
 }
 
 export function isCALeader(role) {
