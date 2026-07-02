@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Development: allow read/write for authenticated users only
+    // Change before shipping to production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Example: stricter rules for the `members` collection
+    // Uncomment and adjust ownership/role checks to use this.
+    // match /members/{memberId} {
+    //   // allow anyone to read member records (optional)
+    //   allow read: if true;
+    //   // only authenticated users can create
+    //   allow create: if request.auth != null;
+    //   // only the owner or admins can update/delete
+    //   allow update, delete: if request.auth.uid == resource.data.owner || request.auth.token.admin == true;
+    // }
+  }
+}

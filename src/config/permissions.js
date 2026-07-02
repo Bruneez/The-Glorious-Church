@@ -1,4 +1,4 @@
-import { ROLES } from './roles';
+import { ROLES, normalizeRole } from './roles';
 
 const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.CA_LEADER];
 
@@ -19,9 +19,10 @@ export const ROUTE_ACCESS = {
 };
 
 export function canAccessRoute(role, pathname) {
+  const normalizedRole = normalizeRole(role);
   const allowedRoles = ROUTE_ACCESS[pathname];
   if (!allowedRoles) return true;
-  return allowedRoles.includes(role) || !role;
+  return allowedRoles.includes(normalizedRole) || !normalizedRole;
 }
 
 export const ACTIONS = {
@@ -35,7 +36,8 @@ export const ACTIONS = {
 };
 
 export function canPerformAction(role, action) {
+  const normalizedRole = normalizeRole(role);
   const allowedRoles = ACTIONS[action];
   if (!allowedRoles) return false;
-  return allowedRoles.includes(role);
+  return allowedRoles.includes(normalizedRole);
 }

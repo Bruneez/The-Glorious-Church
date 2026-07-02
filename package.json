@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "firebase:login": "npm exec --package firebase-tools -- firebase login --no-localhost",
+    "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules --project the-glorious-church",
+    "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore"
   },
   "dependencies": {
     "firebase": "^10.14.1",
