@@ -15,7 +15,8 @@ import TransportPage from '@/pages/TransportPage';
 import CalendarPage from '@/pages/CalendarPage';
 import UsersPage from '@/pages/UsersPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
-import ComingSoonPage from '@/pages/ComingSoonPage';
+import MembersMapPage from '@/pages/MembersMapPage';
+import HighSchoolsMapPage from '@/pages/HighSchoolsMapPage';
 
 export default function AppRoutes() {
   return (
@@ -34,8 +35,8 @@ export default function AppRoutes() {
           <Route path="schools/primary" element={<PrimarySchoolsPage />} />
           <Route path="schools/high" element={<HighSchoolsPage />} />
           <Route path="schools/higher-education" element={<HigherEducationPage />} />
-          <Route path="maps/members" element={<ComingSoonPage />} />
-          <Route path="maps/schools" element={<ComingSoonPage />} />
+          <Route path="maps/members" element={<MembersMapPage />} />
+          <Route path="maps/schools" element={<HighSchoolsMapPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="offerings" element={<OfferingsPage />} />
           <Route path="transport" element={<TransportPage />} />
