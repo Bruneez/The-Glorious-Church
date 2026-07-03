@@ -30,8 +30,12 @@ export default function Select({
         disabled={disabled}
         className={`w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs ${error ? 'border-rose-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {options
+          .filter((option) => option.value !== '')
+          .map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>

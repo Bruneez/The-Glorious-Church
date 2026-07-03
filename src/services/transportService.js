@@ -11,7 +11,7 @@ import { where, orderBy } from 'firebase/firestore';
 
 export function useTransport() {
   return useCollection(COLLECTIONS.TRANSPORT, {
-    constraints: [orderBy('routeName', 'asc')]
+    constraints: [orderBy('createdAt', 'desc')],
   });
 }
 
@@ -26,7 +26,7 @@ export function useTransportAssignments() {
 }
 
 export async function getTransport() {
-  return getDocuments(COLLECTIONS.TRANSPORT, [orderBy('routeName', 'asc')]);
+  return getDocuments(COLLECTIONS.TRANSPORT, [orderBy('createdAt', 'desc')]);
 }
 
 export async function getTransportRoute(routeId) {
@@ -54,17 +54,15 @@ export async function createTransportRoute(routeData) {
   const timestamp = new Date().toISOString();
   return addDocument(COLLECTIONS.TRANSPORT, {
     ...routeData,
-    capacity: parseInt(routeData.capacity) || 0,
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
   });
 }
 
 export async function updateTransportRoute(routeId, routeData) {
   return updateDocument(COLLECTIONS.TRANSPORT, routeId, {
     ...routeData,
-    capacity: parseInt(routeData.capacity) || 0,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 }
 

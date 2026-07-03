@@ -6,8 +6,8 @@ import Table from '@/components/ui/Table';
 import Button from '@/components/ui/Button';
 import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
-import { addDocument, updateDocument, deleteDocument } from '@/hooks/useFirestore';
-import { signUp } from '@/services/authService';
+import { updateDocument, deleteDocument } from '@/hooks/useFirestore';
+import { createStaffUser, getCreateStaffUserErrorMessage } from '@/services/staffUserService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { ROLES } from '@/config/roles';
 import { getInitials } from '@/utils/formatters';
@@ -72,14 +72,19 @@ export default function UsersPage() {
       if (editingUser) {
         await updateDocument(COLLECTIONS.STAFF, editingUser.id, staffData);
       } else {
-        await signUp(formData.email, formData.password);
-        await addDocument(COLLECTIONS.STAFF, staffData);
+        await createStaffUser({
+          ...staffData,
+          password: formData.password,
+        });
       }
       setIsFormOpen(false);
       setEditingUser(null);
     } catch (error) {
       console.error('Error saving staff member:', error);
-      alert(error?.message || 'Failed to save staff member. Please try again.');
+      const message = editingUser
+        ? (error?.message || 'Failed to save staff member. Please try again.')
+        : getCreateStaffUserErrorMessage(error);
+      alert(message);
     }
   };
 

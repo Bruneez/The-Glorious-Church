@@ -28,7 +28,7 @@ export function useOfferings(filters = {}) {
     constraints.push(where('campus', '==', filters.campus));
   }
 
-  constraints.push(orderBy('date', 'desc'));
+  constraints.push(orderBy('createdAt', 'desc'));
 
   return useCollection(COLLECTIONS.OFFERINGS, { constraints });
 }
@@ -67,17 +67,15 @@ export async function createOffering(offeringData) {
   const timestamp = new Date().toISOString();
   return addDocument(COLLECTIONS.OFFERINGS, {
     ...offeringData,
-    amount: parseFloat(offeringData.amount) || 0,
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
   });
 }
 
 export async function updateOffering(offeringId, offeringData) {
   return updateDocument(COLLECTIONS.OFFERINGS, offeringId, {
     ...offeringData,
-    amount: parseFloat(offeringData.amount) || 0,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 }
 

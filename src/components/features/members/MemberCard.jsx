@@ -1,243 +1,257 @@
-import { useState } from 'react';
-import { User, Phone, MessageCircle, ArrowLeft, Edit2, Trash2 } from 'lucide-react';
-import { formatWhatsAppLink, getInitials, formatDate } from '@/utils/formatters';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Modal from '@/components/ui/Modal';
-import { uploadMemberPhoto } from '@/services/storageService';
+import { useEffect } from 'react';
+import {
+  X,
+  Edit2,
+  Trash2,
+  Phone,
+  User,
+  Briefcase,
+  GraduationCap,
+  Calendar,
+  Heart,
+  MapPin,
+  BookOpen,
+} from 'lucide-react';
+import { formatDate, getInitials } from '@/utils/formatters';
+import { getMemberFullName, MEMBER_STATUS } from '@/config/memberOptions';
 
-export default function MemberCard({ member, isOpen, onClose, onUpdate, onDelete }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    name: member.name,
-    phone: member.phone,
-    address: member.address,
-    dob: member.dob
-  });
-  const [photoFile, setPhotoFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+function displayValue(value) {
+  if (value === null || value === undefined) return 'Not provided';
+  const text = String(value).trim();
+  return text || 'Not provided';
+}
 
-  const handleSave = async () => {
-    setIsUploading(true);
-    
-    let photoUrl = member.photo;
-    
-    if (photoFile) {
-      try {
-        photoUrl = await uploadMemberPhoto(photoFile);
-      } catch (error) {
-        console.error('Error uploading photo:', error);
-        setIsUploading(false);
-        return;
+function StatusBadge({ status }) {
+  const isActive = status === MEMBER_STATUS.ACTIVE;
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${
+        isActive
+          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+          : 'bg-rose-50 text-rose-700 border border-rose-200'
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function DetailItem({ icon: Icon, label, value }) {
+  return (
+    <div className="flex gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+      <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-indigo-600" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+        <p className="text-sm font-medium text-slate-800 mt-0.5 break-words">{displayValue(value)}</p>
+      </div>
+    </div>
+  );
+}
+
+function getOccupationFields(member) {
+  const occupation = member?.occupation || '';
+
+  if (occupation === 'Primary School') {
+    return [
+      { icon: GraduationCap, label: 'Primary School', value: member.school },
+      { icon: BookOpen, label: 'Grade', value: member.grade },
+    ];
+  }
+
+  if (occupation === 'High School') {
+    return [
+      { icon: GraduationCap, label: 'High School', value: member.school },
+      { icon: BookOpen, label: 'Grade', value: member.grade },
+    ];
+  }
+
+  if (occupation === 'University / College') {
+    return [
+      { icon: GraduationCap, label: 'University / College', value: member.institution },
+      { icon: BookOpen, label: 'Course', value: member.course },
+    ];
+  }
+
+  return [];
+}
+
+export default function MemberCard({
+  member,
+  isOpen,
+  onClose,
+  onEdit,
+  onDelete,
+  canManage = false,
+}) {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose();
       }
     }
 
-    await onUpdate(member.id, {
-      ...editData,
-      photo: photoUrl
-    });
-    
-    setIsUploading(false);
-    setIsEditing(false);
-  };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !member) return null;
+
+  const fullName = getMemberFullName(member);
+  const status = member.status || MEMBER_STATUS.ACTIVE;
+  const occupationFields = getOccupationFields(member);
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this member?')) {
-      await onDelete(member.id);
-      onClose();
+    if (!window.confirm(`Delete ${fullName}? This cannot be undone.`)) {
+      return;
     }
+
+    await onDelete(member);
+    onClose();
   };
 
-  const whatsappLink = formatWhatsAppLink(member.phone);
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="large">
-      <button
-        type="button"
-        onClick={onClose}
-        className="text-slate-400 hover:text-white cursor-pointer flex items-center gap-2 text-xs font-medium bg-transparent border-0 p-0 mb-2"
+    <div
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+      role="presentation"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="member-profile-title"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Members
-      </button>
-
-      <div className="bg-slate-800/40 border border-slate-800/80 rounded-2xl p-5 flex flex-col sm:flex-row items-center sm:items-start gap-5">
-        <div className="relative group w-40 h-40 shrink-0">
-          <div className="w-40 h-40 rounded-xl bg-slate-700 border border-slate-600/50 overflow-hidden flex items-center justify-center text-4xl font-bold uppercase text-white shadow-md">
-            {member.photo ? (
-              <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-            ) : (
-              getInitials(member.name)
-            )}
-          </div>
-          {isEditing && (
-            <label className="absolute inset-0 bg-black/60 rounded-xl items-center justify-center text-[10px] font-bold text-slate-200 cursor-pointer opacity-0 group-hover:opacity-100 transition flex">
-              Change Photo
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPhotoFile(e.target.files[0])}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-            </label>
-          )}
-        </div>
-
-        <div className="flex-1 space-y-3 text-center sm:text-left w-full">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
           <div>
-            {isEditing ? (
-              <Input
-                name="name"
-                value={editData.name}
-                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                className="max-w-xs mt-1"
-              />
-            ) : (
-              <>
-                <h3 className="text-2xl font-bold text-white tracking-wide">{member.name}</h3>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
-                  <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase">
-                    Active
-                  </span>
-                  {member.creativeArts && (
-                    <span className="bg-blue-950/60 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase">
-                      {member.creativeArts}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-semibold pt-1">
-            <div className="flex items-center gap-1.5 text-sky-400 w-full sm:w-auto justify-center sm:justify-start">
-              <Phone className="w-3.5 h-3.5" />
-              {isEditing ? (
-                <Input
-                  name="phone"
-                  type="tel"
-                  value={editData.phone}
-                  onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                  className="max-w-[150px]"
-                />
-              ) : (
-                <span>{member.phone}</span>
-              )}
-            </div>
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              WhatsApp
-            </a>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 text-left space-y-1.5 w-full">
-            <p className="text-[11px] text-slate-400 font-medium">Attendance</p>
-            <p className="text-xs font-medium text-slate-200">Active member</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-slate-800/40 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-        <div className="text-slate-300 font-bold text-sm flex items-center gap-2 border-b border-slate-800 pb-2">
-          <User className="w-4 h-4 text-orange-400" />
-          Personal Info
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Gender</p>
-            <p className="text-white font-bold text-sm mt-0.5">MALE</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Date of Birth</p>
-            {isEditing ? (
-              <Input
-                name="dob"
-                type="date"
-                value={editData.dob}
-                onChange={(e) => setEditData({ ...editData, dob: e.target.value })}
-                className="max-w-[180px] mt-1"
-              />
-            ) : (
-              <p className="text-white font-bold text-sm mt-0.5">{formatDate(member.dob)}</p>
-            )}
-          </div>
-          <div className="sm:col-span-2">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Home Address</p>
-            {isEditing ? (
-              <Input
-                name="address"
-                value={editData.address}
-                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                className="mt-1"
-              />
-            ) : (
-              <p className="text-slate-200 font-medium mt-0.5">{member.address}</p>
-            )}
-          </div>
-          <div className="sm:col-span-2 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
-            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Occupation & Affiliation</p>
-            <p className="text-slate-100 font-medium mt-1 text-sm">
-              {member.occupation}
-              {member.school && ` • ${member.school}`}
-              {member.institution && ` • ${member.institution}`}
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">
+              Member Profile
             </p>
+            <h2 id="member-profile-title" className="text-sm font-bold text-slate-800 mt-0.5">
+              Glorious Church Directory
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 flex items-center justify-center transition cursor-pointer shadow-sm"
+            aria-label="Close profile"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1">
+          {/* Profile hero */}
+          <div className="px-5 pt-6 pb-5 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-2xl font-bold uppercase text-white shrink-0 mx-auto sm:mx-0">
+                {member.photo ? (
+                  <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  getInitials(fullName) || '?'
+                )}
+              </div>
+              <div className="text-center sm:text-left flex-1 min-w-0">
+                <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                  {member.name || 'Not provided'}
+                </h3>
+                <p className="text-lg text-slate-600 font-medium mt-0.5">
+                  {member.surname || 'Not provided'}
+                </p>
+                <div className="mt-3 flex justify-center sm:justify-start">
+                  <StatusBadge status={status} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="px-5 py-5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-indigo-500" />
+              Member Details
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <DetailItem icon={Phone} label="Phone Number" value={member.phone} />
+              <DetailItem icon={User} label="Gender" value={member.gender} />
+              <DetailItem icon={Briefcase} label="Occupation" value={member.occupation} />
+
+              {occupationFields.map((field) => (
+                <DetailItem
+                  key={field.label}
+                  icon={field.icon}
+                  label={field.label}
+                  value={field.value}
+                />
+              ))}
+
+              <DetailItem
+                icon={Calendar}
+                label="Date of Birth"
+                value={member.dob ? formatDate(member.dob) : ''}
+              />
+              <DetailItem
+                icon={Heart}
+                label="Date of Salvation"
+                value={member.dateOfSalvation ? formatDate(member.dateOfSalvation) : ''}
+              />
+              <div className="sm:col-span-2">
+                <DetailItem icon={MapPin} label="Address" value={member.address} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+          {canManage && onDelete ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          ) : (
+            <span className="hidden sm:block" />
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition cursor-pointer shadow-sm"
+            >
+              Close
+            </button>
+            {canManage && onEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onEdit(member);
+                  onClose();
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition cursor-pointer shadow-md shadow-indigo-200"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      <div className="pt-2 flex justify-between items-center gap-2">
-        <Button
-          type="button"
-          variant="danger"
-          icon={Trash2}
-          onClick={handleDelete}
-        >
-          Delete
-        </Button>
-        <div className="flex gap-2">
-          {isEditing ? (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSave}
-                isLoading={isUploading}
-              >
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-              >
-                Close Profile
-              </Button>
-              <Button
-                type="button"
-                icon={Edit2}
-                onClick={() => setIsEditing(true)}
-              >
-                Edit
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-    </Modal>
+    </div>
   );
 }

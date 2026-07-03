@@ -1,10 +1,17 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import Card from '@/components/ui/Card';
-import { formatDate } from '@/utils/formatters';
+import { getBirthdayEventsForMonth, mergeCalendarEvents } from '@/utils/birthdayEvents';
 
-export default function CalendarView({ events, onDateClick, selectedDate }) {
+export default function CalendarView({ events, members = [], onDateClick, selectedDate }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const displayEvents = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const birthdayEvents = getBirthdayEventsForMonth(members, year, month);
+    return mergeCalendarEvents(events, birthdayEvents);
+  }, [currentDate, events, members]);
 
   const calendarData = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -29,7 +36,7 @@ export default function CalendarView({ events, onDateClick, selectedDate }) {
           week.push(null);
         } else {
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayEvents = events.filter(e => e.date === dateStr);
+          const dayEvents = displayEvents.filter(e => e.date === dateStr);
           week.push({
             day,
             date: dateStr,
@@ -45,7 +52,7 @@ export default function CalendarView({ events, onDateClick, selectedDate }) {
     }
     
     return { monthName, days };
-  }, [currentDate, events, selectedDate]);
+  }, [currentDate, displayEvents, selectedDate]);
 
   const shiftMonth = (delta) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
@@ -115,8 +122,13 @@ export default function CalendarView({ events, onDateClick, selectedDate }) {
                     </span>
                     {day.events.length > 0 && (
                       <div className="flex justify-center gap-0.5 mt-0.5">
-                        {day.events.slice(0, 2).map((_, i) => (
-                          <div key={i} className="w-1 h-1 rounded-full bg-indigo-400"></div>
+                        {day.events.slice(0, 2).map((event, i) => (
+                          <div
+                            key={i}
+                            className={`w-1 h-1 rounded-full ${
+                              event.isBirthday ? 'bg-pink-400' : 'bg-indigo-400'
+                            }`}
+                          />
                         ))}
                         {day.events.length > 2 && <div className="w-1 h-1 rounded-full bg-slate-500"></div>}
                       </div>

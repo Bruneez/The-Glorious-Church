@@ -25,7 +25,10 @@ export default function EventForm({ isOpen, onClose, onSubmit, initialData = nul
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      time: formData.time?.trim() || '',
+    });
   };
 
   const handleChange = (e) => {
@@ -60,7 +63,6 @@ export default function EventForm({ isOpen, onClose, onSubmit, initialData = nul
             type="time"
             value={formData.time}
             onChange={handleChange}
-            required
           />
         </div>
 

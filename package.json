@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "firebase:login": "npm exec --package firebase-tools -- firebase login --no-localhost",
     "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules --project the-glorious-church",
-    "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore"
+    "firebase:deploy-functions": "npm exec --package firebase-tools -- firebase deploy --only functions --project the-glorious-church",
+    "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore,functions"
   },
   "dependencies": {
     "firebase": "^10.14.1",

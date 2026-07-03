@@ -30,11 +30,10 @@ export const NAV_ITEMS = [
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
 ];
 
+import { canAccessRoute } from './permissions';
+
 export function getNavItemsForRole(role) {
-  return NAV_ITEMS.filter((item) => {
-    if (!item.roles) return true;
-    return item.roles.includes(role);
-  });
+  return NAV_ITEMS.filter((item) => canAccessRoute(role, item.path));
 }
 
 export const PAGE_TITLES = {

@@ -1,26 +1,53 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PlusCircle, Calendar as CalendarIcon, Trash2, Edit2 } from 'lucide-react';
-import PageHeader from '@/components/layout/PageHeader';
 import EventForm from '@/components/features/calendar/EventForm';
 import CalendarView from '@/components/features/calendar/CalendarView';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useEvents, createEvent, updateEvent, deleteEvent } from '@/services/calendarService';
+import { useMembers } from '@/services/membersService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import RoleGate from '@/components/auth/RoleGate';
 import { formatDate, formatTime } from '@/utils/formatters';
+import { getBirthdayEventsForDate, mergeCalendarEvents } from '@/utils/birthdayEvents';
+
+function EventTypeBadge({ type, isBirthday }) {
+  if (isBirthday) {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-pink-950/60 text-pink-400 border border-pink-500/20">
+        {type}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-950/60 text-indigo-400 border border-indigo-500/20">
+      {type || 'Event'}
+    </span>
+  );
+}
 
 export default function CalendarPage() {
-  const { data: events = [], loading } = useEvents();
+  const { data: events = [], loading: eventsLoading } = useEvents();
+  const { data: members = [], loading: membersLoading } = useMembers();
   const { canPerformAction } = useRoleAccess();
   
   const [selectedDate, setSelectedDate] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
-  const filteredEvents = selectedDate
-    ? events.filter(e => e.date === selectedDate)
-    : events.slice(0, 5);
+  const loading = eventsLoading || membersLoading;
+
+  const filteredEvents = useMemo(() => {
+    if (selectedDate) {
+      const birthdayEvents = getBirthdayEventsForDate(members, selectedDate);
+      return mergeCalendarEvents(
+        events.filter((event) => event.date === selectedDate),
+        birthdayEvents,
+      );
+    }
+
+    return events.slice(0, 5);
+  }, [events, members, selectedDate]);
 
   const handleAddEvent = () => {
     setEditingEvent(null);
@@ -63,22 +90,25 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Congregation Calendar Hub"
-        badge="Upcoming Schedule"
-        action={
-          canManageEvents ? (
-            <Button icon={PlusCircle} onClick={handleAddEvent}>
-              Add Event
-            </Button>
-          ) : null
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-white tracking-wide">Calendar</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Manage church events, birthdays and activities.
+          </p>
+        </div>
+        {canManageEvents && (
+          <Button icon={PlusCircle} onClick={handleAddEvent} className="shrink-0 w-full sm:w-auto">
+            Add Event
+          </Button>
+        )}
+      </div>
 
       <main className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
           <CalendarView
             events={events}
+            members={members}
             onDateClick={setSelectedDate}
             selectedDate={selectedDate}
           />
@@ -102,31 +132,37 @@ export default function CalendarPage() {
                 <p className="text-slate-500 text-xs">
                   {selectedDate ? 'No events on this date' : 'No upcoming events'}
                 </p>
-                {canManageEvents && (
-                  <Button icon={PlusCircle} onClick={handleAddEvent} className="mt-4" size="sm">
-                    Add Event
-                  </Button>
-                )}
               </div>
             ) : (
               <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
                 {filteredEvents.map(event => (
                   <div
                     key={event.id}
-                    className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 hover:border-indigo-500/30 transition"
+                    className={`rounded-lg p-3 border transition ${
+                      event.isBirthday
+                        ? 'bg-pink-950/20 border-pink-500/20 hover:border-pink-500/40'
+                        : 'bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30'
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-white truncate">{event.title}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-semibold text-white truncate">{event.title}</h4>
+                          <EventTypeBadge type={event.type} isBirthday={event.isBirthday} />
+                        </div>
                         <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
                           <span>{formatDate(event.date)}</span>
-                          {event.time && <span>• {formatTime(event.time)}</span>}
+                          {event.time ? (
+                            <span>• {formatTime(event.time)}</span>
+                          ) : (
+                            !event.isBirthday && <span>• All Day</span>
+                          )}
                         </div>
                         {event.location && (
                           <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.location}</p>
                         )}
                       </div>
-                      {canManageEvents && (
+                      {canManageEvents && !event.isBirthday && (
                         <div className="flex gap-1 shrink-0">
                           <button
                             onClick={() => handleEditEvent(event)}
@@ -160,18 +196,6 @@ export default function CalendarPage() {
           )}
         </div>
       </main>
-
-      {/* Mobile Add Button */}
-      <div className="md:hidden fixed bottom-4 right-4 z-40">
-        <RoleGate allowedAction="MANAGE_EVENTS">
-          <button
-            onClick={handleAddEvent}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-full shadow-lg"
-          >
-            <PlusCircle className="w-6 h-6" />
-          </button>
-        </RoleGate>
-      </div>
 
       <EventForm
         isOpen={isFormOpen}
