@@ -13,7 +13,6 @@ import {
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { buildTransportPayload } from '@/config/transportOptions';
-import { getInitials } from '@/utils/formatters';
 
 function displayValue(value) {
   if (value === null || value === undefined || value === '') return '-';
@@ -124,16 +123,6 @@ export default function TransportPage() {
   const canManageTransport = canPerformAction('MANAGE_TRANSPORT');
 
   const columns = [
-    {
-      key: 'avatar',
-      label: 'Avatar',
-      className: 'w-[60px]',
-      render: (_, row) => (
-        <div className="w-8 h-8 rounded-full bg-indigo-600 border border-indigo-400/30 flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-          {getInitials(row.name) || '?'}
-        </div>
-      ),
-    },
     {
       key: 'name',
       label: 'Driver Name',
