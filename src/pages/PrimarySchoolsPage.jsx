@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import PageHeader from '@/components/layout/PageHeader';
 import SchoolForm from '@/components/features/schools/SchoolForm';
 import SchoolCard from '@/components/features/schools/SchoolCard';
