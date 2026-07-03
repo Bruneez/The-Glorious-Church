@@ -1,36 +1,31 @@
 import { COLLECTIONS } from '@/config/collections';
-import { 
-  getDocuments, 
-  addDocument, 
-  updateDocument, 
+import { MEMBER_STATUS, buildMemberPayload } from '@/config/memberOptions';
+import {
+  getDocuments,
+  addDocument,
+  updateDocument,
   deleteDocument,
   useCollection,
-  useDocument
+  useDocument,
 } from '@/hooks/useFirestore';
-import { where, orderBy, query } from 'firebase/firestore';
+import { where, orderBy } from 'firebase/firestore';
 
 export function useMembers(filters = {}) {
   const constraints = [];
 
-  if (filters.group) {
-    constraints.push(where('group', '==', filters.group));
+  if (filters.status) {
+    constraints.push(where('status', '==', filters.status));
   }
 
-  if (filters.creativeArts) {
-    constraints.push(where('creativeArts', '==', filters.creativeArts));
+  if (filters.department) {
+    constraints.push(where('department', '==', filters.department));
   }
 
-  if (filters.school) {
-    constraints.push(where('school', '==', filters.school));
+  if (constraints.length > 0) {
+    constraints.push(orderBy('name', 'asc'));
   }
 
-  if (filters.campus) {
-    constraints.push(where('campus', '==', filters.campus));
-  }
-
-  constraints.push(orderBy('name', 'asc'));
-
-  return useCollection(COLLECTIONS.MEMBERS, { constraints });
+  return useCollection(COLLECTIONS.MEMBERS, constraints.length ? { constraints } : {});
 }
 
 export function useMember(memberId) {
@@ -40,16 +35,8 @@ export function useMember(memberId) {
 export async function getMembers(filters = {}) {
   const constraints = [];
 
-  if (filters.group) {
-    constraints.push(where('group', '==', filters.group));
-  }
-
-  if (filters.creativeArts) {
-    constraints.push(where('creativeArts', '==', filters.creativeArts));
-  }
-
-  if (filters.school) {
-    constraints.push(where('school', '==', filters.school));
+  if (filters.department) {
+    constraints.push(where('department', '==', filters.department));
   }
 
   constraints.push(orderBy('name', 'asc'));
@@ -64,17 +51,22 @@ export async function getMember(memberId) {
 
 export async function createMember(memberData) {
   const timestamp = new Date().toISOString();
+  const payload = buildMemberPayload(memberData);
+
   return addDocument(COLLECTIONS.MEMBERS, {
-    ...memberData,
+    ...payload,
+    status: payload.status || MEMBER_STATUS.ACTIVE,
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
   });
 }
 
 export async function updateMember(memberId, memberData) {
+  const payload = buildMemberPayload(memberData, memberData.status);
+
   return updateDocument(COLLECTIONS.MEMBERS, memberId, {
-    ...memberData,
-    updatedAt: new Date().toISOString()
+    ...payload,
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -82,13 +74,20 @@ export async function deleteMember(memberId) {
   return deleteDocument(COLLECTIONS.MEMBERS, memberId);
 }
 
-export async function searchMembers(searchTerm) {
-  const members = await getMembers();
+export function filterMembers(members, searchTerm) {
+  if (!searchTerm) return members;
+
   const term = searchTerm.toLowerCase();
-  return members.filter(member => 
+  return members.filter((member) =>
     member.name?.toLowerCase().includes(term) ||
+    member.surname?.toLowerCase().includes(term) ||
     member.phone?.toLowerCase().includes(term) ||
-    member.email?.toLowerCase().includes(term) ||
-    member.group?.toLowerCase().includes(term)
+    member.department?.toLowerCase().includes(term) ||
+    member.creativeArts?.toLowerCase().includes(term) ||
+    member.occupation?.toLowerCase().includes(term) ||
+    member.school?.toLowerCase().includes(term) ||
+    member.institution?.toLowerCase().includes(term) ||
+    member.grade?.toLowerCase().includes(term) ||
+    member.course?.toLowerCase().includes(term)
   );
 }

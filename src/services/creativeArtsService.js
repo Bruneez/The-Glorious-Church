@@ -1,17 +1,18 @@
 import { COLLECTIONS } from '@/config/collections';
-import { 
-  getDocuments, 
-  addDocument, 
-  updateDocument, 
+import { DEFAULT_DEPARTMENTS, buildDepartmentPayload } from '@/config/creativeArtsOptions';
+import {
+  getDocuments,
+  addDocument,
+  updateDocument,
   deleteDocument,
   useCollection,
-  useDocument
+  useDocument,
 } from '@/hooks/useFirestore';
 import { orderBy } from 'firebase/firestore';
 
 export function useCreativeArts() {
   return useCollection(COLLECTIONS.CREATIVE_ARTS, {
-    constraints: [orderBy('name', 'asc')]
+    constraints: [orderBy('name', 'asc')],
   });
 }
 
@@ -30,18 +31,21 @@ export async function getCreativeArtsTeam(teamId) {
 
 export async function createCreativeArtsTeam(teamData) {
   const timestamp = new Date().toISOString();
+  const payload = buildDepartmentPayload(teamData);
+
   return addDocument(COLLECTIONS.CREATIVE_ARTS, {
-    ...teamData,
-    members: teamData.members || [],
+    ...payload,
     createdAt: timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
   });
 }
 
-export async function updateCreativeArtsTeam(teamId, teamData) {
+export async function updateCreativeArtsTeam(teamId, teamData, initialData = null) {
+  const payload = buildDepartmentPayload(teamData, initialData);
+
   return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
-    ...teamData,
-    updatedAt: new Date().toISOString()
+    ...payload,
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -49,18 +53,37 @@ export async function deleteCreativeArtsTeam(teamId) {
   return deleteDocument(COLLECTIONS.CREATIVE_ARTS, teamId);
 }
 
+export async function seedDefaultDepartmentsIfEmpty() {
+  const existing = await getCreativeArts();
+  if (existing.length > 0) {
+    return existing;
+  }
+
+  for (const department of DEFAULT_DEPARTMENTS) {
+    await createCreativeArtsTeam(department);
+  }
+
+  return getCreativeArts();
+}
+
 export async function addMemberToTeam(teamId, memberId) {
   const team = await getCreativeArtsTeam(teamId);
   const members = team.members || [];
   if (!members.includes(memberId)) {
     members.push(memberId);
-    return updateCreativeArtsTeam(teamId, { members });
+    return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
+      members,
+      updatedAt: new Date().toISOString(),
+    });
   }
   return team;
 }
 
 export async function removeMemberFromTeam(teamId, memberId) {
   const team = await getCreativeArtsTeam(teamId);
-  const members = (team.members || []).filter(id => id !== memberId);
-  return updateCreativeArtsTeam(teamId, { members });
+  const members = (team.members || []).filter((id) => id !== memberId);
+  return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
+    members,
+    updatedAt: new Date().toISOString(),
+  });
 }

@@ -1,53 +1,27 @@
 import { Eye, Edit2, Trash2 } from 'lucide-react';
-import { getInitials } from '@/utils/formatters';
-import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS } from '@/config/memberOptions';
+import { DEPARTMENT_STATUS, getMemberCount } from '@/config/creativeArtsOptions';
+import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
 import Table from '@/components/ui/Table';
 
 function StatusBadge({ status }) {
-  const isActive = (status || MEMBER_STATUS.ACTIVE) === MEMBER_STATUS.ACTIVE;
+  const isActive = (status || DEPARTMENT_STATUS.ACTIVE) === DEPARTMENT_STATUS.ACTIVE;
 
   return (
     <span
-      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
         isActive
           ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-          : 'bg-slate-900/60 text-slate-400 border border-slate-600/20'
+          : 'bg-rose-950/60 text-rose-400 border border-rose-500/20'
       }`}
     >
-      {status || MEMBER_STATUS.ACTIVE}
+      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+      {status || DEPARTMENT_STATUS.ACTIVE}
     </span>
   );
 }
 
-function MemberAvatar({ member }) {
-  const fullName = getMemberFullName(member);
-
-  return (
-    <div className="w-8 h-8 rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-      {member.photo ? (
-        <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-      ) : (
-        getInitials(fullName)
-      )}
-    </div>
-  );
-}
-
-function OccupationCell({ member }) {
-  const { primary, secondary } = getOccupationDisplay(member);
-
-  return (
-    <div className="min-w-[120px]">
-      <span className="text-slate-200">{primary || '-'}</span>
-      {secondary && (
-        <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{secondary}</p>
-      )}
-    </div>
-  );
-}
-
-export default function MembersTable({
-  members,
+export default function CreativeArtsTable({
+  departments,
   onView,
   onEdit,
   onDelete,
@@ -58,31 +32,29 @@ export default function MembersTable({
       key: 'avatar',
       label: 'Avatar',
       className: 'w-[60px]',
-      render: (_, row) => <MemberAvatar member={row} />,
+      render: (_, row) => <DepartmentAvatar department={row} />,
     },
     {
-      key: 'fullName',
-      label: 'Full Name',
-      render: (_, row) => (
-        <span className="font-medium text-slate-100 whitespace-nowrap">
-          {getMemberFullName(row) || '-'}
-        </span>
+      key: 'name',
+      label: 'Department Name',
+      render: (value) => <span className="font-medium text-slate-100">{value || '-'}</span>,
+    },
+    {
+      key: 'leader',
+      label: 'Department Leader',
+      render: (value) => value || 'Not assigned',
+    },
+    {
+      key: 'description',
+      label: 'Description',
+      render: (value) => (
+        <span className="line-clamp-2 max-w-xs">{value || 'Not provided'}</span>
       ),
     },
     {
-      key: 'phone',
-      label: 'Phone Number',
-      render: (value) => <span className="whitespace-nowrap">{value || '-'}</span>,
-    },
-    {
-      key: 'gender',
-      label: 'Gender',
-      render: (value) => value || '-',
-    },
-    {
-      key: 'occupation',
-      label: 'Occupation',
-      render: (_, row) => <OccupationCell member={row} />,
+      key: 'members',
+      label: 'Total Members',
+      render: (_, row) => getMemberCount(row),
     },
     {
       key: 'status',
@@ -135,8 +107,8 @@ export default function MembersTable({
   return (
     <Table
       columns={columns}
-      data={members}
-      emptyMessage="No members found. Add your first member to get started."
+      data={departments}
+      emptyMessage="No departments found."
       className="bg-transparent border-0"
     />
   );
