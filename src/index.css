@@ -1,6 +1,24 @@
 @import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
 
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+}
+
+.leaflet-popup-tip {
+  background: #1e293b;
+  border: 1px solid #475569;
+}
+
+.leaflet-container {
+  background: #020617;
+  font-family: inherit;
 }
