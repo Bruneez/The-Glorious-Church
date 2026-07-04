@@ -60,21 +60,28 @@ export function getMemberFullName(member) {
 
 export function toSchoolSelectOptions(schools) {
   return schools.map((school) => ({
-    value: school.name,
-    label: school.name,
+    value: school.id,
+    label: school.schoolName || school.name || 'Unnamed School',
   }));
+}
+
+export function getOccupationSchoolType(occupation) {
+  if (occupation === 'Primary School') return 'primary';
+  if (occupation === 'High School') return 'high';
+  if (occupation === 'University / College') return 'higher-education';
+  return '';
 }
 
 export function getOccupationDisplay(member) {
   const occupation = member?.occupation || '';
 
   if (occupation === 'Primary School' || occupation === 'High School') {
-    const details = [member?.school, member?.grade].filter(Boolean).join(' • ');
+    const details = [member?.schoolName || member?.school, member?.grade].filter(Boolean).join(' • ');
     return { primary: occupation, secondary: details };
   }
 
   if (occupation === 'University / College') {
-    const details = [member?.institution, member?.course].filter(Boolean).join(' • ');
+    const details = [member?.schoolName || member?.institution, member?.course].filter(Boolean).join(' • ');
     return { primary: occupation, secondary: details };
   }
 
@@ -105,12 +112,17 @@ export function mapMemberToFormData(member) {
       dateOfSalvation: '',
       address: '',
       photo: '',
+      schoolId: '',
+      schoolName: '',
+      schoolType: '',
       school: '',
       grade: '',
       institution: '',
       course: '',
     };
   }
+
+  const schoolName = member.schoolName || member.school || member.institution || '';
 
   return {
     name: member.name || '',
@@ -123,9 +135,12 @@ export function mapMemberToFormData(member) {
     dateOfSalvation: member.dateOfSalvation || '',
     address: member.address || '',
     photo: member.photo || '',
-    school: member.school || '',
+    schoolId: member.schoolId || '',
+    schoolName,
+    schoolType: member.schoolType || '',
+    school: member.school || schoolName,
     grade: member.grade || '',
-    institution: member.institution || '',
+    institution: member.institution || schoolName,
     course: member.course || '',
   };
 }
@@ -148,9 +163,14 @@ export function buildMemberPayload(formData, existingStatus) {
   const occupation = formData.occupation;
 
   if (occupation === 'Primary School' || occupation === 'High School') {
+    const schoolName = formData.schoolName?.trim() || formData.school?.trim() || '';
+
     return {
       ...base,
-      school: formData.school?.trim() || '',
+      schoolId: formData.schoolId || '',
+      schoolName,
+      schoolType: formData.schoolType || getOccupationSchoolType(occupation),
+      school: schoolName,
       grade: formData.grade || '',
       institution: '',
       course: '',
@@ -158,17 +178,25 @@ export function buildMemberPayload(formData, existingStatus) {
   }
 
   if (occupation === 'University / College') {
+    const schoolName = formData.schoolName?.trim() || formData.institution?.trim() || '';
+
     return {
       ...base,
+      schoolId: formData.schoolId || '',
+      schoolName,
+      schoolType: formData.schoolType || getOccupationSchoolType(occupation),
       school: '',
       grade: '',
-      institution: formData.institution?.trim() || '',
+      institution: schoolName,
       course: formData.course?.trim() || '',
     };
   }
 
   return {
     ...base,
+    schoolId: '',
+    schoolName: '',
+    schoolType: '',
     school: '',
     grade: '',
     institution: '',

@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
+import { buildSchoolPayload, buildSchoolUpdatePayload } from '@/config/schoolsOptions';
 import { 
   getDocuments, 
   addDocument, 
@@ -72,4 +73,32 @@ export async function getHighSchools() {
 
 export async function getHigherEducation() {
   return getSchools('higher-education');
+}
+
+export function useSchoolsDirectory() {
+  return useCollection(COLLECTIONS.SCHOOLS, {
+    constraints: [orderBy('schoolName', 'asc')],
+  });
+}
+
+export function useSchoolsByType(schoolType = null) {
+  const { data = [], loading, error } = useSchoolsDirectory();
+
+  const filtered = schoolType
+    ? data.filter((school) => school.schoolType === schoolType)
+    : data;
+
+  return { data: filtered, loading, error };
+}
+
+export async function createSchoolRecord(formData, createdBy) {
+  return addDocument(COLLECTIONS.SCHOOLS, buildSchoolPayload(formData, createdBy));
+}
+
+export async function updateSchoolRecord(schoolId, formData) {
+  return updateDocument(COLLECTIONS.SCHOOLS, schoolId, buildSchoolUpdatePayload(formData));
+}
+
+export async function deleteSchoolRecord(schoolId) {
+  return deleteDocument(COLLECTIONS.SCHOOLS, schoolId);
 }

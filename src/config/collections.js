@@ -3,6 +3,7 @@ export const COLLECTIONS = {
   MEMBERS: 'members',
   CREATIVE_ARTS: 'creative_arts',
   CAMPUSES: 'campuses',
+  SCHOOLS: 'schools',
   ATTENDANCE: 'attendance',
   OFFERINGS: 'offerings',
   EVENTS: 'events',
