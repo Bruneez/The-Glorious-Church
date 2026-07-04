@@ -13,6 +13,7 @@ export default function AttendanceTable({
   onEdit,
   onDelete,
   canManage = false,
+  emptyMessage = 'No attendance records found.',
 }) {
   const columns = [
     {
@@ -89,7 +90,7 @@ export default function AttendanceTable({
     <Table
       columns={columns}
       data={records}
-      emptyMessage="No attendance records found."
+      emptyMessage={emptyMessage}
       className="bg-transparent border-0"
     />
   );

@@ -4,7 +4,8 @@ const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.CA_LEADER];
 
 export const ROUTE_ACCESS = {
   '/dashboard': ALL_STAFF,
-  '/users': ALL_STAFF,
+  '/users': [ROLES.ADMIN],
+  '/system-users': [ROLES.ADMIN],
   '/members': ALL_STAFF,
   '/creative-arts': ALL_STAFF,
   '/schools/primary': ALL_STAFF,

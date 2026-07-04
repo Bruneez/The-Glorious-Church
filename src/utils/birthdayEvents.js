@@ -97,3 +97,43 @@ export function mergeCalendarEvents(firestoreEvents = [], birthdayEvents = []) {
     return a.title.localeCompare(b.title);
   });
 }
+
+export function getUpcomingBirthdays(members = [], limit = 5, referenceDate = new Date()) {
+  const todayStart = new Date(referenceDate);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const upcoming = members
+    .map((member) => {
+      const parsed = parseValidBirthDate(getMemberDateOfBirth(member));
+      if (!parsed) return null;
+
+      const currentYear = todayStart.getFullYear();
+      const nextOccurrence = [currentYear, currentYear + 1]
+        .map((year) => ({
+          member,
+          date: getBirthdayDateForYear(parsed, year),
+        }))
+        .map(({ member, date }) => ({
+          member,
+          date,
+          dateObj: new Date(`${date}T00:00:00`),
+        }))
+        .filter(({ dateObj }) => dateObj >= todayStart)
+        .sort((a, b) => a.dateObj - b.dateObj)[0];
+
+      if (!nextOccurrence) return null;
+
+      return {
+        id: member.id,
+        name: getMemberFullName(member) || 'Member',
+        photo: member.photo || '',
+        birthday: nextOccurrence.date,
+        member: nextOccurrence.member,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.birthday.localeCompare(b.birthday))
+    .slice(0, limit);
+
+  return upcoming;
+}

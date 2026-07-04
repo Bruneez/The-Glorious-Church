@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import AttendanceForm from '@/components/features/attendance/AttendanceForm';
 import AttendanceMarkingScreen from '@/components/features/attendance/AttendanceMarkingScreen';
@@ -18,6 +18,7 @@ import {
   buildAttendanceRecordPayload,
   computeAttendanceStats,
   entriesToMarkings,
+  filterAttendanceRecordsForSearch,
   mapAttendanceRecordForTable,
 } from '@/config/attendanceOptions';
 
@@ -44,6 +45,7 @@ export default function AttendancePage() {
   const [viewingRecord, setViewingRecord] = useState(null);
   const [deletingRecord, setDeletingRecord] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const canManageAttendance = canPerformAction('MANAGE_ATTENDANCE');
@@ -52,6 +54,15 @@ export default function AttendancePage() {
     () => attendanceRecords.map(mapAttendanceRecordForTable),
     [attendanceRecords],
   );
+
+  const filteredRecords = useMemo(
+    () => filterAttendanceRecordsForSearch(records, searchTerm),
+    [records, searchTerm],
+  );
+
+  const recordsEmptyMessage = searchTerm.trim()
+    ? 'No matching attendance records found.'
+    : 'No attendance records found.';
 
   const stats = useMemo(
     () => computeAttendanceStats(attendanceRecords),
@@ -187,11 +198,24 @@ export default function AttendancePage() {
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-700/70 bg-slate-800/40">
-          <h2 className="text-sm font-bold text-white tracking-wide">Attendance Records</h2>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Service attendance logs and participation history.
-          </p>
+        <div className="p-4 border-b border-slate-700/70 bg-slate-800/40 flex flex-col gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-white tracking-wide">Attendance Records</h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Service attendance logs and participation history.
+            </p>
+          </div>
+
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search by date, recorded by, present, or absent..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
         </div>
 
         {recordsLoading ? (
@@ -202,21 +226,23 @@ export default function AttendancePage() {
           <>
             <div className="hidden md:block p-4">
               <AttendanceTable
-                records={records}
+                records={filteredRecords}
                 onView={handleViewRecord}
                 onEdit={canManageAttendance ? handleEditRecord : undefined}
                 onDelete={canManageAttendance ? handleDeleteRecord : undefined}
                 canManage={canManageAttendance}
+                emptyMessage={recordsEmptyMessage}
               />
             </div>
 
             <div className="p-4 md:hidden">
               <AttendanceMobileList
-                records={records}
+                records={filteredRecords}
                 onView={handleViewRecord}
                 onEdit={canManageAttendance ? handleEditRecord : undefined}
                 onDelete={canManageAttendance ? handleDeleteRecord : undefined}
                 canManage={canManageAttendance}
+                emptyMessage={recordsEmptyMessage}
               />
             </div>
           </>

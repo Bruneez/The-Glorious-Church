@@ -1,4 +1,5 @@
 import { getMemberDepartment, getMemberFullName } from '@/config/memberOptions';
+import { formatDate } from '@/utils/formatters';
 
 export const ATTENDANCE_STATUS = {
   PRESENT: 'Present',
@@ -98,6 +99,44 @@ export function computeAttendanceStats(records = []) {
   const average = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 
   return { highest, average };
+}
+
+export function filterAttendanceRecordsForSearch(mappedRecords = [], searchTerm = '') {
+  const term = searchTerm.trim().toLowerCase();
+  if (!term) return mappedRecords;
+
+  return mappedRecords.filter((record) => {
+    const haystack = [
+      record.attendanceDate,
+      record.attendanceDate ? formatDate(record.attendanceDate) : '',
+      record.recordedBy,
+      String(record.present ?? ''),
+      String(record.absent ?? ''),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(term);
+  });
+}
+
+export function filterAttendanceEntryMembers(entryMembers = [], searchTerm = '') {
+  const term = searchTerm.trim().toLowerCase();
+  if (!term) return entryMembers;
+
+  return entryMembers.filter((entry) => {
+    const haystack = [
+      entry.fullName,
+      entry.department,
+      entry.status,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(term);
+  });
 }
 
 export function mapAttendanceRecordForTable(record) {

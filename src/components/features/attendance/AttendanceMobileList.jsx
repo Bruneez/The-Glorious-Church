@@ -12,11 +12,12 @@ export default function AttendanceMobileList({
   onEdit,
   onDelete,
   canManage = false,
+  emptyMessage = 'No attendance records found.',
 }) {
   if (!records.length) {
     return (
       <div className="py-8 text-center md:hidden">
-        <p className="text-slate-500 text-xs">No attendance records found.</p>
+        <p className="text-slate-500 text-xs">{emptyMessage}</p>
       </div>
     );
   }
