@@ -9,6 +9,7 @@ import CreativeArtsPage from '@/pages/CreativeArtsPage';
 import PrimarySchoolsPage from '@/pages/PrimarySchoolsPage';
 import HighSchoolsPage from '@/pages/HighSchoolsPage';
 import HigherEducationPage from '@/pages/HigherEducationPage';
+import SchoolsPage from '@/pages/SchoolsPage';
 import AttendancePage from '@/pages/AttendancePage';
 import OfferingsPage from '@/pages/OfferingsPage';
 import TransportPage from '@/pages/TransportPage';
@@ -32,6 +33,7 @@ export default function AppRoutes() {
           <Route path="users" element={<UsersPage />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="creative-arts" element={<CreativeArtsPage />} />
+          <Route path="schools" element={<SchoolsPage />} />
           <Route path="schools/primary" element={<PrimarySchoolsPage />} />
           <Route path="schools/high" element={<HighSchoolsPage />} />
           <Route path="schools/higher-education" element={<HigherEducationPage />} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -13,20 +13,46 @@ import {
   mapMemberToFormData,
   toSchoolSelectOptions,
 } from '@/config/memberOptions';
-import { useSchools } from '@/services/schoolsService';
+import { SCHOOL_TYPE } from '@/config/schoolsOptions';
+import { useSchoolsByType } from '@/services/schoolsService';
 import { uploadMemberPhoto } from '@/services/storageService';
 import { getInitials } from '@/utils/formatters';
 
+function resolveSchoolSelection(member, schools) {
+  if (!member) return null;
+
+  if (member.schoolId) {
+    return schools.find((school) => school.id === member.schoolId) || null;
+  }
+
+  const schoolName = (member.schoolName || member.school || member.institution || '')
+    .trim()
+    .toLowerCase();
+
+  if (!schoolName) return null;
+
+  return schools.find(
+    (school) => school.schoolName?.trim().toLowerCase() === schoolName,
+  ) || null;
+}
+
 export default function MemberForm({ isOpen, onClose, onSubmit, initialData = null }) {
-  const { data: primarySchools = [] } = useSchools('primary');
-  const { data: highSchools = [] } = useSchools('high');
-  const { data: higherEducationSchools = [] } = useSchools('higher-education');
+  const { data: primarySchools = [] } = useSchoolsByType(SCHOOL_TYPE.PRIMARY);
+  const { data: highSchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGH);
+  const { data: universitySchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGHER_EDUCATION);
 
   const [formData, setFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const activeSchoolOptions = useMemo(() => {
+    if (formData.occupation === 'Primary School') return primarySchools;
+    if (formData.occupation === 'High School') return highSchools;
+    if (formData.occupation === 'University / College') return universitySchools;
+    return [];
+  }, [formData.occupation, primarySchools, highSchools, universitySchools]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -38,6 +64,22 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     setError('');
     setIsSubmitting(false);
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !initialData || formData.schoolId || !activeSchoolOptions.length) return;
+
+    const matchedSchool = resolveSchoolSelection(initialData, activeSchoolOptions);
+    if (!matchedSchool) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      schoolId: matchedSchool.id,
+      schoolName: matchedSchool.schoolName || '',
+      schoolType: matchedSchool.schoolType || '',
+      school: matchedSchool.schoolName || '',
+      institution: matchedSchool.schoolName || '',
+    }));
+  }, [activeSchoolOptions, formData.schoolId, initialData, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,6 +126,19 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     reader.readAsDataURL(file);
   };
 
+  const applySchoolSelection = (schoolId, schools) => {
+    const selectedSchool = schools.find((school) => school.id === schoolId);
+
+    setFormData((prev) => ({
+      ...prev,
+      schoolId: schoolId || '',
+      schoolName: selectedSchool?.schoolName || '',
+      schoolType: selectedSchool?.schoolType || '',
+      school: selectedSchool?.schoolName || '',
+      institution: selectedSchool?.schoolName || '',
+    }));
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -91,11 +146,19 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
       setFormData((prev) => ({
         ...prev,
         occupation: value,
+        schoolId: '',
+        schoolName: '',
+        schoolType: '',
         school: '',
         grade: '',
         institution: '',
         course: '',
       }));
+      return;
+    }
+
+    if (name === 'schoolId') {
+      applySchoolSelection(value, activeSchoolOptions);
       return;
     }
 
@@ -196,8 +259,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Select
               label="Primary School"
-              name="school"
-              value={formData.school}
+              name="schoolId"
+              value={formData.schoolId}
               onChange={handleChange}
               options={toSchoolSelectOptions(primarySchools)}
               placeholder="Select School"
@@ -217,8 +280,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Select
               label="High School"
-              name="school"
-              value={formData.school}
+              name="schoolId"
+              value={formData.schoolId}
               onChange={handleChange}
               options={toSchoolSelectOptions(highSchools)}
               placeholder="Select School"
@@ -238,10 +301,10 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Select
               label="University / College"
-              name="institution"
-              value={formData.institution}
+              name="schoolId"
+              value={formData.schoolId}
               onChange={handleChange}
-              options={toSchoolSelectOptions(higherEducationSchools)}
+              options={toSchoolSelectOptions(universitySchools)}
               placeholder="Select School"
             />
             <Input
