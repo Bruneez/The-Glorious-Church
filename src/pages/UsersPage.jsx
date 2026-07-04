@@ -1,13 +1,14 @@
-import { useState, useMemo } from 'react';
-import { UserPlus, Search, Edit2, Trash2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { UserPlus, Search, Eye, Edit2, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import UserForm from '@/components/features/users/UserForm';
+import UserViewModal from '@/components/features/users/UserViewModal';
 import Table from '@/components/ui/Table';
 import Button from '@/components/ui/Button';
 import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
 import { updateDocument, deleteDocument } from '@/hooks/useFirestore';
-import { createStaffUser, getCreateStaffUserErrorMessage } from '@/services/staffUserService';
+import { createStaffUser } from '@/services/staffUserService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { ROLES } from '@/config/roles';
 import { getInitials } from '@/utils/formatters';
@@ -21,6 +22,14 @@ export default function UsersPage() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    if (!saveMessage) return undefined;
+    const timer = setTimeout(() => setSaveMessage(''), 4000);
+    return () => clearTimeout(timer);
+  }, [saveMessage]);
 
   const filteredStaff = useMemo(() => {
     let filtered = [...staff];
@@ -59,33 +68,35 @@ export default function UsersPage() {
     setIsFormOpen(true);
   };
 
+  const handleViewUser = (user) => {
+    setViewingUser(user);
+  };
+
   const handleFormSubmit = async (formData) => {
     const staffData = {
-      name: formData.name,
-      email: formData.email,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
       role: formData.role,
       phone: formData.phone,
-      photo: formData.photo || ''
+      photo: formData.photo || '',
     };
 
-    try {
-      if (editingUser) {
-        await updateDocument(COLLECTIONS.STAFF, editingUser.id, staffData);
-      } else {
-        await createStaffUser({
-          ...staffData,
-          password: formData.password,
-        });
-      }
-      setIsFormOpen(false);
-      setEditingUser(null);
-    } catch (error) {
-      console.error('Error saving staff member:', error);
-      const message = editingUser
-        ? (error?.message || 'Failed to save staff member. Please try again.')
-        : getCreateStaffUserErrorMessage(error);
-      alert(message);
+    if (editingUser) {
+      await updateDocument(COLLECTIONS.STAFF, editingUser.id, {
+        ...staffData,
+        fullName: staffData.name,
+      });
+      setSaveMessage('Staff member updated successfully.');
+    } else {
+      await createStaffUser({
+        ...staffData,
+        password: formData.password,
+      });
+      setSaveMessage('Staff user created successfully.');
     }
+
+    setIsFormOpen(false);
+    setEditingUser(null);
   };
 
   const handleDeleteUser = async (userId) => {
@@ -145,24 +156,33 @@ export default function UsersPage() {
       label: 'Actions',
       className: 'text-right',
       render: (value, row) => (
-        canManageStaff && (
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => handleEditUser(row)}
-              className="text-indigo-400 hover:text-indigo-300 p-1 rounded hover:bg-indigo-500/10 transition"
-              title="Edit"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleDeleteUser(row.id)}
-              className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-500/10 transition"
-              title="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => handleViewUser(row)}
+            className="text-slate-300 hover:text-white p-1 rounded hover:bg-slate-700/30 transition"
+            title="View"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+          {canManageStaff && (
+            <>
+              <button
+                onClick={() => handleEditUser(row)}
+                className="text-indigo-400 hover:text-indigo-300 p-1 rounded hover:bg-indigo-500/10 transition"
+                title="Edit"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleDeleteUser(row.id)}
+                className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-500/10 transition"
+                title="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
       )
     }
   ];
@@ -177,6 +197,12 @@ export default function UsersPage() {
       <p className="text-[11px] text-slate-400">
         Signed in as: <span className="font-semibold text-slate-100">{currentUserRole || 'Unassigned Staff Role'}</span>
       </p>
+
+      {saveMessage && (
+        <p className="text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 rounded-lg px-3 py-2">
+          {saveMessage}
+        </p>
+      )}
 
       <div className="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-700/70 bg-slate-800/40 flex flex-col gap-3">
@@ -249,6 +275,13 @@ export default function UsersPage() {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingUser}
+      />
+
+      <UserViewModal
+        user={viewingUser}
+        staffDirectory={staff}
+        isOpen={Boolean(viewingUser)}
+        onClose={() => setViewingUser(null)}
       />
     </div>
   );

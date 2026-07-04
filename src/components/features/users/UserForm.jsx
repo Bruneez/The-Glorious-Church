@@ -5,6 +5,7 @@ import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { ROLES } from '@/config/roles';
+import { getCreateStaffUserErrorMessage } from '@/services/staffUserService';
 
 const ROLE_OPTIONS = [
   { value: ROLES.ADMIN, label: 'Admin' },
@@ -23,6 +24,7 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -37,11 +39,22 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
       confirmPassword: ''
     });
     setError('');
+    setIsSubmitting(false);
   }, [initialData, isOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!formData.name.trim()) {
+      setError('Staff member name is required.');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError('Email address is required.');
+      return;
+    }
 
     if (!initialData) {
       if (formData.password.length < 6) {
@@ -54,7 +67,20 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
       }
     }
 
-    onSubmit(formData);
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(formData);
+    } catch (submitError) {
+      console.error('Error saving staff member:', submitError);
+      setError(
+        initialData
+          ? (submitError?.message || 'Failed to save staff member. Please try again.')
+          : getCreateStaffUserErrorMessage(submitError),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -129,11 +155,11 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
         {error && <p className="text-rose-400 text-[11px]">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit">
-            Save Staff Member
+          <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
+            Save User
           </Button>
         </div>
       </form>

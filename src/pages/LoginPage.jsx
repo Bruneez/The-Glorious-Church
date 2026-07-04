@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthErrorMessage } from '@/services/authService';
@@ -7,17 +7,14 @@ import AlertBanner from '@/components/ui/AlertBanner';
 
 export default function LoginPage() {
   const { signIn, isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const redirectTo = location.state?.from || '/dashboard';
-
   if (!isLoading && isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (isLoading) {
@@ -35,7 +32,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email.trim(), password);
-      navigate(redirectTo, { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Authentication Failure:', err);
       setError(getAuthErrorMessage(err));

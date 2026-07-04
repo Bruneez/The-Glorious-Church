@@ -31,6 +31,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="system-users" element={<Navigate to="/users" replace />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="creative-arts" element={<CreativeArtsPage />} />
           <Route path="schools" element={<SchoolsPage />} />
