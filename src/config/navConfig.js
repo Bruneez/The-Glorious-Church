@@ -10,6 +10,7 @@ import {
   Banknote,
   Bus,
   Calendar,
+  KanbanSquare,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -24,6 +25,7 @@ export const NAV_ITEMS = [
   { path: '/offerings', label: 'Offerings Log', icon: Banknote, roles: null },
   { path: '/transport', label: 'Saturday Transport', icon: Bus, roles: null },
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
+  { path: '/development-board', label: 'Development Board', icon: KanbanSquare, roles: null },
 ];
 
 import { canAccessRoute } from './permissions';
@@ -44,4 +46,5 @@ export const PAGE_TITLES = {
   '/offerings': 'Offerings Log',
   '/transport': 'Saturday Transport',
   '/calendar': 'Calendar',
+  '/development-board': 'Development Board',
 };

@@ -9,4 +9,5 @@ export const COLLECTIONS = {
   EVENTS: 'events',
   TRANSPORT: 'transport',
   TRANSPORT_ASSIGNMENTS: 'transportAssignments',
+  DEVELOPMENT_TASKS: 'developmentTasks',
 };

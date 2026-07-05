@@ -7,6 +7,7 @@ export default function AppLayout() {
   const mobileMenu = useMobileMenu();
   const { pathname } = useLocation();
   const isMapRoute = pathname.startsWith('/maps/');
+  const isFullWidthRoute = isMapRoute || pathname === '/development-board';
 
   return (
     <div className="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">
@@ -18,9 +19,9 @@ export default function AppLayout() {
         <PageHeader />
         <main
           className={
-            isMapRoute
-              ? 'p-4 md:p-6 overflow-hidden flex-1 flex flex-col max-w-none w-full'
-              : 'p-4 md:p-6 overflow-y-auto flex-1 max-w-6xl w-full mx-auto'
+            isFullWidthRoute
+              ? 'p-4 md:p-6 overflow-y-auto flex-1 flex flex-col max-w-none w-full min-w-0'
+              : 'p-4 md:p-6 overflow-y-auto flex-1 max-w-6xl w-full mx-auto min-w-0'
           }
         >
           <Outlet />

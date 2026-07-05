@@ -18,6 +18,7 @@ import UsersPage from '@/pages/UsersPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
 import MembersMapPage from '@/pages/MembersMapPage';
 import HighSchoolsMapPage from '@/pages/HighSchoolsMapPage';
+import DevelopmentBoardPage from '@/pages/DevelopmentBoardPage';
 
 export default function AppRoutes() {
   return (
@@ -44,6 +45,7 @@ export default function AppRoutes() {
           <Route path="offerings" element={<OfferingsPage />} />
           <Route path="transport" element={<TransportPage />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="development-board" element={<DevelopmentBoardPage />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
         </Route>
       </Route>
