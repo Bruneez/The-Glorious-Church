@@ -17,6 +17,7 @@ export const ROUTE_ACCESS = {
   '/offerings': ALL_STAFF,
   '/transport': ALL_STAFF,
   '/calendar': ALL_STAFF,
+  '/development-board': [ROLES.ADMIN],
 };
 
 export function canAccessRoute(role, pathname) {
@@ -35,6 +36,7 @@ export const ACTIONS = {
   MANAGE_TRANSPORT: [ROLES.ADMIN, ROLES.PASTOR],
   MANAGE_SCHOOLS: [ROLES.ADMIN, ROLES.PASTOR],
   EDIT_DELETE_SCHOOLS: [ROLES.ADMIN],
+  MANAGE_DEVELOPMENT_BOARD: [ROLES.ADMIN],
 };
 
 export function canPerformAction(role, action) {
