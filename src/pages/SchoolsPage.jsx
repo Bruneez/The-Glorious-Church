@@ -3,8 +3,7 @@ import { Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import SchoolsForm from '@/components/features/schools/SchoolsForm';
 import SchoolsViewModal from '@/components/features/schools/SchoolsViewModal';
-import SchoolsTable from '@/components/features/schools/SchoolsTable';
-import SchoolsMobileList from '@/components/features/schools/SchoolsMobileList';
+import SchoolsCardGrid from '@/components/features/schools/SchoolsCardGrid';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useMembers } from '@/services/membersService';
@@ -235,33 +234,20 @@ export default function SchoolsPage() {
                 <p className="text-[11px] text-slate-400 mt-0.5">{category.description}</p>
               </div>
 
-              <div className="p-4">
+              <div className="p-4 md:p-5">
                 {schoolsLoading ? (
-                  <div className="flex justify-center py-8">
+                  <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
                   </div>
                 ) : (
-                  <>
-                    <div className="hidden md:block">
-                      <SchoolsTable
-                        schools={categorySchools}
-                        onView={handleViewSchool}
-                        onEdit={canEditDeleteSchools ? handleEditSchool : undefined}
-                        onDelete={canEditDeleteSchools ? handleDeleteSchool : undefined}
-                        canManage={canEditDeleteSchools}
-                        emptyMessage={category.emptyMessage}
-                      />
-                    </div>
-
-                    <SchoolsMobileList
-                      schools={categorySchools}
-                      onView={handleViewSchool}
-                      onEdit={canEditDeleteSchools ? handleEditSchool : undefined}
-                      onDelete={canEditDeleteSchools ? handleDeleteSchool : undefined}
-                      canManage={canEditDeleteSchools}
-                      emptyMessage={category.emptyMessage}
-                    />
-                  </>
+                  <SchoolsCardGrid
+                    schools={categorySchools}
+                    onView={handleViewSchool}
+                    onEdit={canEditDeleteSchools ? handleEditSchool : undefined}
+                    onDelete={canEditDeleteSchools ? handleDeleteSchool : undefined}
+                    canManage={canEditDeleteSchools}
+                    emptyMessage={category.emptyMessage}
+                  />
                 )}
               </div>
             </div>
