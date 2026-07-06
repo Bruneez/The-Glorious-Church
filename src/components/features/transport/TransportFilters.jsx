@@ -14,7 +14,7 @@ export default function TransportFilters({
         <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
         <input
           type="text"
-          placeholder="Search drivers by name, phone number, or vehicle registration..."
+          placeholder="Search drivers by name, phone, vehicle registration, or route..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500 transition"
