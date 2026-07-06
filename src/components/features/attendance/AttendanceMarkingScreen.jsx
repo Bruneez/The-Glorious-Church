@@ -11,6 +11,7 @@ import {
   ATTENDANCE_STATUS_OPTIONS,
   DEPARTMENT_FILTER_ALL,
   filterMembersForAttendance,
+  filterMembersForCALeader,
   getDepartmentFilterOptions,
 } from '@/config/attendanceOptions';
 
@@ -41,10 +42,23 @@ function AttendanceStatusDropdown({ memberId, value, onChange }) {
   );
 }
 
-export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSave }) {
-  const { data: members = [], loading } = useMembers();
+export default function AttendanceMarkingScreen({
+  isOpen,
+  session,
+  onClose,
+  onSave,
+  departmentScope = null,
+}) {
+  const { data: allMembers = [], loading } = useMembers();
   const { staffProfile, firebaseUser } = useAuth();
   const initializedFor = useRef(null);
+
+  const members = useMemo(() => {
+    if (departmentScope?.lockToDepartment) {
+      return filterMembersForCALeader(allMembers, departmentScope.staffProfile || staffProfile);
+    }
+    return allMembers;
+  }, [allMembers, departmentScope, staffProfile]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState(DEPARTMENT_FILTER_ALL);
@@ -60,20 +74,23 @@ export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSa
     }
 
     setSearchTerm('');
-    setDepartmentFilter(DEPARTMENT_FILTER_ALL);
+    setDepartmentFilter(
+      departmentScope?.departmentName || DEPARTMENT_FILTER_ALL,
+    );
     setError('');
     setIsSaving(false);
-    setAttendanceDate(session?.serviceDate || '');
-  }, [isOpen, session?.serviceDate, session?.recordId]);
+    setAttendanceDate(session?.attendanceDate || session?.serviceDate || '');
+  }, [isOpen, session?.attendanceDate, session?.serviceDate, session?.recordId, departmentScope?.departmentName]);
 
   useEffect(() => {
-    if (!isOpen || loading || !session?.serviceDate || members.length === 0) {
+    const sessionDate = session?.attendanceDate || session?.serviceDate;
+    if (!isOpen || loading || !sessionDate || members.length === 0) {
       return;
     }
 
     const sessionKey = session.recordId
       ? `edit-${session.recordId}`
-      : `new-${session.serviceDate}`;
+      : `new-${sessionDate}`;
 
     if (initializedFor.current === sessionKey) {
       return;
@@ -90,17 +107,23 @@ export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSa
         ]),
       ),
     );
-  }, [isOpen, loading, members, session?.serviceDate, session?.recordId, session?.initialMarkings]);
+  }, [isOpen, loading, members, session?.attendanceDate, session?.serviceDate, session?.recordId, session?.initialMarkings]);
 
-  const departmentOptions = useMemo(
-    () => getDepartmentFilterOptions(members),
-    [members],
-  );
+  const departmentOptions = useMemo(() => {
+    if (departmentScope?.lockToDepartment) {
+      const label = departmentScope.departmentName || 'My Department';
+      return [{ value: departmentScope.departmentName || DEPARTMENT_FILTER_ALL, label }];
+    }
+    return getDepartmentFilterOptions(members);
+  }, [departmentScope, members]);
 
-  const filteredMembers = useMemo(
-    () => filterMembersForAttendance(members, searchTerm, departmentFilter),
-    [members, searchTerm, departmentFilter],
-  );
+  const filteredMembers = useMemo(() => {
+    const department = departmentScope?.lockToDepartment
+      ? departmentScope.departmentName || DEPARTMENT_FILTER_ALL
+      : departmentFilter;
+
+    return filterMembersForAttendance(members, searchTerm, department);
+  }, [members, searchTerm, departmentFilter, departmentScope]);
 
   const presentCount = useMemo(
     () => Object.values(markings).filter((status) => status === ATTENDANCE_STATUS.PRESENT).length,
@@ -135,7 +158,7 @@ export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSa
         staffProfile?.name || firebaseUser?.displayName || firebaseUser?.email || 'Staff Member';
 
       await onSave(
-        { ...session, serviceDate: attendanceDate },
+        { ...session, attendanceDate },
         markings,
         recordedBy,
       );
@@ -166,7 +189,12 @@ export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSa
               {session.recordId ? 'Edit Attendance' : 'Mark Attendance'}
             </h3>
             <p className="text-[11px] text-slate-400 mt-1">
-              {session.recordId ? 'Update attendance for this service date.' : formatDate(session.serviceDate)}
+              {session.recordId
+                ? 'Update attendance for this service date.'
+                : formatDate(session.attendanceDate || session.serviceDate)}
+              {departmentScope?.departmentName && (
+                <span className="text-indigo-400"> · {departmentScope.departmentName}</span>
+              )}
             </p>
             {session.recordId && (
               <div className="mt-2">
@@ -208,7 +236,8 @@ export default function AttendanceMarkingScreen({ isOpen, session, onClose, onSa
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer sm:min-w-[180px]"
+              disabled={departmentScope?.lockToDepartment}
+              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer sm:min-w-[180px] disabled:opacity-60"
             >
               {departmentOptions.map((option) => (
                 <option key={option.value} value={option.value}>

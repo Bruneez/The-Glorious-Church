@@ -8,7 +8,11 @@ import { formatDate } from '@/utils/formatters';
 import {
   ATTENDANCE_STATUS,
   filterAttendanceEntryMembers,
+  getAttendanceDate,
+  getRecordMembers,
+  getRecordTotalAttendance,
   getRecordTotalPresent,
+  isServiceAttendanceRecord,
   resolveAttendanceEntryMembers,
 } from '@/config/attendanceOptions';
 
@@ -53,7 +57,7 @@ export default function AttendanceViewModal({ record, isOpen, onClose }) {
 
   const entryMembers = useMemo(() => {
     if (!record) return [];
-    return resolveAttendanceEntryMembers(record.entries || [], members);
+    return resolveAttendanceEntryMembers(getRecordMembers(record), members);
   }, [record, members]);
 
   const filteredEntryMembers = useMemo(
@@ -63,7 +67,8 @@ export default function AttendanceViewModal({ record, isOpen, onClose }) {
 
   if (!record) return null;
 
-  const attendanceDate = record.serviceDate || record.date || '';
+  const attendanceDate = getAttendanceDate(record);
+  const isServiceRecord = isServiceAttendanceRecord(record);
   const totalPresent = getRecordTotalPresent(record);
   const totalAbsent = record.totalAbsent ?? record.absent ?? 0;
 
@@ -73,7 +78,7 @@ export default function AttendanceViewModal({ record, isOpen, onClose }) {
       onClose={onClose}
       title="Attendance Details"
       icon={ClipboardList}
-      maxWidth="max-w-2xl"
+      maxWidth={isServiceRecord ? 'max-w-lg' : 'max-w-2xl'}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -82,78 +87,96 @@ export default function AttendanceViewModal({ record, isOpen, onClose }) {
             value={attendanceDate ? formatDate(attendanceDate) : '-'}
           />
           <DetailField label="Recorded By" value={record.recordedBy || '-'} />
-          <DetailField label="Total Present" value={String(totalPresent)} />
-          <DetailField label="Total Absent" value={String(totalAbsent)} />
-        </div>
-
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Members
-            </h4>
-            {entryMembers.length > 0 && (
-              <div className="relative max-w-xs w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search members..."
-                  value={memberSearchTerm}
-                  onChange={(event) => setMemberSearchTerm(event.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500" />
-            </div>
-          ) : entryMembers.length === 0 ? (
-            <div className="rounded-xl bg-slate-900/50 border border-slate-700/60 p-6 text-center">
-              <p className="text-slate-500 text-xs">No member attendance details saved for this record.</p>
-            </div>
-          ) : filteredEntryMembers.length === 0 ? (
-            <div className="rounded-xl bg-slate-900/50 border border-slate-700/60 p-6 text-center">
-              <p className="text-slate-500 text-xs">No matching attendance records found.</p>
-            </div>
+          {isServiceRecord ? (
+            <>
+              <DetailField label="Total Attendance" value={String(getRecordTotalAttendance(record))} />
+              <DetailField label="Visitors" value={String(record.visitors ?? 0)} />
+              <DetailField label="First-Time Visitors" value={String(record.firstTimeVisitors ?? 0)} />
+              <DetailField label="Salvations" value={String(record.salvations ?? 0)} />
+            </>
           ) : (
-            <div className="rounded-xl border border-slate-700/70 overflow-hidden max-h-72 overflow-y-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-slate-700 bg-slate-900/60 sticky top-0">
-                    <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider w-[50px]">
-                      Avatar
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
-                      Member
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
-                      Department
-                    </th>
-                    <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEntryMembers.map((entry) => (
-                    <tr key={entry.memberId} className="border-b border-slate-700/50">
-                      <td className="px-3 py-2">
-                        <MemberAvatar member={entry.member} fullName={entry.fullName} />
-                      </td>
-                      <td className="px-3 py-2 font-medium text-slate-100">{entry.fullName}</td>
-                      <td className="px-3 py-2 text-slate-400">{entry.department}</td>
-                      <td className="px-3 py-2">
-                        <StatusBadge status={entry.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <DetailField label="Department" value={record.departmentName || '-'} />
+              <DetailField label="Total Present" value={String(totalPresent)} />
+              <DetailField label="Total Absent" value={String(totalAbsent)} />
+            </>
           )}
         </div>
+
+        {isServiceRecord && record.notes && (
+          <DetailField label="Notes" value={record.notes} />
+        )}
+
+        {!isServiceRecord && (
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Members
+              </h4>
+              {entryMembers.length > 0 && (
+                <div className="relative max-w-xs w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Search members..."
+                    value={memberSearchTerm}
+                    onChange={(event) => setMemberSearchTerm(event.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500" />
+              </div>
+            ) : entryMembers.length === 0 ? (
+              <div className="rounded-xl bg-slate-900/50 border border-slate-700/60 p-6 text-center">
+                <p className="text-slate-500 text-xs">No member attendance details saved for this record.</p>
+              </div>
+            ) : filteredEntryMembers.length === 0 ? (
+              <div className="rounded-xl bg-slate-900/50 border border-slate-700/60 p-6 text-center">
+                <p className="text-slate-500 text-xs">No matching attendance records found.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-700/70 overflow-hidden max-h-72 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-700 bg-slate-900/60 sticky top-0">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider w-[50px]">
+                        Avatar
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
+                        Member
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
+                        Department
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEntryMembers.map((entry) => (
+                      <tr key={entry.memberId} className="border-b border-slate-700/50">
+                        <td className="px-3 py-2">
+                          <MemberAvatar member={entry.member} fullName={entry.fullName} />
+                        </td>
+                        <td className="px-3 py-2 font-medium text-slate-100">{entry.fullName}</td>
+                        <td className="px-3 py-2 text-slate-400">{entry.department}</td>
+                        <td className="px-3 py-2">
+                          <StatusBadge status={entry.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
 
         <div className="flex justify-end pt-2 border-t border-slate-700">
           <Button type="button" variant="secondary" onClick={onClose}>
