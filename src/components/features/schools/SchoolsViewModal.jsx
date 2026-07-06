@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { School } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import UserAvatar from '@/components/ui/UserAvatar';
 import SchoolLinkedMembersTable, { SchoolStatusBadge } from '@/components/features/schools/SchoolLinkedMembersTable';
 import {
   getMembersLinkedToSchool,
@@ -26,6 +27,9 @@ export default function SchoolsViewModal({ school, members = [], isOpen, onClose
 
   if (!school) return null;
 
+  const logo = school.logo || school.photo || '';
+  const linkedCount = linkedMembers.length;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -35,14 +39,25 @@ export default function SchoolsViewModal({ school, members = [], isOpen, onClose
       maxWidth="max-w-5xl"
     >
       <div className="space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-slate-700/70">
+          <UserAvatar name={school.schoolName} photo={logo} size="xl" />
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-white tracking-wide">{school.schoolName || '—'}</h3>
+            <p className="text-sm text-indigo-400/90 mt-0.5">{getSchoolTypeLabel(school.schoolType)}</p>
+            <div className="mt-2">
+              <SchoolStatusBadge status={school.status} />
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <DetailField label="School Name" value={school.schoolName || '—'} />
           <DetailField label="School Type" value={getSchoolTypeLabel(school.schoolType)} />
+          <DetailField label="Total Members" value={linkedCount} />
           <DetailField label="Address" value={school.address || '—'} />
           <DetailField label="Status">
             <SchoolStatusBadge status={school.status} />
           </DetailField>
-          <DetailField label="Total Members" value={linkedMembers.length} />
         </div>
 
         <div className="rounded-xl border border-slate-700/70 overflow-hidden">
