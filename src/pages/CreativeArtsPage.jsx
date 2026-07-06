@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import CreativeArtsForm from '@/components/features/creative-arts/CreativeArtsForm';
-import CreativeArtsTable from '@/components/features/creative-arts/CreativeArtsTable';
-import CreativeArtsMobileList from '@/components/features/creative-arts/CreativeArtsMobileList';
+import CreativeArtsCardGrid from '@/components/features/creative-arts/CreativeArtsCardGrid';
 import CreativeArtsViewModal from '@/components/features/creative-arts/CreativeArtsViewModal';
 import {
   useCreativeArts,
@@ -51,6 +50,10 @@ export default function CreativeArtsPage() {
     () => filterDepartments(departments, searchTerm),
     [departments, searchTerm],
   );
+
+  const departmentsEmptyMessage = searchTerm.trim()
+    ? 'No matching departments found.'
+    : 'No departments found.';
 
   useEffect(() => {
     if (loading || seedAttempted.current || departments.length > 0) {
@@ -155,46 +158,31 @@ export default function CreativeArtsPage() {
         />
       </div>
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-700/70 bg-slate-800/40">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search department name, leader, or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+      <div className="space-y-4">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search department name, leader, or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
+          />
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
           </div>
         ) : (
-          <>
-            <div className="hidden md:block p-4 pt-0">
-              <CreativeArtsTable
-                departments={filteredDepartments}
-                onView={handleViewDepartment}
-                onEdit={canManage ? handleEditDepartment : undefined}
-                onDelete={canManage ? handleDeleteDepartment : undefined}
-                canManageRow={() => canManage}
-              />
-            </div>
-
-            <div className="p-4 pt-0 md:hidden">
-              <CreativeArtsMobileList
-                departments={filteredDepartments}
-                onView={handleViewDepartment}
-                onEdit={canManage ? handleEditDepartment : undefined}
-                onDelete={canManage ? handleDeleteDepartment : undefined}
-                canManageRow={() => canManage}
-              />
-            </div>
-          </>
+          <CreativeArtsCardGrid
+            departments={filteredDepartments}
+            onView={handleViewDepartment}
+            onEdit={canManage ? handleEditDepartment : undefined}
+            onDelete={canManage ? handleDeleteDepartment : undefined}
+            canManageRow={() => canManage}
+            emptyMessage={departmentsEmptyMessage}
+          />
         )}
       </div>
 
