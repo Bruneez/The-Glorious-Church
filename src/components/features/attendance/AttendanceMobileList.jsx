@@ -13,7 +13,10 @@ export default function AttendanceMobileList({
   onDelete,
   canManage = false,
   emptyMessage = 'No attendance records found.',
+  viewMode = 'service',
 }) {
+  const isDepartmentView = viewMode === 'department' || viewMode === 'rollcall';
+
   if (!records.length) {
     return (
       <div className="py-8 text-center md:hidden">
@@ -38,16 +41,31 @@ export default function AttendanceMobileList({
                 Created {formatCreatedAt(record.createdAt)}
               </p>
             </div>
-            <div className="text-right text-[11px]">
-              <p className="text-emerald-400 font-semibold">Present: {record.present ?? '—'}</p>
-              <p className="text-rose-400 font-semibold mt-0.5">Absent: {record.absent ?? '—'}</p>
-            </div>
+            {isDepartmentView ? (
+              <div className="text-right text-[11px]">
+                <p className="text-indigo-400 font-semibold">
+                  Total: {record.totalAttendance ?? '—'}
+                </p>
+                <p className="text-slate-400 mt-0.5">Visitors: {record.visitors ?? '—'}</p>
+              </div>
+            ) : (
+              <div className="text-right text-[11px]">
+                <p className="text-emerald-400 font-semibold">Present: {record.present ?? '—'}</p>
+                <p className="text-rose-400 font-semibold mt-0.5">Absent: {record.absent ?? '—'}</p>
+              </div>
+            )}
           </div>
 
-          <p className="text-[11px] text-slate-500">
-            Recorded by:{' '}
-            <span className="text-slate-300 font-medium">{record.recordedBy || '—'}</span>
-          </p>
+          {isDepartmentView && record.departmentName && (
+            <p className="text-[11px] text-indigo-400">{record.departmentName}</p>
+          )}
+
+          {!isDepartmentView && (
+            <p className="text-[11px] text-slate-500">
+              Salvations:{' '}
+              <span className="text-slate-300 font-medium">{record.salvations ?? '—'}</span>
+            </p>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-700/70">
             <button

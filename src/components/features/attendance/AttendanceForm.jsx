@@ -10,12 +10,14 @@ export default function AttendanceForm({ isOpen, onClose, onSubmit, initialData 
   useEffect(() => {
     if (!isOpen) return;
 
-    setAttendanceDate(initialData?.serviceDate || initialData?.date || '');
+    setAttendanceDate(
+      initialData?.attendanceDate || initialData?.serviceDate || initialData?.date || '',
+    );
   }, [initialData, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ serviceDate: attendanceDate });
+    onSubmit({ attendanceDate });
   };
 
   return (
