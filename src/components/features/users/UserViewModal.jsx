@@ -1,7 +1,9 @@
 import { User } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { formatDate } from '@/utils/formatters';
+import { formatLastSeen, isUserOnline } from '@/utils/lastSeen';
 import { ROLES } from '@/config/roles';
 
 function DetailField({ label, value, children }) {
@@ -73,6 +75,14 @@ export default function UserViewModal({ user, staffDirectory = [], isOpen, onClo
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Staff User Profile" icon={User}>
       <div className="space-y-4">
+        <div className="flex items-center gap-3 pb-2 border-b border-slate-700/70">
+          <UserAvatar name={fullName} photo={user.photo} size="lg" />
+          <div>
+            <p className="text-sm font-semibold text-white">{fullName}</p>
+            <p className="text-xs text-slate-400">{user.email || '—'}</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <DetailField label="Full Name" value={fullName} />
           <DetailField label="Email" value={user.email || '—'} />
@@ -82,10 +92,13 @@ export default function UserViewModal({ user, staffDirectory = [], isOpen, onClo
           <DetailField label="Status">
             <StatusBadge status={user.status} />
           </DetailField>
+          <DetailField label="Last Seen">
+            <span className={isUserOnline(user.lastSeenAt) ? 'text-emerald-400' : ''}>
+              {formatLastSeen(user.lastSeenAt)}
+            </span>
+          </DetailField>
           <DetailField label="Created Date" value={formatTimestamp(user.createdAt)} />
-          {createdByLabel && (
-            <DetailField label="Created By" value={createdByLabel} />
-          )}
+          {createdByLabel && <DetailField label="Created By" value={createdByLabel} />}
         </div>
 
         <div className="flex justify-end pt-2 border-t border-slate-700">

@@ -3,7 +3,8 @@ import { ClipboardList, Search } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useMembers } from '@/services/membersService';
-import { getInitials, formatDate } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
+import { formatDate } from '@/utils/formatters';
 import {
   ATTENDANCE_STATUS,
   filterAttendanceEntryMembers,
@@ -12,15 +13,7 @@ import {
 } from '@/config/attendanceOptions';
 
 function MemberAvatar({ member, fullName }) {
-  return (
-    <div className="w-8 h-8 rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-      {member?.photo ? (
-        <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-      ) : (
-        getInitials(fullName) || '?'
-      )}
-    </div>
-  );
+  return <UserAvatar name={fullName} photo={member?.photo} size="sm" />;
 }
 
 function StatusBadge({ status }) {

@@ -2,12 +2,15 @@ import { Outlet, useLocation } from 'react-router-dom';
 import MobileHeader, { SidebarBackdrop, useMobileMenu } from './MobileHeader';
 import Sidebar from './Sidebar';
 import PageHeader from './PageHeader';
+import { useStaffLastSeen } from '@/hooks/useStaffLastSeen';
 
 export default function AppLayout() {
   const mobileMenu = useMobileMenu();
   const { pathname } = useLocation();
   const isMapRoute = pathname.startsWith('/maps/');
   const isFullWidthRoute = isMapRoute || pathname === '/development-board';
+
+  useStaffLastSeen();
 
   return (
     <div className="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col md:flex-row overflow-hidden">

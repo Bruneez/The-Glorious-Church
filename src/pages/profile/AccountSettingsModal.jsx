@@ -5,6 +5,7 @@ import { changePassword } from '@/services/authService';
 import { updateStaffProfile } from '@/services/staffService';
 import { fileToBase64 } from '@/utils/imageUtils';
 import Modal from '@/components/ui/Modal';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function AccountSettingsModal({ isOpen, onClose }) {
   const { firebaseUser, staffDocId, staffProfile, refreshStaffProfile } = useAuth();
@@ -77,13 +78,11 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
         <div>
           <label className="block text-slate-400 mb-1">Update Profile Picture</label>
           <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
-              {photoBase64 ? (
-                <img src={photoBase64} alt="" className="w-full h-full object-cover rounded-full" />
-              ) : (
-                <span className="text-slate-500 text-xs">?</span>
-              )}
-            </div>
+            <UserAvatar
+              name={name || staffProfile?.name || 'User'}
+              photo={photoBase64 || staffProfile?.photo}
+              size="md"
+            />
             <input
               type="file"
               accept="image/*"

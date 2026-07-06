@@ -6,7 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import AccountSettingsModal from '@/pages/profile/AccountSettingsModal';
 import { useAuth } from '@/hooks/useAuth';
-import { getInitials } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProfileSettingsPage() {
   const navigate = useNavigate();
@@ -33,13 +33,12 @@ export default function ProfileSettingsPage() {
         <Card>
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-indigo-600 border-2 border-indigo-400/30 flex items-center justify-center text-2xl font-bold uppercase text-white">
-                {staffProfile?.photo ? (
-                  <img src={staffProfile.photo} alt={staffProfile.name} className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  getInitials(staffProfile?.name || firebaseUser?.email || 'User')
-                )}
-              </div>
+              <UserAvatar
+                name={staffProfile?.name || firebaseUser?.email || 'User'}
+                photo={staffProfile?.photo}
+                size="2xl"
+                className="border-2 border-indigo-400/30"
+              />
               <div>
                 <h2 className="text-xl font-bold text-white">{staffProfile?.name || 'User'}</h2>
                 <p className="text-slate-400 text-sm">{firebaseUser?.email}</p>

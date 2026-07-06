@@ -22,7 +22,7 @@ export default function Table({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-4 py-3 text-left font-semibold text-slate-300 uppercase tracking-wider ${column.className || ''}`}
+                  className={`px-4 py-3.5 text-left font-semibold text-slate-300 uppercase tracking-wider ${column.className || ''}`}
                 >
                   {column.label}
                 </th>

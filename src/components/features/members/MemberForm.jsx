@@ -16,7 +16,7 @@ import {
 import { SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
 import { uploadMemberPhoto } from '@/services/storageService';
-import { getInitials } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 function resolveSchoolSelection(member, schools) {
   if (!member) return null;
@@ -165,7 +165,6 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const avatarInitials = getInitials(`${formData.name} ${formData.surname}`.trim());
   const isPrimarySchool = formData.occupation === 'Primary School';
   const isHighSchool = formData.occupation === 'High School';
   const isUniversity = formData.occupation === 'University / College';
@@ -182,13 +181,11 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
         <div>
           <label className="block text-slate-400 mb-0.5 text-xs">Profile Picture</label>
           <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
-            <div className="w-10 h-10 rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-              {photoPreview ? (
-                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                avatarInitials || <UserPlus className="w-5 h-5 text-slate-300" />
-              )}
-            </div>
+            <UserAvatar
+              name={`${formData.name} ${formData.surname}`.trim()}
+              photo={photoPreview}
+              size="md"
+            />
             <input
               type="file"
               accept="image/*"
