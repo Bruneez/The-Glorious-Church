@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { AuthContext } from '@/hooks/useAuth';
 import { resolveStaffProfile } from '@/services/staffService';
+import { recordStaffLastSeen } from '@/services/lastSeenService';
 import { signIn as authSignIn, signOut as authSignOut, signUp as authSignUp } from '@/services/authService';
 
 export function AuthProvider({ children }) {
@@ -37,6 +38,11 @@ export function AuthProvider({ children }) {
     setStaffDocId(resolved.staffDocId);
     setStaffProfile(resolved.staffProfile);
     setRole(resolved.role);
+
+    recordStaffLastSeen(resolved.staffDocId, { force: true }).catch((error) => {
+      console.error('Failed to record staff last seen on login:', error);
+    });
+
     return true;
   }, []);
 

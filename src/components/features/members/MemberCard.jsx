@@ -12,7 +12,8 @@ import {
   MapPin,
   BookOpen,
 } from 'lucide-react';
-import { formatDate, getInitials } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
+import { formatDate } from '@/utils/formatters';
 import { getMemberFullName, MEMBER_STATUS } from '@/config/memberOptions';
 
 function displayValue(value) {
@@ -154,13 +155,7 @@ export default function MemberCard({
           {/* Profile hero */}
           <div className="px-5 pt-6 pb-5 border-b border-slate-100">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-2xl font-bold uppercase text-white shrink-0 mx-auto sm:mx-0">
-                {member.photo ? (
-                  <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-                ) : (
-                  getInitials(fullName) || '?'
-                )}
-              </div>
+              <UserAvatar name={fullName} photo={member.photo} size="3xl" className="mx-auto sm:mx-0 border-4 border-white shadow-lg" />
               <div className="text-center sm:text-left flex-1 min-w-0">
                 <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                   {member.name || 'Not provided'}

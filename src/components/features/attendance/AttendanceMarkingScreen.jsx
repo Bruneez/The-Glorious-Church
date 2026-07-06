@@ -3,7 +3,8 @@ import { ClipboardCheck, Search, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useMembers } from '@/services/membersService';
 import { useAuth } from '@/hooks/useAuth';
-import { getInitials, formatDate } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
+import { formatDate } from '@/utils/formatters';
 import { getMemberDepartment, getMemberFullName } from '@/config/memberOptions';
 import {
   ATTENDANCE_STATUS,
@@ -14,16 +15,12 @@ import {
 } from '@/config/attendanceOptions';
 
 function MemberAvatar({ member }) {
-  const fullName = getMemberFullName(member);
-
   return (
-    <div className="w-9 h-9 rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-      {member.photo ? (
-        <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-      ) : (
-        getInitials(fullName) || '?'
-      )}
-    </div>
+    <UserAvatar
+      name={getMemberFullName(member)}
+      photo={member.photo}
+      size="md"
+    />
   );
 }
 

@@ -1,4 +1,4 @@
-import { getInitials } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { MEMBER_STATUS } from '@/config/memberOptions';
 import { SCHOOL_STATUS } from '@/config/schoolsOptions';
 import Table from '@/components/ui/Table';
@@ -6,15 +6,7 @@ import Table from '@/components/ui/Table';
 function MemberAvatar({ member }) {
   const fullName = `${member?.name || ''} ${member?.surname || ''}`.trim();
 
-  return (
-    <div className="w-8 h-8 rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center text-xs font-bold uppercase text-white shrink-0">
-      {member?.photo ? (
-        <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-      ) : (
-        getInitials(fullName)
-      )}
-    </div>
-  );
+  return <UserAvatar name={fullName} photo={member?.photo} size="sm" />;
 }
 
 function MemberStatusBadge({ status }) {

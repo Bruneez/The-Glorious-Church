@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronUp, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import UserAvatar from '@/components/ui/UserAvatar';
 import AccountSettingsModal from '@/pages/profile/AccountSettingsModal';
 
 export default function ProfileMenu() {
@@ -70,13 +71,7 @@ export default function ProfileMenu() {
           className="w-full flex items-center justify-between p-1 rounded-lg hover:bg-slate-900 text-left cursor-pointer transition"
         >
           <div className="flex items-center gap-2.5 truncate">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 border border-indigo-400/30 flex items-center justify-center text-white font-bold text-xs uppercase shrink-0 overflow-hidden">
-              {photo ? (
-                <img src={photo} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span>{(displayName || 'S').charAt(0).toUpperCase()}</span>
-              )}
-            </div>
+            <UserAvatar name={displayName} photo={photo} size="xs" />
             <div className="truncate">
               <p className="font-medium text-slate-200">{displayName}</p>
               <p className="text-[10px] text-indigo-400 uppercase tracking-wider">{role || 'Staff'}</p>

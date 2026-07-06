@@ -1,21 +1,14 @@
 import { Eye, Edit2, Trash2 } from 'lucide-react';
-import { getInitials } from '@/utils/formatters';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS } from '@/config/memberOptions';
 
 function MemberAvatar({ member, size = 'md' }) {
-  const fullName = getMemberFullName(member);
-  const sizeClass = size === 'lg' ? 'w-12 h-12 text-sm' : 'w-10 h-10 text-xs';
-
   return (
-    <div
-      className={`${sizeClass} rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center font-bold uppercase text-white shrink-0`}
-    >
-      {member.photo ? (
-        <img src={member.photo} alt={fullName} className="w-full h-full object-cover" />
-      ) : (
-        getInitials(fullName)
-      )}
-    </div>
+    <UserAvatar
+      name={getMemberFullName(member)}
+      photo={member.photo}
+      size={size}
+    />
   );
 }
 
