@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import TransportForm from '@/components/features/transport/TransportForm';
 import TransportFilters from '@/components/features/transport/TransportFilters';
-import Table from '@/components/ui/Table';
+import TransportCardGrid from '@/components/features/transport/TransportCardGrid';
 import Button from '@/components/ui/Button';
 import {
   useTransport,
@@ -12,35 +12,16 @@ import {
 } from '@/services/transportService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { buildTransportPayload } from '@/config/transportOptions';
+import { buildTransportPayload, computeTransportStats } from '@/config/transportOptions';
 
-function displayValue(value) {
-  if (value === null || value === undefined || value === '') return '-';
-  return value;
-}
-
-function getDriverVehicle(driver) {
-  return driver?.vehicle || driver?.vehicleReg || '';
-}
-
-function StatusBadge({ status }) {
-  if (!status) {
-    return <span className="text-slate-500">-</span>;
-  }
-
-  const isActive = status === 'Active';
-
+function SummaryCard({ label, value, loading }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-        isActive
-          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-          : 'bg-rose-950/60 text-rose-400 border border-rose-500/20'
-      }`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-      {status}
-    </span>
+    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/70 shadow-sm">
+      <h3 className="text-2xl md:text-3xl font-bold text-indigo-400">{loading ? '—' : value}</h3>
+      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mt-1">
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -55,6 +36,8 @@ export default function TransportPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
 
+  const stats = useMemo(() => computeTransportStats(drivers), [drivers]);
+
   const filteredDrivers = useMemo(() => {
     let filtered = [...drivers];
 
@@ -65,7 +48,8 @@ export default function TransportPage() {
           driver.name?.toLowerCase().includes(term) ||
           driver.phone?.toLowerCase().includes(term) ||
           driver.vehicle?.toLowerCase().includes(term) ||
-          driver.vehicleReg?.toLowerCase().includes(term),
+          driver.vehicleReg?.toLowerCase().includes(term) ||
+          driver.route?.toLowerCase().includes(term),
       );
     }
 
@@ -122,71 +106,6 @@ export default function TransportPage() {
 
   const canManageTransport = canPerformAction('MANAGE_TRANSPORT');
 
-  const columns = [
-    {
-      key: 'name',
-      label: 'Driver Name',
-      render: (value) => (
-        <span className="font-medium text-slate-100">{displayValue(value)}</span>
-      ),
-    },
-    {
-      key: 'phone',
-      label: 'Phone Number',
-      render: (value) => displayValue(value),
-    },
-    {
-      key: 'vehicle',
-      label: 'Vehicle',
-      render: (_, row) => displayValue(getDriverVehicle(row)),
-    },
-    {
-      key: 'capacity',
-      label: 'Capacity',
-      render: (value) => (
-        <span className="text-slate-300 font-medium">
-          {value === null || value === undefined || value === '' ? '-' : value}
-        </span>
-      ),
-    },
-    {
-      key: 'route',
-      label: 'Assigned Route',
-      render: (value) => displayValue(value),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (value) => <StatusBadge status={value} />,
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      className: 'text-right',
-      render: (_, row) =>
-        canManageTransport && (
-          <div className="flex items-center justify-end gap-1">
-            <button
-              type="button"
-              onClick={() => handleEditDriver(row)}
-              className="text-indigo-400 hover:text-indigo-300 p-1 rounded hover:bg-indigo-500/10 transition"
-              title="Edit"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeleteDriver(row.id)}
-              className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-500/10 transition"
-              title="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ),
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -203,6 +122,13 @@ export default function TransportPage() {
         )}
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <SummaryCard label="Total Drivers" value={stats.totalDrivers} loading={loading} />
+        <SummaryCard label="Active Drivers" value={stats.activeDrivers} loading={loading} />
+        <SummaryCard label="Total Capacity" value={stats.totalCapacity} loading={loading} />
+        <SummaryCard label="Total Routes" value={stats.totalRoutes} loading={loading} />
+      </div>
+
       <TransportFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -214,16 +140,17 @@ export default function TransportPage() {
 
       <div className="bg-slate-800 border border-slate-700/60 rounded-xl overflow-hidden shadow-xl">
         {loading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
           </div>
         ) : (
-          <div className="p-4">
-            <Table
-              columns={columns}
-              data={filteredDrivers}
+          <div className="p-4 md:p-5">
+            <TransportCardGrid
+              drivers={filteredDrivers}
+              onEdit={canManageTransport ? handleEditDriver : undefined}
+              onDelete={canManageTransport ? handleDeleteDriver : undefined}
+              canManage={canManageTransport}
               emptyMessage="No drivers found"
-              className="bg-transparent border-0"
             />
           </div>
         )}

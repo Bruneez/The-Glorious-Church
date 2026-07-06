@@ -52,3 +52,29 @@ export function buildTransportPayload(formData, createdBy, existingRecord = null
     createdBy: existingRecord?.createdBy || createdBy,
   };
 }
+
+export function getDriverVehicle(driver) {
+  return driver?.vehicle || driver?.vehicleReg || '';
+}
+
+export function getVehicleImage(driver) {
+  return driver?.vehicleImage || driver?.vehiclePhoto || driver?.photo || driver?.image || '';
+}
+
+export function computeTransportStats(drivers = []) {
+  const activeDrivers = drivers.filter((driver) => driver.status === TRANSPORT_STATUS.ACTIVE);
+  const totalCapacity = drivers.reduce((sum, driver) => {
+    const capacity = parseInt(driver.capacity, 10);
+    return sum + (Number.isNaN(capacity) ? 0 : capacity);
+  }, 0);
+  const uniqueRoutes = new Set(
+    drivers.map((driver) => driver.route?.trim()).filter(Boolean),
+  );
+
+  return {
+    totalDrivers: drivers.length,
+    activeDrivers: activeDrivers.length,
+    totalCapacity,
+    totalRoutes: uniqueRoutes.size,
+  };
+}
