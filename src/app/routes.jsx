@@ -18,6 +18,7 @@ import UsersPage from '@/pages/UsersPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
 import MapPage from '@/pages/MapPage';
 import DevelopmentBoardPage from '@/pages/DevelopmentBoardPage';
+import TasksPage from '@/pages/TasksPage';
 
 export default function AppRoutes() {
   return (
@@ -49,6 +50,7 @@ export default function AppRoutes() {
           <Route path="transport" element={<TransportPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="development-board" element={<DevelopmentBoardPage />} />
+          <Route path="tasks" element={<TasksPage />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
         </Route>
       </Route>

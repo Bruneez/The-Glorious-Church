@@ -10,4 +10,6 @@ export const COLLECTIONS = {
   TRANSPORT: 'transport',
   TRANSPORT_ASSIGNMENTS: 'transportAssignments',
   DEVELOPMENT_TASKS: 'developmentTasks',
+  TASKS: 'tasks',
+  NOTIFICATIONS: 'notifications',
 };
