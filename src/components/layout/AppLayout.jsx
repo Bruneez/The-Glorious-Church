@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import MobileHeader, { SidebarBackdrop, useMobileMenu } from './MobileHeader';
 import Sidebar from './Sidebar';
 import SidebarBrand from './SidebarBrand';
@@ -7,9 +7,6 @@ import { useStaffLastSeen } from '@/hooks/useStaffLastSeen';
 
 export default function AppLayout() {
   const mobileMenu = useMobileMenu();
-  const { pathname } = useLocation();
-  const isMapRoute = pathname === '/map';
-  const isFullWidthRoute = isMapRoute || pathname === '/development-board';
 
   useStaffLastSeen();
 
@@ -24,13 +21,7 @@ export default function AppLayout() {
 
         <Sidebar isMobileOpen={mobileMenu.isOpen} onCloseMobile={mobileMenu.close} />
 
-        <main
-          className={
-            isFullWidthRoute
-              ? 'min-h-0 overflow-y-auto flex-1 md:row-start-2 md:col-start-2 p-4 md:p-6 max-w-none w-full'
-              : 'min-h-0 overflow-y-auto flex-1 md:row-start-2 md:col-start-2 p-4 md:p-6 max-w-6xl w-full mx-auto'
-          }
-        >
+        <main className="min-h-0 min-w-0 overflow-y-auto flex-1 md:row-start-2 md:col-start-2 p-4 md:p-6 w-full max-w-none">
           <Outlet />
         </main>
       </div>
