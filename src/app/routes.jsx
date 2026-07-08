@@ -16,8 +16,7 @@ import TransportPage from '@/pages/TransportPage';
 import CalendarPage from '@/pages/CalendarPage';
 import UsersPage from '@/pages/UsersPage';
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
-import MembersMapPage from '@/pages/MembersMapPage';
-import HighSchoolsMapPage from '@/pages/HighSchoolsMapPage';
+import MapPage from '@/pages/MapPage';
 import DevelopmentBoardPage from '@/pages/DevelopmentBoardPage';
 
 export default function AppRoutes() {
@@ -39,8 +38,12 @@ export default function AppRoutes() {
           <Route path="schools/primary" element={<PrimarySchoolsPage />} />
           <Route path="schools/high" element={<HighSchoolsPage />} />
           <Route path="schools/higher-education" element={<HigherEducationPage />} />
-          <Route path="maps/members" element={<MembersMapPage />} />
-          <Route path="maps/schools" element={<HighSchoolsMapPage />} />
+          <Route path="map" element={<MapPage />} />
+          <Route path="maps/members" element={<Navigate to="/map" replace />} />
+          <Route path="maps/schools" element={<Navigate to="/map" replace />} />
+          <Route path="members-map" element={<Navigate to="/map" replace />} />
+          <Route path="high-schools-map" element={<Navigate to="/map" replace />} />
+          <Route path="schools-map" element={<Navigate to="/map" replace />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="offerings" element={<OfferingsPage />} />
           <Route path="transport" element={<TransportPage />} />

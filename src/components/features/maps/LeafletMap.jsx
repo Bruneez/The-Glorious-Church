@@ -4,7 +4,8 @@ import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/config/mapConfig';
+import { ESRI_ATTRIBUTION, ESRI_WORLD_IMAGERY_TILE_URL } from '@/config/mapConfig';
+import { createMapMarkerIcon } from '@/components/features/maps/mapMarkerIcons';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -30,6 +31,9 @@ export default function LeafletMap({
   zoom,
   markers = [],
   fitBounds = false,
+  tileUrl = ESRI_WORLD_IMAGERY_TILE_URL,
+  attribution = ESRI_ATTRIBUTION,
+  maxZoom = 19,
 }) {
   const positions = useMemo(
     () => markers.map((marker) => marker.coords),
@@ -42,12 +46,19 @@ export default function LeafletMap({
       zoom={zoom}
       className="h-full w-full"
       scrollWheelZoom
+      zoomControl
     >
-      <TileLayer url={CARTO_TILE_URL} attribution={CARTO_ATTRIBUTION} maxZoom={20} />
+      <TileLayer url={tileUrl} attribution={attribution} maxZoom={maxZoom} />
       <FitBounds positions={positions} enabled={fitBounds && positions.length > 0} />
       {markers.map((marker) => (
-        <Marker key={marker.id} position={marker.coords}>
-          <Popup>{marker.popup}</Popup>
+        <Marker
+          key={marker.id}
+          position={marker.coords}
+          icon={createMapMarkerIcon(marker)}
+        >
+          <Popup className="map-popup" maxWidth={280}>
+            {marker.popup}
+          </Popup>
         </Marker>
       ))}
     </MapContainer>

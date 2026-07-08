@@ -8,7 +8,7 @@ import { useStaffLastSeen } from '@/hooks/useStaffLastSeen';
 export default function AppLayout() {
   const mobileMenu = useMobileMenu();
   const { pathname } = useLocation();
-  const isMapRoute = pathname.startsWith('/maps/');
+  const isMapRoute = pathname === '/map';
   const isFullWidthRoute = isMapRoute || pathname === '/development-board';
 
   useStaffLastSeen();

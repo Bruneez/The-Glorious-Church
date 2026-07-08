@@ -1,9 +1,18 @@
+export const ESRI_WORLD_IMAGERY_TILE_URL =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+export const ESRI_ATTRIBUTION =
+  'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+
+/** @deprecated Legacy Carto dark tiles — retained for reference only */
 export const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 export const CARTO_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-export const MEMBERS_MAP_CENTER = [-33.9249, 18.4241];
-export const MEMBERS_MAP_ZOOM = 11;
+export const MAP_DEFAULT_CENTER = [-33.9249, 18.4241];
+export const MAP_DEFAULT_ZOOM = 11;
+
+export const MEMBERS_MAP_CENTER = MAP_DEFAULT_CENTER;
+export const MEMBERS_MAP_ZOOM = MAP_DEFAULT_ZOOM;
 
 export const SCHOOLS_MAP_CENTER = [-33.9535, 18.6120];
 export const SCHOOLS_MAP_ZOOM = 13;
