@@ -10,7 +10,13 @@ body {
   background: #1e293b;
   color: #f8fafc;
   border: 1px solid #475569;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.45);
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  line-height: 1.4;
 }
 
 .leaflet-popup-tip {
@@ -21,4 +27,9 @@ body {
 .leaflet-container {
   background: #020617;
   font-family: inherit;
+}
+
+.leaflet-div-icon.map-marker-icon {
+  background: transparent;
+  border: none;
 }

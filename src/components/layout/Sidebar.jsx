@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getNavItemsForRole } from '@/config/navConfig';
 import ProfileMenu from './ProfileMenu';
+import SidebarBrand from './SidebarBrand';
 
 function navLinkClass({ isActive }) {
   return isActive
@@ -18,27 +18,14 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }) {
     <aside
       className={`fixed inset-y-0 left-0 transform ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:relative md:translate-x-0 w-64 bg-slate-950 border-r border-slate-800 h-screen z-40 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out`}
+      } md:static md:translate-x-0 md:h-full w-64 bg-slate-950 border-r border-slate-800 z-40 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out md:row-start-2 md:col-start-1 min-h-0`}
     >
-      <div>
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/img/GC_logo.png" alt="Glorious Church Logo" className="w-10 h-10 object-contain" />
-            <div>
-              <h1 className="text-sm font-bold tracking-wide uppercase text-indigo-300">The Glorious Church</h1>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            className="md:hidden text-slate-400 hover:text-white cursor-pointer"
-            aria-label="Close sidebar"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="md:hidden">
+          <SidebarBrand onCloseMobile={onCloseMobile} showCloseButton />
         </div>
 
-        <nav className="p-4 space-y-1 text-xs">
+        <nav className="p-4 space-y-1 text-xs overflow-y-auto flex-1 min-h-0">
           {navItems.map(({ path, label, icon: Icon }) => (
             <NavLink
               key={path}

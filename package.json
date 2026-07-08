@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "firebase:login": "npm exec --package firebase-tools -- firebase login --no-localhost",
     "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules --project the-glorious-church",
     "firebase:deploy-functions": "npm exec --package firebase-tools -- firebase deploy --only functions --project the-glorious-church",
@@ -24,7 +25,9 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.0.0",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vite-plugin-pwa": "^1.3.0"
   }
 }
