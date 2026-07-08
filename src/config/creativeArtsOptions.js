@@ -8,6 +8,27 @@ export const DEPARTMENT_STATUS_OPTIONS = [
   { value: DEPARTMENT_STATUS.INACTIVE, label: 'Inactive' },
 ];
 
+export const ACCEPTED_DEPARTMENT_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export const ACCEPTED_DEPARTMENT_LOGO_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+
+export function getDepartmentLogo(department) {
+  return department?.logoUrl || department?.photo || '';
+}
+
+export function validateDepartmentLogoFile(file) {
+  if (!file) return '';
+
+  const hasAllowedType = ACCEPTED_DEPARTMENT_LOGO_TYPES.includes(file.type);
+  const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name || '');
+
+  if (!hasAllowedType && !hasAllowedExtension) {
+    return 'Please upload a JPG, PNG, or WEBP image.';
+  }
+
+  return '';
+}
+
 export const DEFAULT_DEPARTMENTS = [
   {
     name: 'Worshippers',
@@ -33,15 +54,33 @@ export const DEFAULT_DEPARTMENTS = [
 ];
 
 export function buildDepartmentPayload(formData, initialData = null) {
-  return {
+  const base = {
     name: formData.name.trim(),
     leader: formData.leader?.trim() || '',
     description: formData.description?.trim() || '',
     status: formData.status || DEPARTMENT_STATUS.ACTIVE,
-    photo: formData.photo || '',
     members: initialData?.members ?? formData.members ?? [],
     ...(initialData?.subtitle ? { subtitle: initialData.subtitle } : {}),
     ...(initialData?.scripture ? { scripture: initialData.scripture } : {}),
+  };
+
+  if (formData.removeLogo) {
+    return {
+      ...base,
+      logoUrl: '',
+      logoPath: '',
+      photo: '',
+    };
+  }
+
+  const logoUrl = formData.logoUrl ?? formData.photo ?? getDepartmentLogo(initialData) ?? '';
+  const logoPath = formData.logoPath ?? initialData?.logoPath ?? '';
+
+  return {
+    ...base,
+    logoUrl,
+    logoPath,
+    photo: logoUrl,
   };
 }
 

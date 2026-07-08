@@ -1,5 +1,6 @@
 import { COLLECTIONS } from '@/config/collections';
 import { DEFAULT_DEPARTMENTS, buildDepartmentPayload } from '@/config/creativeArtsOptions';
+import { deleteCreativeArtsImage } from '@/services/storageService';
 import {
   getDocuments,
   addDocument,
@@ -9,6 +10,16 @@ import {
   useDocument,
 } from '@/hooks/useFirestore';
 import { orderBy } from 'firebase/firestore';
+
+async function cleanupDepartmentLogo(logoPath) {
+  if (!logoPath) return;
+
+  try {
+    await deleteCreativeArtsImage(logoPath);
+  } catch (error) {
+    console.warn('Failed to delete department logo from storage:', error);
+  }
+}
 
 export function useCreativeArts() {
   return useCollection(COLLECTIONS.CREATIVE_ARTS, {
@@ -42,6 +53,16 @@ export async function createCreativeArtsTeam(teamData) {
 
 export async function updateCreativeArtsTeam(teamId, teamData, initialData = null) {
   const payload = buildDepartmentPayload(teamData, initialData);
+
+  if (teamData.removeLogo) {
+    await cleanupDepartmentLogo(initialData?.logoPath);
+  } else if (
+    payload.logoPath &&
+    initialData?.logoPath &&
+    payload.logoPath !== initialData.logoPath
+  ) {
+    await cleanupDepartmentLogo(initialData.logoPath);
+  }
 
   return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
     ...payload,

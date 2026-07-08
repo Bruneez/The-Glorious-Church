@@ -1,5 +1,6 @@
 import { COLLECTIONS } from '@/config/collections';
 import { buildSchoolPayload, buildSchoolUpdatePayload } from '@/config/schoolsOptions';
+import { deleteSchoolLogo } from '@/services/storageService';
 import { 
   getDocuments, 
   addDocument, 
@@ -9,6 +10,16 @@ import {
   useDocument
 } from '@/hooks/useFirestore';
 import { where, orderBy } from 'firebase/firestore';
+
+async function cleanupSchoolBadge(badgePath) {
+  if (!badgePath) return;
+
+  try {
+    await deleteSchoolLogo(badgePath);
+  } catch (error) {
+    console.warn('Failed to delete school badge from storage:', error);
+  }
+}
 
 export function useSchools(type = null) {
   const constraints = [];
@@ -95,8 +106,20 @@ export async function createSchoolRecord(formData, createdBy) {
   return addDocument(COLLECTIONS.SCHOOLS, buildSchoolPayload(formData, createdBy));
 }
 
-export async function updateSchoolRecord(schoolId, formData) {
-  return updateDocument(COLLECTIONS.SCHOOLS, schoolId, buildSchoolUpdatePayload(formData));
+export async function updateSchoolRecord(schoolId, formData, initialData = null) {
+  const payload = buildSchoolUpdatePayload(formData, initialData);
+
+  if (formData.removeBadge) {
+    await cleanupSchoolBadge(initialData?.badgePath);
+  } else if (
+    payload.badgePath &&
+    initialData?.badgePath &&
+    payload.badgePath !== initialData.badgePath
+  ) {
+    await cleanupSchoolBadge(initialData.badgePath);
+  }
+
+  return updateDocument(COLLECTIONS.SCHOOLS, schoolId, payload);
 }
 
 export async function deleteSchoolRecord(schoolId) {

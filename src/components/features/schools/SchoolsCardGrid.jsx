@@ -1,9 +1,10 @@
 import { Eye, Edit2, Trash2, School, Users } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { SchoolStatusBadge } from '@/components/features/schools/SchoolLinkedMembersTable';
+import { getSchoolBadge } from '@/config/schoolsOptions';
 
-function SchoolOverviewCard({ school, onView, onEdit, onDelete, canManage = false }) {
-  const logo = school.raw?.logo || school.raw?.photo || '';
+function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false, canDelete = false }) {
+  const badge = getSchoolBadge(school.raw);
 
   const handleCardClick = () => {
     onView?.(school);
@@ -18,7 +19,7 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canManage = fals
         onClick={handleCardClick}
         className="flex items-start gap-3 text-left w-full cursor-pointer group"
       >
-        <UserAvatar name={school.schoolName} photo={logo} size="lg" />
+        <UserAvatar name={school.schoolName} photo={badge} size="lg" />
 
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-bold text-white tracking-wide truncate group-hover:text-indigo-200 transition">
@@ -60,7 +61,7 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canManage = fals
           <Eye className="w-3.5 h-3.5" />
           View
         </button>
-        {canManage && onEdit && (
+        {canEdit && onEdit && (
           <button
             type="button"
             onClick={() => onEdit?.(school)}
@@ -70,7 +71,7 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canManage = fals
             Edit
           </button>
         )}
-        {canManage && onDelete && (
+        {canDelete && onDelete && (
           <button
             type="button"
             onClick={() => onDelete?.(school)}
@@ -90,7 +91,8 @@ export default function SchoolsCardGrid({
   onView,
   onEdit,
   onDelete,
-  canManage = false,
+  canEdit = false,
+  canDelete = false,
   emptyMessage = 'No schools found.',
 }) {
   if (!schools.length) {
@@ -111,7 +113,8 @@ export default function SchoolsCardGrid({
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}
-          canManage={canManage}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       ))}
     </div>
