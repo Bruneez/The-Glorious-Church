@@ -103,7 +103,7 @@ export default function SchoolsPage() {
 
   const handleFormSubmit = async (formData) => {
     if (editingSchool?.id) {
-      await updateSchoolRecord(editingSchool.id, formData);
+      await updateSchoolRecord(editingSchool.id, formData, editingSchool);
       setFeedback({ type: 'success', message: 'School updated successfully.' });
     } else {
       await createSchoolRecord(formData, getCreatedByName());
@@ -124,7 +124,7 @@ export default function SchoolsPage() {
   };
 
   const handleEditSchool = (tableSchool) => {
-    if (!canEditDeleteSchools) return;
+    if (!canManageSchools) return;
     setFeedback({ type: '', message: '' });
     setEditingSchool(tableSchool?.raw || null);
     setIsFormOpen(true);
@@ -243,9 +243,10 @@ export default function SchoolsPage() {
                   <SchoolsCardGrid
                     schools={categorySchools}
                     onView={handleViewSchool}
-                    onEdit={canEditDeleteSchools ? handleEditSchool : undefined}
+                    onEdit={canManageSchools ? handleEditSchool : undefined}
                     onDelete={canEditDeleteSchools ? handleDeleteSchool : undefined}
-                    canManage={canEditDeleteSchools}
+                    canEdit={canManageSchools}
+                    canDelete={canEditDeleteSchools}
                     emptyMessage={category.emptyMessage}
                   />
                 )}
@@ -255,13 +256,15 @@ export default function SchoolsPage() {
         })}
       </div>
 
-      <SchoolsForm
-        isOpen={isFormOpen}
-        onClose={handleCloseForm}
-        onSubmit={handleFormSubmit}
-        initialData={editingSchool}
-        defaultType={activeCategory}
-      />
+      {canManageSchools && (
+        <SchoolsForm
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSubmit={handleFormSubmit}
+          initialData={editingSchool}
+          defaultType={activeCategory}
+        />
+      )}
 
       <SchoolsViewModal
         school={viewingSchool}

@@ -28,6 +28,27 @@ export const SCHOOL_STATUS_OPTIONS = [
   { value: SCHOOL_STATUS.INACTIVE, label: 'Inactive' },
 ];
 
+export const ACCEPTED_SCHOOL_BADGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export const ACCEPTED_SCHOOL_BADGE_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+
+export function getSchoolBadge(school) {
+  return school?.badgeUrl || school?.logo || school?.photo || '';
+}
+
+export function validateSchoolBadgeFile(file) {
+  if (!file) return '';
+
+  const hasAllowedType = ACCEPTED_SCHOOL_BADGE_TYPES.includes(file.type);
+  const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name || '');
+
+  if (!hasAllowedType && !hasAllowedExtension) {
+    return 'Please upload a JPG, PNG, or WEBP image.';
+  }
+
+  return '';
+}
+
 export function validateSchoolForm(formData) {
   if (!formData.name?.trim()) {
     return 'School Name is required.';
@@ -44,23 +65,50 @@ export function validateSchoolForm(formData) {
   return '';
 }
 
+function buildSchoolBadgeFields(formData, initialData = null) {
+  if (formData.removeBadge) {
+    return {
+      badgeUrl: '',
+      badgePath: '',
+      logo: '',
+      photo: '',
+    };
+  }
+
+  const badgeUrl =
+    formData.badgeUrl ??
+    formData.logo ??
+    getSchoolBadge(initialData) ??
+    '';
+  const badgePath = formData.badgePath ?? initialData?.badgePath ?? '';
+
+  return {
+    badgeUrl,
+    badgePath,
+    logo: badgeUrl,
+    photo: badgeUrl,
+  };
+}
+
 export function buildSchoolPayload(formData, createdBy) {
   return {
     schoolName: formData.name.trim(),
     schoolType: formData.type,
     address: formData.address?.trim() || '',
     status: formData.status,
+    ...buildSchoolBadgeFields(formData),
     createdBy,
     createdAt: new Date().toISOString(),
   };
 }
 
-export function buildSchoolUpdatePayload(formData) {
+export function buildSchoolUpdatePayload(formData, initialData = null) {
   return {
     schoolName: formData.name.trim(),
     schoolType: formData.type,
     address: formData.address?.trim() || '',
     status: formData.status,
+    ...buildSchoolBadgeFields(formData, initialData),
   };
 }
 
@@ -71,6 +119,8 @@ export function mapSchoolToFormData(school) {
       type: '',
       address: '',
       status: SCHOOL_STATUS.ACTIVE,
+      badgeUrl: '',
+      badgePath: '',
     };
   }
 
@@ -79,6 +129,8 @@ export function mapSchoolToFormData(school) {
     type: school.schoolType || '',
     address: school.address || '',
     status: school.status || SCHOOL_STATUS.ACTIVE,
+    badgeUrl: getSchoolBadge(school),
+    badgePath: school.badgePath || '',
   };
 }
 

@@ -1,46 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Palette } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
-import { DEPARTMENT_STATUS, DEPARTMENT_STATUS_OPTIONS } from '@/config/creativeArtsOptions';
-import { uploadCreativeArtsImage } from '@/services/storageService';
+import {
+  DEPARTMENT_STATUS,
+  DEPARTMENT_STATUS_OPTIONS,
+  ACCEPTED_DEPARTMENT_LOGO_ACCEPT,
+  getDepartmentLogo,
+  validateDepartmentLogoFile,
+} from '@/config/creativeArtsOptions';
+import { uploadCreativeArtsLogo } from '@/services/storageService';
 
 const EMPTY_FORM = {
   name: '',
   leader: '',
   description: '',
   status: DEPARTMENT_STATUS.ACTIVE,
-  photo: '',
+  logoUrl: '',
+  logoPath: '',
 };
 
 export default function CreativeArtsForm({ isOpen, onClose, onSubmit, initialData = null }) {
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [removeLogo, setRemoveLogo] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    const existingLogo = getDepartmentLogo(initialData);
+
     setFormData({
       name: initialData?.name || '',
       leader: initialData?.leader || '',
       description: initialData?.description || '',
       status: initialData?.status || DEPARTMENT_STATUS.ACTIVE,
-      photo: initialData?.photo || '',
+      logoUrl: initialData?.logoUrl || initialData?.photo || '',
+      logoPath: initialData?.logoPath || '',
     });
-    setPhotoFile(null);
-    setPhotoPreview(initialData?.photo || '');
+    setLogoFile(null);
+    setLogoPreview(existingLogo);
+    setRemoveLogo(false);
     setError('');
     setIsSubmitting(false);
   }, [initialData, isOpen]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError('');
 
     if (!formData.name.trim()) {
@@ -48,66 +61,143 @@ export default function CreativeArtsForm({ isOpen, onClose, onSubmit, initialDat
       return;
     }
 
+    if (logoFile) {
+      const validationMessage = validateDepartmentLogoFile(logoFile);
+      if (validationMessage) {
+        setError(validationMessage);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      let photoUrl = formData.photo;
+      let nextLogoUrl = formData.logoUrl;
+      let nextLogoPath = formData.logoPath;
 
-      if (photoFile) {
-        photoUrl = await uploadCreativeArtsImage(photoFile);
+      if (removeLogo) {
+        nextLogoUrl = '';
+        nextLogoPath = '';
+      } else if (logoFile) {
+        const uploadedLogo = await uploadCreativeArtsLogo(logoFile);
+        nextLogoUrl = uploadedLogo.logoUrl;
+        nextLogoPath = uploadedLogo.logoPath;
       }
 
       await onSubmit({
         ...formData,
-        photo: photoUrl,
+        logoUrl: nextLogoUrl,
+        logoPath: nextLogoPath,
+        photo: nextLogoUrl,
+        removeLogo,
       });
+
+      setIsSubmitting(false);
     } catch (submitError) {
       setError(submitError?.message || 'Failed to save department. Please try again.');
       setIsSubmitting(false);
     }
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    setPhotoFile(file);
+    const validationMessage = validateDepartmentLogoFile(file);
+    if (validationMessage) {
+      setError(validationMessage);
+      event.target.value = '';
+      return;
+    }
+
+    setError('');
+    setLogoFile(file);
+    setRemoveLogo(false);
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhotoPreview(reader.result);
+      setLogoPreview(reader.result);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setRemoveLogo(true);
+    setFormData((prev) => ({ ...prev, logoUrl: '', logoPath: '' }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleReplaceLogo = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const previewDepartment = {
     name: formData.name || 'Department',
-    photo: photoPreview,
+    logoUrl: removeLogo ? '' : logoPreview,
+    photo: removeLogo ? '' : logoPreview,
   };
+
+  const hasLogo = Boolean(!removeLogo && logoPreview);
+  const isEditing = Boolean(initialData);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? 'Edit Department' : 'Add Department'}
+      title={isEditing ? 'Edit Department' : 'Add Department'}
       icon={Palette}
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-slate-400 mb-0.5 text-xs">Department Image</label>
-          <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
-            <DepartmentAvatar department={previewDepartment} size="md" />
+          <label className="block text-slate-400 mb-1 text-xs">Department Logo</label>
+          <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 space-y-3">
+            <div className="flex items-center gap-3">
+              <DepartmentAvatar department={previewDepartment} size="lg" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-white">
+                  {hasLogo ? 'Department logo uploaded' : 'No logo uploaded'}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  JPG, PNG, or WEBP. Images keep their aspect ratio inside a circular avatar.
+                </p>
+              </div>
+            </div>
+
             <input
+              ref={fileInputRef}
               type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer"
+              accept={ACCEPTED_DEPARTMENT_LOGO_ACCEPT}
+              onChange={handleLogoChange}
+              className="hidden"
             />
+
+            <div className="flex flex-wrap gap-2">
+              {!hasLogo ? (
+                <Button type="button" variant="secondary" onClick={handleReplaceLogo}>
+                  Upload Department Logo
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="secondary" onClick={handleReplaceLogo}>
+                    Replace Logo
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleRemoveLogo}>
+                    Remove Logo
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

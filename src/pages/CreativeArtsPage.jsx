@@ -39,7 +39,7 @@ export default function CreativeArtsPage() {
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [searchTerm, setSearchTerm] = useState('');
 
-  const canManage = canPerformAction('MANAGE_EVENTS');
+  const canManage = canPerformAction('MANAGE_CREATIVE_ARTS');
 
   const stats = useMemo(
     () => computeCreativeArtsStats(departments),
@@ -188,7 +188,7 @@ export default function CreativeArtsPage() {
 
       {canManage && (
         <div className="md:hidden fixed bottom-4 right-4 z-40">
-          <RoleGate allowedAction="MANAGE_EVENTS">
+          <RoleGate allowedAction="MANAGE_CREATIVE_ARTS">
             <button
               type="button"
               onClick={handleAddDepartment}
@@ -201,15 +201,17 @@ export default function CreativeArtsPage() {
         </div>
       )}
 
-      <CreativeArtsForm
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingDepartment(null);
-        }}
-        onSubmit={handleFormSubmit}
-        initialData={editingDepartment}
-      />
+      {canManage && (
+        <CreativeArtsForm
+          isOpen={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingDepartment(null);
+          }}
+          onSubmit={handleFormSubmit}
+          initialData={editingDepartment}
+        />
+      )}
 
       {viewingDepartment && (
         <CreativeArtsViewModal

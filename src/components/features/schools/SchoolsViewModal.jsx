@@ -6,6 +6,7 @@ import UserAvatar from '@/components/ui/UserAvatar';
 import SchoolLinkedMembersTable, { SchoolStatusBadge } from '@/components/features/schools/SchoolLinkedMembersTable';
 import {
   getMembersLinkedToSchool,
+  getSchoolBadge,
   getSchoolTypeLabel,
   mapLinkedMemberForDisplay,
 } from '@/config/schoolsOptions';
@@ -27,7 +28,7 @@ export default function SchoolsViewModal({ school, members = [], isOpen, onClose
 
   if (!school) return null;
 
-  const logo = school.logo || school.photo || '';
+  const badge = getSchoolBadge(school);
   const linkedCount = linkedMembers.length;
 
   return (
@@ -40,7 +41,7 @@ export default function SchoolsViewModal({ school, members = [], isOpen, onClose
     >
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-slate-700/70">
-          <UserAvatar name={school.schoolName} photo={logo} size="xl" />
+          <UserAvatar name={school.schoolName} photo={badge} size="xl" />
           <div className="min-w-0">
             <h3 className="text-lg font-bold text-white tracking-wide">{school.schoolName || '—'}</h3>
             <p className="text-sm text-indigo-400/90 mt-0.5">{getSchoolTypeLabel(school.schoolType)}</p>
