@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import Sidebar from './Sidebar';
+import churchLogo from '@/assets/The GC Official Logo.png';
 
 export default function MobileHeader({ onMenuToggle, isMenuOpen }) {
   return (
-    <div className="md:hidden bg-slate-950 border-b border-slate-800 p-4 flex justify-between items-center z-50 sticky top-0 shrink-0">
+    <div className="md:hidden h-16 px-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center z-50 sticky top-0 shrink-0">
       <div className="flex items-center gap-2">
-        <img src="/img/GC_logo.png" alt="Glorious Church Logo" className="w-8 h-8 object-contain" />
+        <img src={churchLogo} alt="Glorious Church Logo" className="w-8 h-8 object-contain shrink-0" />
         <h1 className="text-xs font-bold tracking-wide uppercase text-indigo-300">The Glorious Church</h1>
       </div>
       <button
