@@ -1,7 +1,6 @@
 import { COLLECTIONS } from '@/config/collections';
 import { buildSchoolPayload, buildSchoolUpdatePayload } from '@/config/schoolsOptions';
 import { deleteSchoolLogo } from '@/services/storageService';
-import { deleteSchoolLogo } from '@/services/storageService';
 import { 
   getDocuments, 
   addDocument, 
