@@ -12,4 +12,5 @@ export const COLLECTIONS = {
   DEVELOPMENT_TASKS: 'developmentTasks',
   TASKS: 'tasks',
   NOTIFICATIONS: 'notifications',
+  MINISTRIES: 'ministries',
 };
