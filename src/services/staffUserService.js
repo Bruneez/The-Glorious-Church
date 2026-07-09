@@ -5,6 +5,7 @@ import { app, auth } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
 import { addDocument } from '@/hooks/useFirestore';
 import { getAuthErrorMessage } from '@/services/authService';
+import { createUserCreatedNotification } from '@/services/notificationService';
 
 export function getCreateStaffUserErrorMessage(error) {
   if (error?.code?.startsWith('auth/')) {
@@ -68,6 +69,14 @@ export async function createStaffUser(staffData) {
       photo,
       createdAt: serverTimestamp(),
       createdBy,
+    });
+
+    await createUserCreatedNotification({
+      staffDocId: staffDoc.id,
+      staffName: fullName,
+      role,
+    }).catch((error) => {
+      console.error('Failed to create user notification:', error);
     });
 
     return { uid, staffDocId: staffDoc.id };

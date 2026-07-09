@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
+import { createTransportUpdatedNotification } from '@/services/notificationService';
 import { 
   getDocuments, 
   addDocument, 
@@ -52,18 +53,38 @@ export async function getTransportAssignments(filters = {}) {
 
 export async function createTransportRoute(routeData) {
   const timestamp = new Date().toISOString();
-  return addDocument(COLLECTIONS.TRANSPORT, {
+  const createdRoute = await addDocument(COLLECTIONS.TRANSPORT, {
     ...routeData,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
+
+  await createTransportUpdatedNotification({
+    transportId: createdRoute.id,
+    transportLabel: createdRoute.name || routeData.name || 'Transport route',
+    action: 'created',
+  }).catch((error) => {
+    console.error('Failed to create transport notification:', error);
+  });
+
+  return createdRoute;
 }
 
 export async function updateTransportRoute(routeId, routeData) {
-  return updateDocument(COLLECTIONS.TRANSPORT, routeId, {
+  const updatedRoute = await updateDocument(COLLECTIONS.TRANSPORT, routeId, {
     ...routeData,
     updatedAt: new Date().toISOString(),
   });
+
+  await createTransportUpdatedNotification({
+    transportId: routeId,
+    transportLabel: routeData.name || updatedRoute.name || 'Transport route',
+    action: 'updated',
+  }).catch((error) => {
+    console.error('Failed to create transport notification:', error);
+  });
+
+  return updatedRoute;
 }
 
 export async function deleteTransportRoute(routeId) {
@@ -72,18 +93,38 @@ export async function deleteTransportRoute(routeId) {
 
 export async function createTransportAssignment(assignmentData) {
   const timestamp = new Date().toISOString();
-  return addDocument(COLLECTIONS.TRANSPORT_ASSIGNMENTS, {
+  const createdAssignment = await addDocument(COLLECTIONS.TRANSPORT_ASSIGNMENTS, {
     ...assignmentData,
     createdAt: timestamp,
     updatedAt: timestamp
   });
+
+  await createTransportUpdatedNotification({
+    transportId: createdAssignment.id,
+    transportLabel: assignmentData.routeName || assignmentData.date || 'Transport assignment',
+    action: 'created',
+  }).catch((error) => {
+    console.error('Failed to create transport assignment notification:', error);
+  });
+
+  return createdAssignment;
 }
 
 export async function updateTransportAssignment(assignmentId, assignmentData) {
-  return updateDocument(COLLECTIONS.TRANSPORT_ASSIGNMENTS, assignmentId, {
+  const updatedAssignment = await updateDocument(COLLECTIONS.TRANSPORT_ASSIGNMENTS, assignmentId, {
     ...assignmentData,
     updatedAt: new Date().toISOString()
   });
+
+  await createTransportUpdatedNotification({
+    transportId: assignmentId,
+    transportLabel: assignmentData.routeName || assignmentData.date || 'Transport assignment',
+    action: 'updated',
+  }).catch((error) => {
+    console.error('Failed to create transport assignment notification:', error);
+  });
+
+  return updatedAssignment;
 }
 
 export async function deleteTransportAssignment(assignmentId) {

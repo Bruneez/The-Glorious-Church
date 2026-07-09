@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
+import { createOfferingRecordedNotification } from '@/services/notificationService';
 import { 
   getDocuments, 
   addDocument, 
@@ -65,11 +66,24 @@ export async function getOffering(offeringId) {
 
 export async function createOffering(offeringData) {
   const timestamp = new Date().toISOString();
-  return addDocument(COLLECTIONS.OFFERINGS, {
+  const createdOffering = await addDocument(COLLECTIONS.OFFERINGS, {
     ...offeringData,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
+
+  const amount = createdOffering.totalAmount ?? createdOffering.amount ?? offeringData.totalAmount ?? offeringData.amount;
+  const amountLabel = amount != null ? `R ${Number(amount).toLocaleString()}` : 'An offering';
+
+  await createOfferingRecordedNotification({
+    offeringId: createdOffering.id,
+    amountLabel,
+    offeringType: createdOffering.type || offeringData.type || '',
+  }).catch((error) => {
+    console.error('Failed to create offering notification:', error);
+  });
+
+  return createdOffering;
 }
 
 export async function updateOffering(offeringId, offeringData) {

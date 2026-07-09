@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
+import { createEventAddedNotification } from '@/services/notificationService';
 import { 
   getDocuments, 
   addDocument, 
@@ -61,11 +62,21 @@ export async function getEvent(eventId) {
 
 export async function createEvent(eventData) {
   const timestamp = new Date().toISOString();
-  return addDocument(COLLECTIONS.EVENTS, {
+  const createdEvent = await addDocument(COLLECTIONS.EVENTS, {
     ...eventData,
     createdAt: timestamp,
     updatedAt: timestamp
   });
+
+  await createEventAddedNotification({
+    eventId: createdEvent.id,
+    eventTitle: createdEvent.title || eventData.title || 'New event',
+    eventDate: createdEvent.date || eventData.date || '',
+  }).catch((error) => {
+    console.error('Failed to create event notification:', error);
+  });
+
+  return createdEvent;
 }
 
 export async function updateEvent(eventId, eventData) {

@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { UserPlus, Search, Eye, Edit2, Trash2 } from 'lucide-react';
-import PageHeader from '@/components/layout/PageHeader';
 import UserForm from '@/components/features/users/UserForm';
 import UserViewModal from '@/components/features/users/UserViewModal';
 import StaffSummaryCards from '@/components/features/users/StaffSummaryCards';
@@ -218,7 +217,6 @@ export default function UsersPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <PageHeader title="Staff Access Control Directory" badge="Administrative Node" />
         <p className="text-[11px] text-slate-400">
           Signed in as:{' '}
           <span className="font-semibold text-slate-100">

@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import PageHeader from '@/components/layout/PageHeader';
 import MemberFilters from '@/components/features/members/MemberFilters';
 import MembersTable from '@/components/features/members/MembersTable';
 import MembersMobileList from '@/components/features/members/MembersMobileList';
@@ -204,8 +203,6 @@ export default function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Members Directory" badge="Active Congregation" />
-
       <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback({ type: '', message: '' })} />
 
       {isCALeader && creatorDepartment && (

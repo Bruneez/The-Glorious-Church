@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronUp, LogOut, Settings } from 'lucide-react';
+import { ChevronDown, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import UserAvatar from '@/components/ui/UserAvatar';
 import AccountSettingsModal from '@/pages/profile/AccountSettingsModal';
 
-export default function ProfileMenu() {
+export default function ProfileMenu({ className = '', compact = false }) {
   const { firebaseUser, staffProfile, role, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -39,9 +39,9 @@ export default function ProfileMenu() {
 
   return (
     <>
-      <div ref={containerRef} className="p-4 border-t border-slate-800 text-xs relative">
+      <div ref={containerRef} className={`relative ${className}`}>
         {isOpen ? (
-          <div className="absolute left-4 bottom-16 w-60 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-xl space-y-2 z-50 text-xs text-slate-300">
+          <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-slate-700 bg-slate-800 p-3 text-xs text-slate-300 shadow-xl space-y-2">
             <div className="border-b border-slate-700/60 pb-2 mb-1">
               <p className="font-bold text-white truncate text-[11px]">{displayName}</p>
               <p className="text-[10px] text-slate-400 font-mono truncate">{email}</p>
@@ -68,16 +68,22 @@ export default function ProfileMenu() {
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="w-full flex items-center justify-between p-1 rounded-lg hover:bg-slate-900 text-left cursor-pointer transition"
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
+          className="flex items-center gap-2 rounded-lg p-1.5 text-left transition hover:bg-slate-800/80 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 truncate">
-            <UserAvatar name={displayName} photo={photo} size="xs" />
-            <div className="truncate">
-              <p className="font-medium text-slate-200">{displayName}</p>
-              <p className="text-[10px] text-indigo-400 uppercase tracking-wider">{role || 'Staff'}</p>
+          <UserAvatar name={displayName} photo={photo} size="sm" />
+          {!compact ? (
+            <div className="hidden min-w-0 sm:block">
+              <p className="truncate text-sm font-medium text-slate-200">{displayName}</p>
+              <p className="truncate text-[10px] font-medium uppercase tracking-wider text-indigo-400">
+                {role || 'Staff'}
+              </p>
             </div>
-          </div>
-          <ChevronUp className="w-4 h-4 text-slate-500 shrink-0" />
+          ) : null}
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-slate-500 transition ${isOpen ? 'rotate-180' : ''} ${compact ? '' : 'hidden sm:block'}`}
+          />
         </button>
       </div>
 
