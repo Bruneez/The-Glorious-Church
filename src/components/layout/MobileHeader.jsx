@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import churchLogo from '@/assets/The GC Official Logo.png';
 import ProfileMenu from '@/components/layout/ProfileMenu';
+import NotificationBell from '@/components/layout/NotificationBell';
 
 export default function MobileHeader({ onMenuToggle, isMenuOpen }) {
   return (
@@ -12,6 +13,7 @@ export default function MobileHeader({ onMenuToggle, isMenuOpen }) {
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
+        <NotificationBell />
         <ProfileMenu compact />
         <button
           type="button"

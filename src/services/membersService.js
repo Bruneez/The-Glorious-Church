@@ -1,6 +1,10 @@
 import { COLLECTIONS } from '@/config/collections';
 import { MEMBER_STATUS, buildMemberPayload, getMemberFullName } from '@/config/memberOptions';
 import {
+  createMemberAddedNotification,
+  createMemberStatusChangedNotification,
+} from '@/services/notificationService';
+import {
   getDocuments,
   addDocument,
   updateDocument,
@@ -53,22 +57,52 @@ export async function createMember(memberData, createdBy = '') {
   const timestamp = new Date().toISOString();
   const payload = buildMemberPayload(memberData);
 
-  return addDocument(COLLECTIONS.MEMBERS, {
+  const createdMember = await addDocument(COLLECTIONS.MEMBERS, {
     ...payload,
     status: payload.status || MEMBER_STATUS.ACTIVE,
     createdBy: String(createdBy || memberData.createdBy || '').trim(),
     createdAt: timestamp,
     updatedAt: timestamp,
   });
+
+  await createMemberAddedNotification({
+    memberId: createdMember.id,
+    memberName: getMemberFullName(createdMember),
+    department: createdMember.department || '',
+    departmentId: createdMember.departmentId || '',
+    excludeStaffId: String(createdBy || '').trim(),
+  }).catch((error) => {
+    console.error('Failed to create member added notification:', error);
+  });
+
+  return createdMember;
 }
 
 export async function updateMember(memberId, memberData) {
+  const existingMember = await getMember(memberId);
   const payload = buildMemberPayload(memberData, memberData.status);
 
-  return updateDocument(COLLECTIONS.MEMBERS, memberId, {
+  const updatedMember = await updateDocument(COLLECTIONS.MEMBERS, memberId, {
     ...payload,
     updatedAt: new Date().toISOString(),
   });
+
+  const previousStatus = existingMember?.status;
+  const nextStatus = payload.status;
+
+  if (existingMember && previousStatus && nextStatus && previousStatus !== nextStatus) {
+    await createMemberStatusChangedNotification({
+      memberId,
+      memberName: getMemberFullName({ ...existingMember, ...payload }),
+      newStatus: nextStatus,
+      department: payload.department || existingMember.department || '',
+      departmentId: payload.departmentId || existingMember.departmentId || '',
+    }).catch((error) => {
+      console.error('Failed to create member status notification:', error);
+    });
+  }
+
+  return updatedMember;
 }
 
 export async function deleteMember(memberId) {

@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
+import { createAttendanceRecordedNotification } from '@/services/notificationService';
 import { 
   getDocuments, 
   addDocument, 
@@ -61,11 +62,26 @@ export async function getAttendanceRecord(recordId) {
 
 export async function createAttendanceRecord(attendanceData) {
   const timestamp = new Date().toISOString();
-  return addDocument(COLLECTIONS.ATTENDANCE, {
+  const createdRecord = await addDocument(COLLECTIONS.ATTENDANCE, {
     ...attendanceData,
     createdAt: timestamp,
     updatedAt: timestamp
   });
+
+  const sessionLabel = attendanceData.departmentName
+    || attendanceData.group
+    || (attendanceData.type === 'service' ? 'Service' : 'Department');
+
+  await createAttendanceRecordedNotification({
+    recordId: createdRecord.id,
+    sessionLabel,
+    departmentId: attendanceData.departmentId || '',
+    departmentName: attendanceData.departmentName || '',
+  }).catch((error) => {
+    console.error('Failed to create attendance notification:', error);
+  });
+
+  return createdRecord;
 }
 
 export async function updateAttendanceRecord(recordId, attendanceData) {
