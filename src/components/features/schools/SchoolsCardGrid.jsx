@@ -1,10 +1,10 @@
-import { Eye, Edit2, Trash2, School, Users } from 'lucide-react';
+import { Eye, Edit2, Trash2, School, Users, MapPin } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { SchoolStatusBadge } from '@/components/features/schools/SchoolLinkedMembersTable';
 import { getSchoolBadge } from '@/config/schoolsOptions';
 
 function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false, canDelete = false }) {
   const badge = getSchoolBadge(school.raw);
+  const address = school.raw?.address?.trim() || '';
 
   const handleCardClick = () => {
     onView?.(school);
@@ -39,18 +39,18 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false,
         </div>
 
         <div className="rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Status</p>
-          <div className="mt-1.5">
-            <SchoolStatusBadge status={school.status} />
-          </div>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Address</p>
+          <p
+            className={`text-sm font-bold mt-0.5 flex items-start gap-1.5 ${
+              address ? 'text-white' : 'text-slate-500'
+            }`}
+            title={address || 'Address not provided'}
+          >
+            <MapPin className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${address ? 'text-indigo-400' : 'text-slate-600'}`} />
+            <span className="line-clamp-2 leading-snug">{address || 'Address not provided'}</span>
+          </p>
         </div>
       </div>
-
-      {school.raw?.address && (
-        <p className="text-[11px] text-slate-500 truncate" title={school.raw.address}>
-          {school.raw.address}
-        </p>
-      )}
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/60">
         <button
