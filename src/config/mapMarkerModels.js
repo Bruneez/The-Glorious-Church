@@ -1,4 +1,10 @@
-/** Future Firestore collection names for map pin sources. */
+import { getMemberFullName, getMemberProfileImageUrl } from '@/config/memberOptions';
+import {
+  getMemberHomeAddress,
+  getMemberHomeCoords,
+  getMemberWorkAddress,
+  getMemberWorkCoords,
+} from '@/utils/memberLocations';
 export const MAP_SOURCE_COLLECTIONS = {
   MEMBERS: 'members',
   SCHOOLS: 'schools',
@@ -76,7 +82,11 @@ export function buildMemberMarkerData({
   phone = '',
   branch = '',
   cellLeader = '',
+  occupation = '',
   profilePath = '/members',
+  locationType = 'home',
+  companyName = '',
+  position = '',
 } = {}) {
   return {
     name,
@@ -85,7 +95,11 @@ export function buildMemberMarkerData({
     phone,
     branch,
     cellLeader,
+    occupation,
     profilePath,
+    locationType,
+    companyName,
+    position,
   };
 }
 
@@ -147,28 +161,94 @@ export function buildCreativeArtsMarkerData({
   };
 }
 
-/** Maps a raw Firestore member document to a map marker (geocoding applied separately). */
-export function mapMemberRecordToMarker(member, layerId, coords = null) {
-  const name = member?.fullName || member?.name || 'Unknown Member';
+/** Maps a raw Firestore member document to a home-location map marker. */
+export function mapMemberHomeRecordToMarker(member, layerId, coords = null) {
+  const name = getMemberFullName(member) || member?.name || 'Unknown Member';
+  const resolvedCoords = coords ?? getMemberHomeCoords(member);
 
   return createMapMarker({
-    id: `member-${member?.id}`,
+    id: `member-home-${member?.id}`,
     layerId,
     type: 'member',
-    coords,
+    coords: resolvedCoords,
     label: getMemberMarkerLabel(name),
     sourceId: member?.id || '',
     sourceCollection: MAP_SOURCE_COLLECTIONS.MEMBERS,
     data: buildMemberMarkerData({
       name,
-      photo: member?.photo || '',
-      address: member?.address || '',
+      photo: getMemberProfileImageUrl(member),
+      address: getMemberHomeAddress(member),
       phone: member?.phone || member?.cellphone || '',
       branch: member?.branch || member?.fellowship || '',
       cellLeader: member?.cellLeader || member?.leader || '',
-      profilePath: member?.id ? `/members` : '/members',
+      occupation: member?.occupation || '',
+      profilePath: member?.id ? `/members?memberId=${member.id}` : '/members',
+      locationType: 'home',
     }),
   });
+}
+
+/** Maps a raw Firestore member document to a work-location map marker. */
+export function mapMemberWorkRecordToMarker(member, layerId, coords = null) {
+  const name = getMemberFullName(member) || member?.name || 'Unknown Member';
+  const resolvedCoords = coords ?? getMemberWorkCoords(member);
+
+  return createMapMarker({
+    id: `member-work-${member?.id}`,
+    layerId,
+    type: 'member-work',
+    coords: resolvedCoords,
+    label: 'W',
+    sourceId: member?.id || '',
+    sourceCollection: MAP_SOURCE_COLLECTIONS.MEMBERS,
+    data: buildMemberMarkerData({
+      name,
+      photo: getMemberProfileImageUrl(member),
+      address: getMemberWorkAddress(member),
+      phone: member?.phone || member?.cellphone || '',
+      branch: member?.branch || member?.fellowship || '',
+      cellLeader: member?.cellLeader || member?.leader || '',
+      profilePath: member?.id ? '/members' : '/members',
+      locationType: 'work',
+      companyName: member?.companyName || '',
+      position: member?.position || '',
+    }),
+  });
+}
+
+/** Maps a raw Firestore member document to a map marker (geocoding applied separately). */
+export function mapMemberRecordToMarker(member, layerId, coords = null) {
+  return mapMemberHomeRecordToMarker(member, layerId, coords);
+}
+
+/** Builds home-location map markers for members with valid home coordinates. */
+export function mapMemberRecordsToHomeMarkers(members = [], layerId = 'members') {
+  const markers = [];
+
+  for (const member of members) {
+    if (getMemberHomeCoords(member)) {
+      markers.push(mapMemberHomeRecordToMarker(member, layerId));
+    }
+  }
+
+  return filterPlottableMarkers(markers);
+}
+
+/** Builds home and work map markers for a member when coordinates are available. */
+export function mapMemberRecordsToLocationMarkers(members = [], layerId = 'members') {
+  const markers = [];
+
+  for (const member of members) {
+    if (getMemberHomeCoords(member)) {
+      markers.push(mapMemberHomeRecordToMarker(member, layerId));
+    }
+
+    if (getMemberWorkCoords(member)) {
+      markers.push(mapMemberWorkRecordToMarker(member, layerId));
+    }
+  }
+
+  return filterPlottableMarkers(markers);
 }
 
 /** Maps a raw Firestore school document to a map marker. */

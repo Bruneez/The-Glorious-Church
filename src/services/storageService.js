@@ -1,7 +1,21 @@
 import { uploadImage, uploadFile, deleteFile } from '@/hooks/useStorage';
 
 export async function uploadMemberPhoto(file) {
-  return uploadImage(file, 'member-photos');
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'photo').replace(/[^\w.-]/g, '_');
+  const profileImagePath = `member-photos/${timestamp}_${safeName}`;
+  const profileImageUrl = await uploadFile(file, profileImagePath);
+
+  return { profileImageUrl, profileImagePath };
+}
+
+export async function uploadMemberReportCard(file) {
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'report-card').replace(/[^\w.-]/g, '_');
+  const reportCardPath = `member-report-cards/${timestamp}_${safeName}`;
+  const reportCardUrl = await uploadFile(file, reportCardPath);
+
+  return { reportCardUrl, reportCardPath };
 }
 
 export async function uploadStaffPhoto(file) {

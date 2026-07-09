@@ -121,16 +121,21 @@ export default function CalendarView({ events, members = [], onDateClick, select
                       {day.day}
                     </span>
                     {day.events.length > 0 && (
-                      <div className="flex justify-center gap-0.5 mt-0.5">
-                        {day.events.slice(0, 2).map((event, i) => (
-                          <div
-                            key={i}
-                            className={`w-1 h-1 rounded-full ${
-                              event.isBirthday ? 'bg-pink-400' : 'bg-indigo-400'
-                            }`}
-                          />
-                        ))}
-                        {day.events.length > 2 && <div className="w-1 h-1 rounded-full bg-slate-500"></div>}
+                      <div className="flex flex-col items-center gap-0.5 mt-0.5">
+                        {day.events.some((event) => event.isBirthday) ? (
+                          <span className="text-[9px] leading-none" aria-hidden="true">🎂</span>
+                        ) : null}
+                        <div className="flex justify-center gap-0.5">
+                          {day.events.slice(0, 2).map((event, i) => (
+                            <div
+                              key={i}
+                              className={`w-1 h-1 rounded-full ${
+                                event.isBirthday ? 'bg-pink-400' : 'bg-indigo-400'
+                              }`}
+                            />
+                          ))}
+                          {day.events.length > 2 && <div className="w-1 h-1 rounded-full bg-slate-500" />}
+                        </div>
                       </div>
                     )}
                   </>

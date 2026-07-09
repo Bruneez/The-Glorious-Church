@@ -1,6 +1,6 @@
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS } from '@/config/memberOptions';
+import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS, getMemberProfileImageUrl } from '@/config/memberOptions';
 import Table from '@/components/ui/Table';
 
 function StatusBadge({ status }) {
@@ -23,7 +23,7 @@ function MemberAvatar({ member }) {
   return (
     <UserAvatar
       name={getMemberFullName(member)}
-      photo={member.photo}
+      photo={getMemberProfileImageUrl(member)}
       size="sm"
     />
   );

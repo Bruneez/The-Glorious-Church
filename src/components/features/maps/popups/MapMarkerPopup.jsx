@@ -3,6 +3,7 @@ import {
   MapBranchPopup,
   MapCreativeArtsPopup,
   MapMemberPopup,
+  MapMemberWorkPopup,
   MapMinistryPopup,
   MapSchoolPopup,
 } from '@/components/features/maps/popups/MapMarkerPopups';
@@ -13,6 +14,8 @@ export default function MapMarkerPopup({ marker }) {
   switch (marker.type) {
     case MAP_MARKER_TYPES.MEMBER:
       return <MapMemberPopup data={marker.data} />;
+    case MAP_MARKER_TYPES.MEMBER_WORK:
+      return <MapMemberWorkPopup data={marker.data} />;
     case MAP_MARKER_TYPES.SCHOOL:
       return <MapSchoolPopup data={marker.data} />;
     case MAP_MARKER_TYPES.BRANCH:

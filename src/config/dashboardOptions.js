@@ -1,5 +1,5 @@
 import { getMemberDepartment } from '@/config/memberOptions';
-import { getUpcomingBirthdays } from '@/utils/birthdayEvents';
+import { getUpcomingBirthdays, formatBirthdayEventTitle } from '@/utils/birthdayEvents';
 
 export const CREATIVE_ARTS_OVERVIEW_DEPARTMENTS = [
   'Choir',
@@ -29,7 +29,7 @@ export function getUpcomingEventsAndBirthdays(
   const birthdayItems = getUpcomingBirthdays(members, members.length, referenceDate).map((entry) => ({
     id: `birthday-${entry.id}-${entry.birthday}`,
     type: 'Birthday',
-    title: entry.name,
+    title: formatBirthdayEventTitle(entry.name),
     date: entry.birthday,
     time: '',
     sortTime: '23:59',
