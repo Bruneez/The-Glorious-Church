@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { getNavItemsForRole } from '@/config/navConfig';
-import ProfileMenu from './ProfileMenu';
 import SidebarBrand from './SidebarBrand';
 
 function navLinkClass({ isActive }) {
@@ -18,7 +17,7 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }) {
     <aside
       className={`fixed inset-y-0 left-0 transform ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:static md:translate-x-0 md:h-full w-64 bg-slate-950 border-r border-slate-800 z-40 flex flex-col justify-between shrink-0 transition-transform duration-300 ease-in-out md:row-start-2 md:col-start-1 min-h-0`}
+      } md:static md:translate-x-0 md:h-full w-64 bg-slate-950 border-r border-slate-800 z-40 flex flex-col shrink-0 transition-transform duration-300 ease-in-out md:row-start-2 md:col-start-1 min-h-0`}
     >
       <div className="flex flex-col flex-1 min-h-0">
         <div className="md:hidden">
@@ -39,8 +38,6 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }) {
           ))}
         </nav>
       </div>
-
-      <ProfileMenu />
     </aside>
   );
 }

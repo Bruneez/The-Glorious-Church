@@ -11,9 +11,13 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
   const { firebaseUser, staffDocId, staffProfile, refreshStaffProfile } = useAuth();
   const [name, setName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [photoBase64, setPhotoBase64] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (!isOpen || !staffProfile) return;
@@ -21,7 +25,11 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
     setName(staffProfile.name || '');
     setPhotoBase64(staffProfile.photo || '');
     setNewPassword('');
+    setConfirmPassword('');
     setError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    setSuccess('');
   }, [isOpen, staffProfile]);
 
   async function handleFileChange(event) {
@@ -35,15 +43,34 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    setSuccess('');
 
     if (!staffDocId || !firebaseUser) {
       setError('Session not verified.');
       return;
     }
 
-    if (newPassword.trim() !== '' && newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
+    const trimmedNewPassword = newPassword.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+    const isUpdatingPassword = trimmedNewPassword !== '';
+
+    if (isUpdatingPassword) {
+      if (trimmedNewPassword.length < 6) {
+        setPasswordError('Password must be at least 6 characters long.');
+        return;
+      }
+
+      if (!trimmedConfirmPassword) {
+        setConfirmPasswordError('Please confirm your password.');
+        return;
+      }
+
+      if (trimmedNewPassword !== trimmedConfirmPassword) {
+        setConfirmPasswordError('Passwords do not match.');
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -54,12 +81,15 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
         photo: photoBase64,
       });
 
-      if (newPassword.trim() !== '') {
-        await changePassword(firebaseUser, newPassword);
+      if (isUpdatingPassword) {
+        await changePassword(firebaseUser, trimmedNewPassword);
       }
 
       await refreshStaffProfile();
-      onClose();
+      setSuccess(
+        isUpdatingPassword ? 'Password updated successfully.' : 'Profile updated successfully.'
+      );
+      window.setTimeout(() => onClose(), 1500);
     } catch (err) {
       console.error(err);
       setError(err.message || 'Error saving updates.');
@@ -73,6 +103,10 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
       <form onSubmit={handleSubmit} className="space-y-3">
         {error ? (
           <p className="text-rose-400 text-[11px]">{error}</p>
+        ) : null}
+
+        {success ? (
+          <p className="text-emerald-400 text-[11px]">{success}</p>
         ) : null}
 
         <div>
@@ -105,15 +139,43 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
 
         <div className="pt-2 border-t border-slate-700/60">
           <p className="text-indigo-400 font-semibold mb-2">Change Account Password (Optional)</p>
-          <div>
-            <label className="block text-slate-400 mb-0.5">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="Leave blank to keep current"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
-            />
+          <div className="space-y-3">
+            <div>
+              <label className="block text-slate-400 mb-0.5">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => {
+                  setNewPassword(event.target.value);
+                  setPasswordError('');
+                  setConfirmPasswordError('');
+                }}
+                placeholder="Leave blank to keep current"
+                autoComplete="new-password"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+              />
+              {passwordError ? (
+                <p className="mt-1 text-rose-400 text-[11px]">{passwordError}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="block text-slate-400 mb-0.5">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value);
+                  setConfirmPasswordError('');
+                }}
+                placeholder="Re-enter new password"
+                autoComplete="new-password"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none"
+              />
+              {confirmPasswordError ? (
+                <p className="mt-1 text-rose-400 text-[11px]">{confirmPasswordError}</p>
+              ) : null}
+            </div>
           </div>
         </div>
 
