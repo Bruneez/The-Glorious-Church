@@ -1,23 +1,6 @@
-import { Eye, Edit2, Trash2, Palette, Users } from 'lucide-react';
-import { DEPARTMENT_STATUS, getMemberCount } from '@/config/creativeArtsOptions';
+import { Eye, Edit2, Trash2, Palette, Users, User } from 'lucide-react';
+import { getMemberCount } from '@/config/creativeArtsOptions';
 import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
-
-export function DepartmentStatusBadge({ status }) {
-  const isActive = (status || DEPARTMENT_STATUS.ACTIVE) === DEPARTMENT_STATUS.ACTIVE;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-        isActive
-          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-          : 'bg-rose-950/60 text-rose-400 border border-rose-500/20'
-      }`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-      {status || DEPARTMENT_STATUS.ACTIVE}
-    </span>
-  );
-}
 
 function DepartmentOverviewCard({
   department,
@@ -27,7 +10,7 @@ function DepartmentOverviewCard({
   canManage = false,
 }) {
   const memberCount = getMemberCount(department);
-  const leader = department.leader?.trim() || 'Not assigned';
+  const leaderName = department.leader?.trim() || '';
   const description = department.description?.trim() || 'Not provided';
 
   return (
@@ -39,9 +22,6 @@ function DepartmentOverviewCard({
           <h3 className="text-sm font-bold text-white tracking-wide truncate">
             {department.name || 'Unnamed Department'}
           </h3>
-          <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5">
-            Leader: {leader}
-          </p>
         </div>
       </div>
 
@@ -65,11 +45,16 @@ function DepartmentOverviewCard({
 
         <div className="rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
-            Status
+            Department Leader
           </p>
-          <div className="mt-1.5">
-            <DepartmentStatusBadge status={department.status} />
-          </div>
+          <p
+            className={`text-sm font-bold mt-0.5 flex items-center gap-1.5 truncate ${
+              leaderName ? 'text-white' : 'text-slate-500'
+            }`}
+          >
+            <User className={`w-3.5 h-3.5 shrink-0 ${leaderName ? 'text-indigo-400' : 'text-slate-600'}`} />
+            <span className="truncate">{leaderName || 'Not Assigned'}</span>
+          </p>
         </div>
       </div>
 
