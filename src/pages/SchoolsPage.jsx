@@ -17,6 +17,7 @@ import {
   computeLearnerStatsByOccupation,
   computeMemberCountsBySchool,
   mapSchoolForTable,
+  schoolBelongsToCategory,
   SCHOOL_TYPE,
 } from '@/config/schoolsOptions';
 
@@ -34,17 +35,24 @@ const SCHOOL_CATEGORIES = [
     emptyMessage: 'No high schools found.',
   },
   {
-    id: SCHOOL_TYPE.HIGHER_EDUCATION,
-    label: 'Universities & Colleges',
-    description: 'University and college roster and member allocation.',
-    emptyMessage: 'No universities or colleges found.',
+    id: SCHOOL_TYPE.UNIVERSITY,
+    label: 'Universities',
+    description: 'University roster and member allocation.',
+    emptyMessage: 'No universities found.',
+  },
+  {
+    id: SCHOOL_TYPE.COLLEGE,
+    label: 'Colleges',
+    description: 'College roster and member allocation.',
+    emptyMessage: 'No colleges found.',
   },
 ];
 
 const SUMMARY_CARDS = [
   { label: 'Total Primary School Learners', key: 'primary' },
   { label: 'Total High School Learners', key: 'high' },
-  { label: 'Total University / College Students', key: 'university' },
+  { label: 'Total University Students', key: 'university' },
+  { label: 'Total College Students', key: 'college' },
 ];
 
 function SummaryCard({ label, value }) {
@@ -85,7 +93,7 @@ export default function SchoolsPage() {
   const schoolsByCategory = useMemo(
     () => SCHOOL_CATEGORIES.reduce((groups, category) => {
       groups[category.id] = schools
-        .filter((school) => school.schoolType === category.id)
+        .filter((school) => schoolBelongsToCategory(school, category.id))
         .map((school) => mapSchoolForTable(school, memberCounts));
       return groups;
     }, {}),
@@ -176,7 +184,7 @@ export default function SchoolsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {SUMMARY_CARDS.map((card) => (
           <SummaryCard
             key={card.label}

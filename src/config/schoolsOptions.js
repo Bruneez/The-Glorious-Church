@@ -1,21 +1,32 @@
 import { getMemberFullName, normalizeOccupationForForm } from '@/config/memberOptions';
 
 export const SCHOOL_TYPE = {
-  PRIMARY: 'primary',
-  HIGH: 'high',
-  HIGHER_EDUCATION: 'higher-education',
+  PRIMARY: 'Primary School',
+  HIGH: 'High School',
+  UNIVERSITY: 'University',
+  COLLEGE: 'College',
+};
+
+export const LEGACY_SCHOOL_TYPE = {
+  COMBINED_HIGHER_ED: 'University / College',
+  SLUG_PRIMARY: 'primary',
+  SLUG_HIGH: 'high',
+  SLUG_HIGHER_ED: 'higher-education',
 };
 
 export const LEARNER_OCCUPATIONS = {
   PRIMARY: 'Primary School',
   HIGH: 'High School',
-  UNIVERSITY: 'University / College',
+  UNIVERSITY: 'University',
+  COLLEGE: 'College',
+  LEGACY_HIGHER_ED: 'University / College',
 };
 
 export const SCHOOL_TYPE_OPTIONS = [
   { value: SCHOOL_TYPE.PRIMARY, label: 'Primary School' },
   { value: SCHOOL_TYPE.HIGH, label: 'High School' },
-  { value: SCHOOL_TYPE.HIGHER_EDUCATION, label: 'University / College' },
+  { value: SCHOOL_TYPE.UNIVERSITY, label: 'University' },
+  { value: SCHOOL_TYPE.COLLEGE, label: 'College' },
 ];
 
 export const SCHOOL_STATUS = {
@@ -31,6 +42,50 @@ export const SCHOOL_STATUS_OPTIONS = [
 export const ACCEPTED_SCHOOL_BADGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export const ACCEPTED_SCHOOL_BADGE_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+
+const LEGACY_SCHOOL_TYPE_MAP = {
+  [LEGACY_SCHOOL_TYPE.SLUG_PRIMARY]: SCHOOL_TYPE.PRIMARY,
+  [LEGACY_SCHOOL_TYPE.SLUG_HIGH]: SCHOOL_TYPE.HIGH,
+  [LEGACY_SCHOOL_TYPE.SLUG_HIGHER_ED]: LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED,
+  [LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED]: LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED,
+  [SCHOOL_TYPE.PRIMARY]: SCHOOL_TYPE.PRIMARY,
+  [SCHOOL_TYPE.HIGH]: SCHOOL_TYPE.HIGH,
+  [SCHOOL_TYPE.UNIVERSITY]: SCHOOL_TYPE.UNIVERSITY,
+  [SCHOOL_TYPE.COLLEGE]: SCHOOL_TYPE.COLLEGE,
+};
+
+export function normalizeSchoolType(schoolType) {
+  const value = String(schoolType || '').trim();
+  return LEGACY_SCHOOL_TYPE_MAP[value] || value;
+}
+
+export function schoolBelongsToCategory(school, category) {
+  const normalizedSchoolType = normalizeSchoolType(school?.schoolType);
+  const normalizedCategory = normalizeSchoolType(category);
+
+  if (normalizedCategory === SCHOOL_TYPE.UNIVERSITY) {
+    return (
+      normalizedSchoolType === SCHOOL_TYPE.UNIVERSITY ||
+      normalizedSchoolType === LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED
+    );
+  }
+
+  if (normalizedCategory === SCHOOL_TYPE.COLLEGE) {
+    return normalizedSchoolType === SCHOOL_TYPE.COLLEGE;
+  }
+
+  return normalizedSchoolType === normalizedCategory;
+}
+
+export function schoolMatchesTypeFilter(school, typeFilter) {
+  if (!typeFilter) return true;
+
+  if (typeFilter === LEGACY_SCHOOL_TYPE.SLUG_HIGHER_ED) {
+    return normalizeSchoolType(school?.schoolType) === LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED;
+  }
+
+  return schoolBelongsToCategory(school, typeFilter);
+}
 
 export function getSchoolBadge(school) {
   return school?.badgeUrl || school?.logo || school?.photo || '';
@@ -93,7 +148,7 @@ function buildSchoolBadgeFields(formData, initialData = null) {
 export function buildSchoolPayload(formData, createdBy) {
   return {
     schoolName: formData.name.trim(),
-    schoolType: formData.type,
+    schoolType: normalizeSchoolType(formData.type),
     address: formData.address?.trim() || '',
     status: formData.status,
     ...buildSchoolBadgeFields(formData),
@@ -105,7 +160,7 @@ export function buildSchoolPayload(formData, createdBy) {
 export function buildSchoolUpdatePayload(formData, initialData = null) {
   return {
     schoolName: formData.name.trim(),
-    schoolType: formData.type,
+    schoolType: normalizeSchoolType(formData.type),
     address: formData.address?.trim() || '',
     status: formData.status,
     ...buildSchoolBadgeFields(formData, initialData),
@@ -126,7 +181,7 @@ export function mapSchoolToFormData(school) {
 
   return {
     name: school.schoolName || '',
-    type: school.schoolType || '',
+    type: normalizeSchoolType(school.schoolType) || '',
     address: school.address || '',
     status: school.status || SCHOOL_STATUS.ACTIVE,
     badgeUrl: getSchoolBadge(school),
@@ -135,13 +190,23 @@ export function mapSchoolToFormData(school) {
 }
 
 export function getSchoolTypeLabel(schoolType) {
-  return SCHOOL_TYPE_OPTIONS.find((option) => option.value === schoolType)?.label || schoolType || '—';
+  const normalized = normalizeSchoolType(schoolType);
+
+  if (normalized === LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED) {
+    return LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED;
+  }
+
+  return SCHOOL_TYPE_OPTIONS.find((option) => option.value === normalized)?.label || normalized || '—';
 }
 
 export function getMemberSchoolReference(member) {
   const occupation = normalizeOccupationForForm(member?.occupation);
 
-  if (occupation === LEARNER_OCCUPATIONS.UNIVERSITY) {
+  if (
+    occupation === LEARNER_OCCUPATIONS.UNIVERSITY ||
+    occupation === LEARNER_OCCUPATIONS.COLLEGE ||
+    occupation === LEARNER_OCCUPATIONS.LEGACY_HIGHER_ED
+  ) {
     return {
       schoolId: member?.schoolId || '',
       schoolName: member?.institution || member?.schoolName || member?.school || '',
@@ -156,17 +221,33 @@ export function getMemberSchoolReference(member) {
 
 export function occupationMatchesSchoolType(member, school) {
   const occupation = normalizeOccupationForForm(member?.occupation);
+  const normalizedSchoolType = normalizeSchoolType(school?.schoolType);
 
-  if (school?.schoolType === SCHOOL_TYPE.PRIMARY) {
+  if (normalizedSchoolType === SCHOOL_TYPE.PRIMARY) {
     return occupation === LEARNER_OCCUPATIONS.PRIMARY;
   }
 
-  if (school?.schoolType === SCHOOL_TYPE.HIGH) {
+  if (normalizedSchoolType === SCHOOL_TYPE.HIGH) {
     return occupation === LEARNER_OCCUPATIONS.HIGH;
   }
 
-  if (school?.schoolType === SCHOOL_TYPE.HIGHER_EDUCATION) {
-    return occupation === LEARNER_OCCUPATIONS.UNIVERSITY;
+  if (normalizedSchoolType === SCHOOL_TYPE.UNIVERSITY) {
+    return (
+      occupation === LEARNER_OCCUPATIONS.UNIVERSITY ||
+      occupation === LEARNER_OCCUPATIONS.LEGACY_HIGHER_ED
+    );
+  }
+
+  if (normalizedSchoolType === SCHOOL_TYPE.COLLEGE) {
+    return occupation === LEARNER_OCCUPATIONS.COLLEGE;
+  }
+
+  if (normalizedSchoolType === LEGACY_SCHOOL_TYPE.COMBINED_HIGHER_ED) {
+    return [
+      LEARNER_OCCUPATIONS.UNIVERSITY,
+      LEARNER_OCCUPATIONS.COLLEGE,
+      LEARNER_OCCUPATIONS.LEGACY_HIGHER_ED,
+    ].includes(occupation);
   }
 
   return false;
@@ -232,11 +313,16 @@ export function computeLearnerStatsByOccupation(members = []) {
         stats.high += 1;
       } else if (occupation === LEARNER_OCCUPATIONS.UNIVERSITY) {
         stats.university += 1;
+      } else if (occupation === LEARNER_OCCUPATIONS.COLLEGE) {
+        stats.college += 1;
+      } else if (occupation === LEARNER_OCCUPATIONS.LEGACY_HIGHER_ED) {
+        // Legacy combined occupation is counted under university until migrated.
+        stats.university += 1;
       }
 
       return stats;
     },
-    { primary: 0, high: 0, university: 0 },
+    { primary: 0, high: 0, university: 0, college: 0 },
   );
 }
 
@@ -267,3 +353,6 @@ export function mapLinkedMemberForDisplay(member) {
     raw: member,
   };
 }
+
+// Backward compatibility for legacy campus pages still passing slug values.
+export const HIGHER_EDUCATION = LEGACY_SCHOOL_TYPE.SLUG_HIGHER_ED;

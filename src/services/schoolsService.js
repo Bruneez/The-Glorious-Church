@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
-import { buildSchoolPayload, buildSchoolUpdatePayload } from '@/config/schoolsOptions';
+import { buildSchoolPayload, buildSchoolUpdatePayload, schoolMatchesTypeFilter } from '@/config/schoolsOptions';
 import { deleteSchoolLogo } from '@/services/storageService';
 import { 
   getDocuments, 
@@ -96,7 +96,7 @@ export function useSchoolsByType(schoolType = null) {
   const { data = [], loading, error } = useSchoolsDirectory();
 
   const filtered = schoolType
-    ? data.filter((school) => school.schoolType === schoolType)
+    ? data.filter((school) => schoolMatchesTypeFilter(school, schoolType))
     : data;
 
   return { data: filtered, loading, error };

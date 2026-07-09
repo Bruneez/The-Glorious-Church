@@ -6,7 +6,9 @@ export const GENDER_OPTIONS = [
 export const OCCUPATION_OPTIONS = [
   { value: 'Primary School', label: 'Primary School' },
   { value: 'High School', label: 'High School' },
-  { value: 'University / College', label: 'University / College' },
+  { value: 'University', label: 'University' },
+  { value: 'College', label: 'College' },
+  { value: 'University / College', label: 'University / College (Legacy)' },
   { value: 'Working', label: 'Working' },
   { value: 'Unemployed', label: 'Unemployed' },
 ];
@@ -66,9 +68,11 @@ export function toSchoolSelectOptions(schools) {
 }
 
 export function getOccupationSchoolType(occupation) {
-  if (occupation === 'Primary School') return 'primary';
-  if (occupation === 'High School') return 'high';
-  if (occupation === 'University / College') return 'higher-education';
+  if (occupation === 'Primary School') return 'Primary School';
+  if (occupation === 'High School') return 'High School';
+  if (occupation === 'University') return 'University';
+  if (occupation === 'College') return 'College';
+  if (occupation === 'University / College') return 'University / College';
   return '';
 }
 
@@ -80,7 +84,7 @@ export function getOccupationDisplay(member) {
     return { primary: occupation, secondary: details };
   }
 
-  if (occupation === 'University / College') {
+  if (occupation === 'University' || occupation === 'College' || occupation === 'University / College') {
     const details = [member?.schoolName || member?.institution, member?.course].filter(Boolean).join(' • ');
     return { primary: occupation, secondary: details };
   }
@@ -91,8 +95,6 @@ export function getOccupationDisplay(member) {
 export function normalizeOccupationForForm(occupation) {
   const value = String(occupation || '').trim();
   const legacyMap = {
-    University: 'University / College',
-    College: 'University / College',
     Work: 'Working',
     'Employed / Workplace': 'Working',
   };
@@ -177,7 +179,7 @@ export function buildMemberPayload(formData, existingStatus) {
     };
   }
 
-  if (occupation === 'University / College') {
+  if (occupation === 'University' || occupation === 'College' || occupation === 'University / College') {
     const schoolName = formData.schoolName?.trim() || formData.institution?.trim() || '';
 
     return {
