@@ -21,6 +21,7 @@ import DevelopmentBoardPage from '@/pages/DevelopmentBoardPage';
 import TasksPage from '@/pages/TasksPage';
 import MinistriesPage from '@/pages/MinistriesPage';
 import BlueprintPage from '@/pages/BlueprintPage';
+import ServiceProgramPage from '@/pages/ServiceProgramPage';
 
 export default function AppRoutes() {
   return (
@@ -53,6 +54,7 @@ export default function AppRoutes() {
           <Route path="offerings" element={<OfferingsPage />} />
           <Route path="transport" element={<TransportPage />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="service-program" element={<ServiceProgramPage />} />
           <Route path="development-board" element={<DevelopmentBoardPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
