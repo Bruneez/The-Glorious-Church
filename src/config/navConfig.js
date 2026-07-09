@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  BookOpen,
   ShieldCheck,
   Users,
   Palette,
@@ -16,6 +17,7 @@ import {
 
 export const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, roles: null },
+  { path: '/blueprint', label: 'Blueprint', icon: BookOpen, roles: null },
   { path: '/users', label: 'System Users', icon: ShieldCheck, roles: null },
   { path: '/members', label: 'Members Directory', icon: Users, roles: null },
   { path: '/creative-arts', label: 'Creative Arts', icon: Palette, roles: null },
@@ -38,6 +40,7 @@ export function getNavItemsForRole(role) {
 
 export const PAGE_TITLES = {
   '/dashboard': 'Dashboard Overview',
+  '/blueprint': 'Blueprint',
   '/users': 'System Users',
   '/members': 'Members Directory',
   '/creative-arts': 'Creative Arts',
