@@ -2,7 +2,7 @@ import { KanbanSquare } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/utils/formatters';
-import { getPriorityBadgeClass } from '@/config/developmentBoardOptions';
+import { getPriorityBadgeClass, getTaskStatusLabel } from '@/config/developmentBoardOptions';
 
 function DetailField({ label, value, children }) {
   return (
@@ -43,8 +43,7 @@ export default function DevelopmentTaskViewModal({ task, isOpen, onClose, onEdit
               {task.priority}
             </span>
           </DetailField>
-          <DetailField label="Status" value={task.status} />
-          <DetailField label="Assigned To" value={task.assignedTo || '—'} />
+          <DetailField label="Status" value={getTaskStatusLabel(task.status)} />
           <DetailField label="Requested By" value={task.requestedBy || '—'} />
           <DetailField label="Created By" value={task.createdBy || '—'} />
           <DetailField label="Created At" value={formatTimestamp(task.createdAt)} />

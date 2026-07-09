@@ -3,6 +3,7 @@ import Select from '@/components/ui/Select';
 import {
   STATUS_OPTIONS,
   getPriorityBadgeClass,
+  getTaskBoardStatus,
 } from '@/config/developmentBoardOptions';
 
 export default function DevelopmentTaskCard({
@@ -38,7 +39,7 @@ export default function DevelopmentTaskCard({
       <Select
         label="Status"
         name={`status-${task.id}`}
-        value={task.status}
+        value={getTaskBoardStatus(task.status)}
         onChange={(event) => onStatusChange(task, event.target.value)}
         options={STATUS_OPTIONS}
         disabled={isUpdatingStatus}
