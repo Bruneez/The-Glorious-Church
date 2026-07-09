@@ -15,6 +15,7 @@ import {
 } from '@/services/developmentBoardService';
 import {
   filterDevelopmentTasks,
+  getTaskStatusLabel,
   groupTasksByStatus,
   PRIORITY_FILTER_OPTIONS,
 } from '@/config/developmentBoardOptions';
@@ -112,7 +113,7 @@ export default function DevelopmentBoardPage() {
 
     try {
       await updateDevelopmentTaskStatus(task.id, status);
-      showFeedback('success', `Task moved to ${status}.`);
+      showFeedback('success', `Task moved to ${getTaskStatusLabel(status)}.`);
     } catch (statusError) {
       console.error('Error updating task status:', statusError);
       showFeedback('error', 'Failed to update task status. Please try again.');

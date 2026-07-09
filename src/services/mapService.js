@@ -1,8 +1,16 @@
-import { filterPlottableMarkers } from '@/config/mapMarkerModels';
+import {
+  filterPlottableMarkers,
+  mapMemberRecordsToHomeMarkers,
+  mapMemberRecordsToLocationMarkers,
+} from '@/config/mapMarkerModels';
+import {
+  getMemberHomeCoords,
+  getMemberWorkCoords,
+} from '@/utils/memberLocations';
 
 /**
- * Map service — future Firestore, geocoding, and address autocomplete integration.
- * Returns an empty marker set until Firestore data is connected.
+ * Map service — Firestore marker loading and future geocoding/autocomplete integration.
+ * Returns an empty marker set until member coordinates are stored or geocoding is connected.
  */
 
 /** Future: load all map markers from Firestore collections. */
@@ -12,7 +20,7 @@ export async function fetchMapMarkers() {
 
 /**
  * Future: geocode a street address into [latitude, longitude].
- * Not implemented — reserved for address-to-pin placement.
+ * Not implemented — connect a provider (e.g. Nominatim, Google Places) here.
  */
 export async function geocodeAddress(_address) {
   throw new Error('Geocoding is not implemented yet.');
@@ -20,17 +28,37 @@ export async function geocodeAddress(_address) {
 
 /**
  * Future: autocomplete address suggestions while typing.
- * Not implemented — reserved for member/branch address forms.
+ * Not implemented — wire AddressInput to this when a provider is selected.
  */
 export async function searchAddressSuggestions(_query) {
   return [];
 }
 
 /**
- * Future: batch geocode and attach coordinates to member records.
+ * Reads stored member home coordinates and returns map-ready home markers.
+ * Does not geocode missing addresses.
  */
-export async function attachMemberCoordinates(_members = []) {
-  return [];
+export function buildMemberHomeLocationMarkers(members = [], layerId = 'members') {
+  return mapMemberRecordsToHomeMarkers(members, layerId);
+}
+
+/**
+ * Reads stored member home and work coordinates and returns map-ready markers.
+ * Does not geocode missing addresses.
+ */
+export function buildMemberLocationMarkers(members = [], layerId = 'members') {
+  return mapMemberRecordsToLocationMarkers(members, layerId);
+}
+
+/**
+ * Attaches resolved coordinate arrays to member records from stored fields.
+ */
+export function attachMemberCoordinates(members = []) {
+  return members.map((member) => ({
+    ...member,
+    homeCoords: getMemberHomeCoords(member),
+    workCoords: getMemberWorkCoords(member),
+  }));
 }
 
 /**

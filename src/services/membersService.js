@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@/config/collections';
-import { MEMBER_STATUS, buildMemberPayload } from '@/config/memberOptions';
+import { MEMBER_STATUS, buildMemberPayload, getMemberFullName } from '@/config/memberOptions';
 import {
   getDocuments,
   addDocument,
@@ -49,13 +49,14 @@ export async function getMember(memberId) {
   return getDocument(COLLECTIONS.MEMBERS, memberId);
 }
 
-export async function createMember(memberData) {
+export async function createMember(memberData, createdBy = '') {
   const timestamp = new Date().toISOString();
   const payload = buildMemberPayload(memberData);
 
   return addDocument(COLLECTIONS.MEMBERS, {
     ...payload,
     status: payload.status || MEMBER_STATUS.ACTIVE,
+    createdBy: String(createdBy || memberData.createdBy || '').trim(),
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -79,13 +80,22 @@ export function filterMembers(members, searchTerm) {
 
   const term = searchTerm.toLowerCase();
   return members.filter((member) =>
+    member.firstName?.toLowerCase().includes(term) ||
+    member.lastName?.toLowerCase().includes(term) ||
+    member.fullName?.toLowerCase().includes(term) ||
     member.name?.toLowerCase().includes(term) ||
     member.surname?.toLowerCase().includes(term) ||
+    getMemberFullName(member).toLowerCase().includes(term) ||
     member.phone?.toLowerCase().includes(term) ||
     member.department?.toLowerCase().includes(term) ||
     member.creativeArts?.toLowerCase().includes(term) ||
     member.occupation?.toLowerCase().includes(term) ||
+    member.homeAddress?.toLowerCase().includes(term) ||
+    member.address?.toLowerCase().includes(term) ||
     member.school?.toLowerCase().includes(term) ||
+    member.schoolName?.toLowerCase().includes(term) ||
+    member.universityName?.toLowerCase().includes(term) ||
+    member.collegeName?.toLowerCase().includes(term) ||
     member.institution?.toLowerCase().includes(term) ||
     member.grade?.toLowerCase().includes(term) ||
     member.course?.toLowerCase().includes(term)

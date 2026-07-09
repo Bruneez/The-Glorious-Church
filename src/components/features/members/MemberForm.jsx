@@ -1,22 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import Input from '@/components/ui/Input';
+import AddressInput from '@/components/ui/AddressInput';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import MemberOccupationFields from '@/components/features/members/MemberOccupationFields';
 import {
   GENDER_OPTIONS,
-  OCCUPATION_OPTIONS,
-  PRIMARY_GRADE_OPTIONS,
-  HIGH_GRADE_OPTIONS,
+  LANGUAGE_OPTIONS,
+  COUNTRY_OPTIONS,
+  ETHNICITY_OPTIONS,
+  BRANCH_OPTIONS,
+  MEMBER_FORM_OCCUPATION_OPTIONS,
   MEMBER_FORM_STATUS_OPTIONS,
+  createEmptyMemberSubjects,
+  getOccupationFieldReset,
+  isSeniorSchoolGrade,
   mapMemberToFormData,
-  toSchoolSelectOptions,
+  MAX_MEMBER_SUBJECTS,
 } from '@/config/memberOptions';
 import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
-import { uploadMemberPhoto } from '@/services/storageService';
+import { uploadMemberPhoto, uploadMemberReportCard } from '@/services/storageService';
 import UserAvatar from '@/components/ui/UserAvatar';
+
+function CoreSectionHeading({ title }) {
+  return (
+    <div className="pt-1">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</h3>
+    </div>
+  );
+}
 
 function resolveSchoolSelection(member, schools) {
   if (!member) return null;
@@ -36,6 +51,15 @@ function resolveSchoolSelection(member, schools) {
   ) || null;
 }
 
+function getSchoolsForOccupation(occupation, schoolLists) {
+  if (occupation === 'Primary School') return schoolLists.primarySchools;
+  if (occupation === 'High School') return schoolLists.highSchools;
+  if (occupation === 'University') return schoolLists.universitySchools;
+  if (occupation === 'College') return schoolLists.collegeSchools;
+  if (occupation === 'University / College') return schoolLists.legacyHigherEducationSchools;
+  return [];
+}
+
 export default function MemberForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const { data: primarySchools = [] } = useSchoolsByType(SCHOOL_TYPE.PRIMARY);
   const { data: highSchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGH);
@@ -46,24 +70,36 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
   const [formData, setFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [reportCardFile, setReportCardFile] = useState(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const activeSchoolOptions = useMemo(() => {
-    if (formData.occupation === 'Primary School') return primarySchools;
-    if (formData.occupation === 'High School') return highSchools;
-    if (formData.occupation === 'University') return universitySchools;
-    if (formData.occupation === 'College') return collegeSchools;
-    if (formData.occupation === 'University / College') return legacyHigherEducationSchools;
-    return [];
-  }, [
-    formData.occupation,
-    primarySchools,
-    highSchools,
-    universitySchools,
-    collegeSchools,
-    legacyHigherEducationSchools,
-  ]);
+  const schoolLists = useMemo(
+    () => ({
+      primarySchools,
+      highSchools,
+      universitySchools,
+      collegeSchools,
+      legacyHigherEducationSchools,
+    }),
+    [primarySchools, highSchools, universitySchools, collegeSchools, legacyHigherEducationSchools],
+  );
+
+  const activeSchoolOptions = useMemo(
+    () => getSchoolsForOccupation(formData.occupation, schoolLists),
+    [formData.occupation, schoolLists],
+  );
+
+  const occupationOptions = useMemo(() => {
+    if (formData.occupation === 'University / College') {
+      return [
+        ...MEMBER_FORM_OCCUPATION_OPTIONS,
+        { value: 'University / College', label: 'University / College (Legacy)' },
+      ];
+    }
+
+    return MEMBER_FORM_OCCUPATION_OPTIONS;
+  }, [formData.occupation]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -71,7 +107,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     const mapped = mapMemberToFormData(initialData);
     setFormData(mapped);
     setPhotoFile(null);
-    setPhotoPreview(initialData?.photo || '');
+    setPhotoPreview(mapped.photo || '');
+    setReportCardFile(null);
     setError('');
     setIsSubmitting(false);
   }, [initialData, isOpen]);
@@ -92,17 +129,126 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     }));
   }, [activeSchoolOptions, formData.schoolId, initialData, isOpen]);
 
+  const applySchoolSelection = (schoolId, schools) => {
+    const selectedSchool = schools.find((school) => school.id === schoolId);
+
+    setFormData((prev) => ({
+      ...prev,
+      schoolId: schoolId || '',
+      schoolName: selectedSchool?.schoolName || '',
+      schoolType: selectedSchool?.schoolType || '',
+      school: selectedSchool?.schoolName || '',
+      institution: selectedSchool?.schoolName || '',
+    }));
+  };
+
+  const handleSchoolSelect = (event) => {
+    applySchoolSelection(event.target.value, activeSchoolOptions);
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    if (name === 'occupation') {
+      setFormData((prev) => ({
+        ...prev,
+        occupation: value,
+        ...getOccupationFieldReset(),
+      }));
+      setReportCardFile(null);
+      return;
+    }
+
+    if (name === 'address') {
+      setFormData((prev) => ({
+        ...prev,
+        address: value,
+        fullAddress: value,
+        latitude: null,
+        longitude: null,
+      }));
+      return;
+    }
+
+    if (name === 'workAddress') {
+      setFormData((prev) => ({
+        ...prev,
+        workAddress: value,
+        workLatitude: null,
+        workLongitude: null,
+      }));
+      return;
+    }
+
+    if (name === 'grade') {
+      setFormData((prev) => {
+        const next = { ...prev, grade: value };
+
+        if (isSeniorSchoolGrade(value)) {
+          if (!next.subjects?.length) {
+            next.subjects = createEmptyMemberSubjects(1);
+          }
+        } else {
+          next.subjects = [];
+        }
+
+        return next;
+      });
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubjectChange = (index, value) => {
+    setFormData((prev) => {
+      const subjects = [...(prev.subjects || [])];
+      subjects[index] = value;
+      return { ...prev, subjects };
+    });
+  };
+
+  const handleAddSubject = () => {
+    setFormData((prev) => {
+      if ((prev.subjects?.length || 0) >= MAX_MEMBER_SUBJECTS) return prev;
+      return { ...prev, subjects: [...(prev.subjects || []), ''] };
+    });
+  };
+
+  const handleRemoveSubject = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      subjects: (prev.subjects || []).filter((_, subjectIndex) => subjectIndex !== index),
+    }));
+  };
+
+  const handleReportCardChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setReportCardFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     if (!formData.name.trim()) {
-      setError('Full name is required.');
+      setError('First name is required.');
       return;
     }
 
     if (!formData.surname.trim()) {
-      setError('Surname is required.');
+      setError('Last name is required.');
+      return;
+    }
+
+    if (!formData.gender) {
+      setError('Gender is required.');
+      return;
+    }
+
+    if (!formData.dob) {
+      setError('Date of birth is required.');
       return;
     }
 
@@ -110,14 +256,28 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
     try {
       let photoUrl = formData.photo;
+      let profileImagePath = formData.profileImagePath;
+      let reportCardUrl = formData.reportCardUrl;
+      let reportCardPath = formData.reportCardPath;
 
       if (photoFile) {
-        photoUrl = await uploadMemberPhoto(photoFile);
+        const uploadedPhoto = await uploadMemberPhoto(photoFile);
+        photoUrl = uploadedPhoto.profileImageUrl;
+        profileImagePath = uploadedPhoto.profileImagePath;
+      }
+
+      if (reportCardFile) {
+        const uploadedReportCard = await uploadMemberReportCard(reportCardFile);
+        reportCardUrl = uploadedReportCard.reportCardUrl;
+        reportCardPath = uploadedReportCard.reportCardPath;
       }
 
       await onSubmit({
         ...formData,
         photo: photoUrl,
+        profileImagePath,
+        reportCardUrl,
+        reportCardPath,
       });
     } catch (submitError) {
       setError(submitError?.message || 'Failed to save member. Please try again.');
@@ -137,60 +297,15 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     reader.readAsDataURL(file);
   };
 
-  const applySchoolSelection = (schoolId, schools) => {
-    const selectedSchool = schools.find((school) => school.id === schoolId);
-
-    setFormData((prev) => ({
-      ...prev,
-      schoolId: schoolId || '',
-      schoolName: selectedSchool?.schoolName || '',
-      schoolType: selectedSchool?.schoolType || '',
-      school: selectedSchool?.schoolName || '',
-      institution: selectedSchool?.schoolName || '',
-    }));
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'occupation') {
-      setFormData((prev) => ({
-        ...prev,
-        occupation: value,
-        schoolId: '',
-        schoolName: '',
-        schoolType: '',
-        school: '',
-        grade: '',
-        institution: '',
-        course: '',
-      }));
-      return;
-    }
-
-    if (name === 'schoolId') {
-      applySchoolSelection(value, activeSchoolOptions);
-      return;
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const isPrimarySchool = formData.occupation === 'Primary School';
-  const isHighSchool = formData.occupation === 'High School';
-  const isUniversity = formData.occupation === 'University';
-  const isCollege = formData.occupation === 'College';
-  const isLegacyHigherEducation = formData.occupation === 'University / College';
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Member' : 'Add Member'}
       icon={UserPlus}
-      maxWidth="max-w-lg"
+      maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-slate-400 mb-0.5 text-xs">Profile Picture</label>
           <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
@@ -208,188 +323,165 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input
-            label="Full Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="e.g. John"
-            required
-          />
-          <Input
-            label="Surname"
-            name="surname"
-            value={formData.surname}
-            onChange={handleChange}
-            placeholder="e.g. Doe"
-            required
-          />
-        </div>
+        <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
+          <CoreSectionHeading title="Core Information" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input
-            label="Phone Number"
-            name="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="012 345 6789"
-          />
-          <Select
-            label="Gender"
-            name="gender"
-            value={formData.gender}
-            onChange={handleChange}
-            options={GENDER_OPTIONS}
-            placeholder="Select Gender"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Select
-            label="Occupation"
-            name="occupation"
-            value={formData.occupation}
-            onChange={handleChange}
-            options={OCCUPATION_OPTIONS}
-            placeholder="Select Occupation"
-          />
-          <Select
-            label="Status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            options={MEMBER_FORM_STATUS_OPTIONS}
-            placeholder="Select Status"
-          />
-        </div>
-
-        {isPrimarySchool && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Select
-              label="Primary School"
-              name="schoolId"
-              value={formData.schoolId}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="First Name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              options={toSchoolSelectOptions(primarySchools)}
-              placeholder="Select School"
-            />
-            <Select
-              label="Grade"
-              name="grade"
-              value={formData.grade}
-              onChange={handleChange}
-              options={PRIMARY_GRADE_OPTIONS}
-              placeholder="Select Grade"
-            />
-          </div>
-        )}
-
-        {isHighSchool && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Select
-              label="High School"
-              name="schoolId"
-              value={formData.schoolId}
-              onChange={handleChange}
-              options={toSchoolSelectOptions(highSchools)}
-              placeholder="Select School"
-            />
-            <Select
-              label="Grade"
-              name="grade"
-              value={formData.grade}
-              onChange={handleChange}
-              options={HIGH_GRADE_OPTIONS}
-              placeholder="Select Grade"
-            />
-          </div>
-        )}
-
-        {isUniversity && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Select
-              label="University"
-              name="schoolId"
-              value={formData.schoolId}
-              onChange={handleChange}
-              options={toSchoolSelectOptions(universitySchools)}
-              placeholder="Select University"
+              placeholder="e.g. John"
+              required
             />
             <Input
-              label="Course"
-              name="course"
-              value={formData.course}
+              label="Last Name"
+              name="surname"
+              value={formData.surname}
               onChange={handleChange}
-              placeholder="e.g. BCom Accounting"
+              placeholder="e.g. Doe"
+              required
             />
           </div>
-        )}
 
-        {isCollege && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
-              label="College"
-              name="schoolId"
-              value={formData.schoolId}
+              label="Gender"
+              name="gender"
+              value={formData.gender}
               onChange={handleChange}
-              options={toSchoolSelectOptions(collegeSchools)}
-              placeholder="Select College"
+              options={GENDER_OPTIONS}
+              placeholder="Select Gender"
+              required
             />
             <Input
-              label="Course"
-              name="course"
-              value={formData.course}
+              label="Date of Birth"
+              name="dob"
+              type="date"
+              value={formData.dob}
               onChange={handleChange}
-              placeholder="e.g. N6 Business Management"
+              required
             />
           </div>
-        )}
 
-        {isLegacyHigherEducation && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Select
-              label="University / College (Legacy)"
-              name="schoolId"
-              value={formData.schoolId}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Phone Number"
+              name="phone"
+              type="tel"
+              value={formData.phone}
               onChange={handleChange}
-              options={toSchoolSelectOptions(legacyHigherEducationSchools)}
-              placeholder="Select Institution"
+              placeholder="012 345 6789"
+            />
+            <Select
+              label="Language"
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              options={LANGUAGE_OPTIONS}
+              placeholder="Select Language"
+            />
+          </div>
+
+          <AddressInput
+            label="Home Address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            placeholder="Street, city, province"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select
+              label="Country of Origin"
+              name="countryOfOrigin"
+              value={formData.countryOfOrigin}
+              onChange={handleChange}
+              options={COUNTRY_OPTIONS}
+              placeholder="Select Country"
+            />
+            <Select
+              label="Ethnicity"
+              name="ethnicity"
+              value={formData.ethnicity}
+              onChange={handleChange}
+              options={ETHNICITY_OPTIONS}
+              placeholder="Select Ethnicity"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Date of Salvation"
+              name="dateOfSalvation"
+              type="date"
+              value={formData.dateOfSalvation}
+              onChange={handleChange}
+            />
+            <Select
+              label="Branch"
+              name="branch"
+              value={formData.branch}
+              onChange={handleChange}
+              options={BRANCH_OPTIONS}
+              placeholder="Select Branch"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Zone Supervisor"
+              name="zoneSupervisor"
+              value={formData.zoneSupervisor}
+              onChange={handleChange}
+              placeholder="Zone supervisor name"
             />
             <Input
-              label="Course"
-              name="course"
-              value={formData.course}
+              label="Cell Leader"
+              name="cellLeader"
+              value={formData.cellLeader}
               onChange={handleChange}
-              placeholder="e.g. BCom Accounting"
+              placeholder="Cell leader name"
             />
           </div>
-        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input
-            label="Date of Birth"
-            name="dob"
-            type="date"
-            value={formData.dob}
-            onChange={handleChange}
-          />
-          <Input
-            label="Date of Salvation"
-            name="dateOfSalvation"
-            type="date"
-            value={formData.dateOfSalvation}
-            onChange={handleChange}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select
+              label="Occupation"
+              name="occupation"
+              value={formData.occupation}
+              onChange={handleChange}
+              options={occupationOptions}
+              placeholder="Select Occupation"
+            />
+            <Select
+              label="Status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              options={MEMBER_FORM_STATUS_OPTIONS}
+              placeholder="Select Status"
+            />
+          </div>
         </div>
 
-        <Input
-          label="Address"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          placeholder="Street, city, province"
+        <MemberOccupationFields
+          occupation={formData.occupation}
+          formData={formData}
+          primarySchools={primarySchools}
+          highSchools={highSchools}
+          universitySchools={universitySchools}
+          collegeSchools={collegeSchools}
+          legacyHigherEducationSchools={legacyHigherEducationSchools}
+          onFieldChange={handleChange}
+          onSchoolSelect={handleSchoolSelect}
+          onSubjectChange={handleSubjectChange}
+          onAddSubject={handleAddSubject}
+          onRemoveSubject={handleRemoveSubject}
+          onReportCardChange={handleReportCardChange}
         />
 
         {error && <p className="text-rose-400 text-[11px]">{error}</p>}

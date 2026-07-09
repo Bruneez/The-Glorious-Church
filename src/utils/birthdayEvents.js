@@ -1,9 +1,9 @@
-import { getMemberFullName } from '@/config/memberOptions';
+import { getMemberFullName, getMemberDateOfBirthValue, getMemberProfileImageUrl } from '@/config/memberOptions';
 
 export const BIRTHDAY_EVENT_TYPE = 'Birthday';
 
 export function getMemberDateOfBirth(member) {
-  return member?.dob || member?.dateOfBirth || '';
+  return getMemberDateOfBirthValue(member);
 }
 
 function isLeapYear(year) {
@@ -37,7 +37,7 @@ export function parseValidBirthDate(value) {
   const testDate = new Date(year, month - 1, day);
   if (testDate.getMonth() !== month - 1 || testDate.getDate() !== day) return null;
 
-  return { month, day };
+  return { month, day, birthYear: year };
 }
 
 function getBirthdayDateForYear(parsed, year) {
@@ -50,19 +50,45 @@ function getBirthdayDateForYear(parsed, year) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+export function formatBirthdayEventTitle(memberName = '') {
+  const name = String(memberName || 'Member').trim() || 'Member';
+  return `🎂 Birthday - ${name}`;
+}
+
+export function getAgeTurning(birthYear, eventYear) {
+  const birth = Number(birthYear);
+  const event = Number(eventYear);
+
+  if (!birth || !event || event < birth) {
+    return null;
+  }
+
+  return event - birth;
+}
+
 export function createBirthdayEvent(member, year) {
-  const parsed = parseValidBirthDate(getMemberDateOfBirth(member));
+  const dateOfBirth = getMemberDateOfBirth(member);
+  const parsed = parseValidBirthDate(dateOfBirth);
   if (!parsed) return null;
 
   const memberName = getMemberFullName(member) || 'Member';
+  const date = getBirthdayDateForYear(parsed, year);
+  const ageTurning = getAgeTurning(parsed.birthYear, year);
 
   return {
     id: `birthday-${member.id}-${year}`,
-    title: `${memberName}'s Birthday`,
+    title: formatBirthdayEventTitle(memberName),
     type: BIRTHDAY_EVENT_TYPE,
-    date: getBirthdayDateForYear(parsed, year),
+    date,
     isBirthday: true,
+    isReadOnly: true,
+    repeatsYearly: true,
     memberId: member.id,
+    memberName,
+    photo: getMemberProfileImageUrl(member),
+    dateOfBirth,
+    ageTurning,
+    branch: member?.branch || '',
   };
 }
 
@@ -98,6 +124,15 @@ export function mergeCalendarEvents(firestoreEvents = [], birthdayEvents = []) {
   });
 }
 
+export function getUpcomingBirthdayEvents(members = [], limit = 5, referenceDate = new Date()) {
+  return getUpcomingBirthdays(members, limit, referenceDate)
+    .map((entry) => {
+      const year = parseInt(entry.birthday.split('-')[0], 10);
+      return createBirthdayEvent(entry.member, year);
+    })
+    .filter(Boolean);
+}
+
 export function getUpcomingBirthdays(members = [], limit = 5, referenceDate = new Date()) {
   const todayStart = new Date(referenceDate);
   todayStart.setHours(0, 0, 0, 0);
@@ -126,7 +161,7 @@ export function getUpcomingBirthdays(members = [], limit = 5, referenceDate = ne
       return {
         id: member.id,
         name: getMemberFullName(member) || 'Member',
-        photo: member.photo || '',
+        photo: getMemberProfileImageUrl(member),
         birthday: nextOccurrence.date,
         member: nextOccurrence.member,
       };

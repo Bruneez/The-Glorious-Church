@@ -6,13 +6,14 @@ export const TASK_STATUS = {
   COMPLETED: 'Completed',
 };
 
-export const TASK_STATUSES = [
-  TASK_STATUS.OPEN,
-  TASK_STATUS.ASSIGNED,
-  TASK_STATUS.IN_PROGRESS,
-  TASK_STATUS.TESTING,
-  TASK_STATUS.COMPLETED,
+export const KANBAN_COLUMNS = [
+  { status: TASK_STATUS.OPEN, label: 'New Tasks' },
+  { status: TASK_STATUS.IN_PROGRESS, label: 'In Progress' },
+  { status: TASK_STATUS.TESTING, label: 'Testing' },
+  { status: TASK_STATUS.COMPLETED, label: 'Completed' },
 ];
+
+export const TASK_STATUSES = KANBAN_COLUMNS.map((column) => column.status);
 
 export const TASK_PRIORITY = {
   CRITICAL: 'Critical',
@@ -33,9 +34,9 @@ export const PRIORITY_FILTER_OPTIONS = [
   ...TASK_PRIORITIES.map((priority) => ({ value: priority, label: priority })),
 ];
 
-export const STATUS_OPTIONS = TASK_STATUSES.map((status) => ({
-  value: status,
-  label: status,
+export const STATUS_OPTIONS = KANBAN_COLUMNS.map((column) => ({
+  value: column.status,
+  label: column.label,
 }));
 
 export const PRIORITY_OPTIONS = TASK_PRIORITIES.map((priority) => ({
@@ -64,6 +65,33 @@ export const FUTURE_TASK_FIELDS = [
   'estimatedHours',
   'releaseVersion',
 ];
+
+export function getTaskStatusLabel(status) {
+  if (status === TASK_STATUS.ASSIGNED) {
+    return 'New Tasks';
+  }
+
+  const column = KANBAN_COLUMNS.find((entry) => entry.status === status);
+  return column?.label || status || '—';
+}
+
+export function getTaskBoardStatus(status) {
+  if (status === TASK_STATUS.ASSIGNED) {
+    return TASK_STATUS.OPEN;
+  }
+
+  return status || TASK_STATUS.OPEN;
+}
+
+export function taskBelongsToColumn(task, columnStatus) {
+  const taskStatus = task?.status || TASK_STATUS.OPEN;
+
+  if (columnStatus === TASK_STATUS.OPEN) {
+    return taskStatus === TASK_STATUS.OPEN || taskStatus === TASK_STATUS.ASSIGNED;
+  }
+
+  return taskStatus === columnStatus;
+}
 
 export function buildTaskPayload(taskData = {}) {
   return {
@@ -96,8 +124,8 @@ export function filterDevelopmentTasks(tasks = [], { searchTerm = '', priority =
 }
 
 export function groupTasksByStatus(tasks = []) {
-  return TASK_STATUSES.reduce((groups, status) => {
-    groups[status] = tasks.filter((task) => task.status === status);
+  return KANBAN_COLUMNS.reduce((groups, column) => {
+    groups[column.status] = tasks.filter((task) => taskBelongsToColumn(task, column.status));
     return groups;
   }, {});
 }

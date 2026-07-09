@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import MemberFilters from '@/components/features/members/MemberFilters';
@@ -50,8 +51,9 @@ function FeedbackBanner({ feedback, onDismiss }) {
 
 export default function MembersPage() {
   const { data: members = [], loading, error } = useMembers();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { role, canPerformAction } = useRoleAccess();
-  const { staffProfile } = useAuth();
+  const { staffProfile, staffDocId, firebaseUser } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -60,6 +62,20 @@ export default function MembersPage() {
   const [editingMember, setEditingMember] = useState(null);
   const [viewingMember, setViewingMember] = useState(null);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+  useEffect(() => {
+    const memberId = searchParams.get('memberId');
+    if (!memberId || loading) return;
+
+    const member = members.find((item) => item.id === memberId);
+    if (!member) return;
+
+    setViewingMember(member);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('memberId');
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, members, searchParams, setSearchParams]);
 
   const normalizedRole = normalizeRole(role);
   const isAdminOrPastor =
@@ -134,6 +150,8 @@ export default function MembersPage() {
     setViewingMember(member);
   };
 
+  const createdBy = staffDocId || firebaseUser?.uid || '';
+
   const handleFormSubmit = async (formData) => {
     try {
       if (editingMember) {
@@ -143,10 +161,13 @@ export default function MembersPage() {
         });
         showFeedback('success', 'Member updated successfully.');
       } else {
-        await createMember({
-          ...formData,
-          department: creatorDepartment,
-        });
+        await createMember(
+          {
+            ...formData,
+            department: creatorDepartment,
+          },
+          createdBy,
+        );
         showFeedback('success', 'Member added successfully.');
       }
 

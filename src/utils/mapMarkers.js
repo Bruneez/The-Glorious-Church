@@ -25,7 +25,7 @@ export function resolveSchoolCoords(school) {
 
 export function countMembersInHub(members, hub) {
   return members.filter((member) => {
-    const address = normalizeName(member.address);
+    const address = normalizeName(member.homeAddress || member.fullAddress || member.address);
     return hub.keywords.some((keyword) => address.includes(keyword));
   }).length;
 }

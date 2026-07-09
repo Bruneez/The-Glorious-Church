@@ -4,11 +4,16 @@ import EventForm from '@/components/features/calendar/EventForm';
 import CalendarView from '@/components/features/calendar/CalendarView';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useEvents, createEvent, updateEvent, deleteEvent } from '@/services/calendarService';
 import { useMembers } from '@/services/membersService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { formatDate, formatTime } from '@/utils/formatters';
-import { getBirthdayEventsForDate, mergeCalendarEvents } from '@/utils/birthdayEvents';
+import {
+  getBirthdayEventsForDate,
+  getUpcomingBirthdayEvents,
+  mergeCalendarEvents,
+} from '@/utils/birthdayEvents';
 
 function EventTypeBadge({ type, isBirthday }) {
   if (isBirthday) {
@@ -46,7 +51,11 @@ export default function CalendarPage() {
       );
     }
 
-    return events.slice(0, 5);
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingEvents = events.filter((event) => event.date >= today);
+    const upcomingBirthdays = getUpcomingBirthdayEvents(members, 10);
+
+    return mergeCalendarEvents(upcomingEvents, upcomingBirthdays).slice(0, 5);
   }, [events, members, selectedDate]);
 
   const handleAddEvent = () => {
@@ -58,6 +67,7 @@ export default function CalendarPage() {
   };
 
   const handleEditEvent = (event) => {
+    if (event?.isBirthday || event?.isReadOnly) return;
     setEditingEvent(event);
     setIsFormOpen(true);
   };
@@ -78,6 +88,8 @@ export default function CalendarPage() {
   };
 
   const handleDeleteEvent = async (eventId) => {
+    if (String(eventId).startsWith('birthday-')) return;
+
     try {
       await deleteEvent(eventId);
     } catch (error) {
@@ -147,6 +159,13 @@ export default function CalendarPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
+                          {event.isBirthday ? (
+                            <UserAvatar
+                              name={event.memberName || event.title}
+                              photo={event.photo}
+                              size="sm"
+                            />
+                          ) : null}
                           <h4 className="text-sm font-semibold text-white truncate">{event.title}</h4>
                           <EventTypeBadge type={event.type} isBirthday={event.isBirthday} />
                         </div>
@@ -157,7 +176,22 @@ export default function CalendarPage() {
                           ) : (
                             !event.isBirthday && <span>• All Day</span>
                           )}
+                          {event.isBirthday && event.repeatsYearly ? (
+                            <span>• Repeats yearly</span>
+                          ) : null}
                         </div>
+                        {event.isBirthday ? (
+                          <div className="mt-2 space-y-0.5 text-[10px] text-slate-400">
+                            {event.dateOfBirth ? (
+                              <p>Date of Birth: {formatDate(event.dateOfBirth)}</p>
+                            ) : null}
+                            {event.ageTurning != null ? (
+                              <p>Turning {event.ageTurning} this year</p>
+                            ) : null}
+                            {event.branch ? <p>Branch: {event.branch}</p> : null}
+                            <p className="text-pink-400/80">Edit the member record to change this birthday.</p>
+                          </div>
+                        ) : null}
                         {event.location && (
                           <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.location}</p>
                         )}

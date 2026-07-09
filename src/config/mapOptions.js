@@ -10,6 +10,7 @@ export const MAP_LAYER_IDS = {
 
 export const MAP_MARKER_TYPES = {
   MEMBER: 'member',
+  MEMBER_WORK: 'member-work',
   SCHOOL: 'school',
   BRANCH: 'branch',
   MINISTRY: 'ministry',

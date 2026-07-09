@@ -47,7 +47,7 @@ export function MapMemberPopup({ data }) {
   return (
     <PopupShell
       action={
-        <PopupActionButton href={data.profilePath || '/members'} label="View Profile" />
+        <PopupActionButton href={data.profilePath || '/members'} label="View Member" />
       }
     >
       <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ export function MapMemberPopup({ data }) {
           {data.photo ? (
             <img src={data.photo} alt={data.name} className="w-full h-full object-cover" />
           ) : (
-            data.name?.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+            data.name?.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'M'
           )}
         </div>
         <div className="min-w-0">
@@ -65,10 +65,43 @@ export function MapMemberPopup({ data }) {
       </div>
 
       <div className="space-y-2 pt-1 border-t border-slate-700/60">
-        <PopupDetailRow label="Address" value={data.address} />
         <PopupDetailRow label="Phone" value={data.phone} />
+        <PopupDetailRow label="Home Address" value={data.address} />
         <PopupDetailRow label="Branch" value={data.branch} />
         <PopupDetailRow label="Cell Leader" value={data.cellLeader} />
+        <PopupDetailRow label="Occupation" value={data.occupation} />
+      </div>
+    </PopupShell>
+  );
+}
+
+export function MapMemberWorkPopup({ data }) {
+  return (
+    <PopupShell
+      action={
+        <PopupActionButton href={data.profilePath || '/members'} label="View Profile" />
+      }
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 rounded-full bg-amber-600 border border-amber-400/30 overflow-hidden flex items-center justify-center font-bold uppercase text-white shrink-0 text-xs">
+          {data.photo ? (
+            <img src={data.photo} alt={data.name} className="w-full h-full object-cover" />
+          ) : (
+            'W'
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-white truncate">{data.name}</p>
+          <p className="text-[10px] text-amber-400 font-medium mt-0.5">Work Location</p>
+        </div>
+      </div>
+
+      <div className="space-y-2 pt-1 border-t border-slate-700/60">
+        <PopupDetailRow label="Company" value={data.companyName} />
+        <PopupDetailRow label="Position" value={data.position} />
+        <PopupDetailRow label="Work Address" value={data.address} />
+        <PopupDetailRow label="Phone" value={data.phone} />
+        <PopupDetailRow label="Branch" value={data.branch} />
       </div>
     </PopupShell>
   );

@@ -3,13 +3,15 @@ import LeafletMap from '@/components/features/maps/LeafletMap';
 import MapLayerControls from '@/components/features/maps/MapLayerControls';
 import MapMarkerPopup from '@/components/features/maps/popups/MapMarkerPopup';
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM } from '@/config/mapConfig';
-import { createDefaultActiveLayers, filterMarkersByActiveLayers } from '@/config/mapOptions';
-import { fetchMapMarkers } from '@/services/mapService';
+import { createDefaultActiveLayers, filterMarkersByActiveLayers, MAP_LAYER_IDS } from '@/config/mapOptions';
+import { buildMemberHomeLocationMarkers, fetchMapMarkers } from '@/services/mapService';
+import { useMembers } from '@/services/membersService';
 
 export default function MapPage() {
+  const { data: members = [], loading: membersLoading } = useMembers();
   const [activeLayers, setActiveLayers] = useState(createDefaultActiveLayers);
-  const [mapMarkers, setMapMarkers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [otherMarkers, setOtherMarkers] = useState([]);
+  const [otherLoading, setOtherLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -17,12 +19,12 @@ export default function MapPage() {
     fetchMapMarkers()
       .then((markers) => {
         if (isMounted) {
-          setMapMarkers(markers);
+          setOtherMarkers(markers);
         }
       })
       .finally(() => {
         if (isMounted) {
-          setLoading(false);
+          setOtherLoading(false);
         }
       });
 
@@ -30,6 +32,16 @@ export default function MapPage() {
       isMounted = false;
     };
   }, []);
+
+  const memberMarkers = useMemo(
+    () => buildMemberHomeLocationMarkers(members, MAP_LAYER_IDS.MEMBERS),
+    [members],
+  );
+
+  const mapMarkers = useMemo(
+    () => [...memberMarkers, ...otherMarkers],
+    [memberMarkers, otherMarkers],
+  );
 
   const visibleMarkers = useMemo(() => {
     const filtered = filterMarkersByActiveLayers(mapMarkers, activeLayers);
@@ -45,6 +57,8 @@ export default function MapPage() {
       [layerId]: !prev[layerId],
     }));
   };
+
+  const loading = membersLoading || otherLoading;
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full gap-4">

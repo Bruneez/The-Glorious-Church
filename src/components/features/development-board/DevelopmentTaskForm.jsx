@@ -9,6 +9,7 @@ import {
   TASK_PRIORITY,
   STATUS_OPTIONS,
   PRIORITY_OPTIONS,
+  getTaskBoardStatus,
 } from '@/config/developmentBoardOptions';
 
 const EMPTY_FORM = {
@@ -39,7 +40,7 @@ export default function DevelopmentTaskForm({
       priority: initialData?.priority || TASK_PRIORITY.MEDIUM,
       assignedTo: initialData?.assignedTo || '',
       requestedBy: initialData?.requestedBy || '',
-      status: initialData?.status || TASK_STATUS.OPEN,
+      status: getTaskBoardStatus(initialData?.status) || TASK_STATUS.OPEN,
     });
     setError('');
     setIsSubmitting(false);
@@ -128,14 +129,6 @@ export default function DevelopmentTaskForm({
             required
           />
         </div>
-
-        <Input
-          label="Assign To"
-          name="assignedTo"
-          value={formData.assignedTo}
-          onChange={handleChange}
-          placeholder="Developer name"
-        />
 
         <Input
           label="Requested By"

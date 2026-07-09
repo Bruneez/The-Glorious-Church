@@ -14,7 +14,15 @@ import {
 } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { formatDate } from '@/utils/formatters';
-import { getMemberFullName, MEMBER_STATUS } from '@/config/memberOptions';
+import {
+  getMemberFullName,
+  getMemberFirstName,
+  getMemberLastName,
+  getMemberDateOfBirthValue,
+  getMemberProfileImageUrl,
+  MEMBER_STATUS,
+} from '@/config/memberOptions';
+import { getMemberHomeAddress } from '@/utils/memberLocations';
 
 function displayValue(value) {
   if (value === null || value === undefined) return 'Not provided';
@@ -55,38 +63,48 @@ function DetailItem({ icon: Icon, label, value }) {
 function getOccupationFields(member) {
   const occupation = member?.occupation || '';
 
-  if (occupation === 'Primary School') {
+  if (occupation === 'Primary School' || occupation === 'High School') {
     return [
-      { icon: GraduationCap, label: 'Primary School', value: member.school },
+      { icon: GraduationCap, label: 'School', value: member.schoolName || member.school },
       { icon: BookOpen, label: 'Grade', value: member.grade },
-    ];
-  }
-
-  if (occupation === 'High School') {
-    return [
-      { icon: GraduationCap, label: 'High School', value: member.school },
-      { icon: BookOpen, label: 'Grade', value: member.grade },
+      { icon: BookOpen, label: 'Class', value: member.className || member.schoolClass },
     ];
   }
 
   if (occupation === 'University') {
     return [
-      { icon: GraduationCap, label: 'University', value: member.institution },
-      { icon: BookOpen, label: 'Course', value: member.course },
+      { icon: GraduationCap, label: 'University', value: member.universityName || member.schoolName || member.institution },
+      { icon: BookOpen, label: 'Degree', value: member.degree },
+      { icon: BookOpen, label: 'Year', value: member.year || member.studyYear },
     ];
   }
 
   if (occupation === 'College') {
     return [
-      { icon: GraduationCap, label: 'College', value: member.institution },
+      { icon: GraduationCap, label: 'College', value: member.collegeName || member.schoolName || member.institution },
       { icon: BookOpen, label: 'Course', value: member.course },
+      { icon: BookOpen, label: 'Year', value: member.year || member.studyYear },
     ];
   }
 
   if (occupation === 'University / College') {
     return [
-      { icon: GraduationCap, label: 'University / College', value: member.institution },
+      { icon: GraduationCap, label: 'University / College', value: member.schoolName || member.institution },
       { icon: BookOpen, label: 'Course', value: member.course },
+    ];
+  }
+
+  if (occupation === 'Working') {
+    return [
+      { icon: Briefcase, label: 'Company', value: member.companyName },
+      { icon: Briefcase, label: 'Position', value: member.position },
+      { icon: MapPin, label: 'Work Address', value: member.workLocation?.fullAddress || member.workAddress },
+    ];
+  }
+
+  if (occupation === 'Unemployed') {
+    return [
+      { icon: BookOpen, label: 'Education Level', value: member.educationLevel },
     ];
   }
 
@@ -169,13 +187,18 @@ export default function MemberCard({
           {/* Profile hero */}
           <div className="px-5 pt-6 pb-5 border-b border-slate-100">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <UserAvatar name={fullName} photo={member.photo} size="3xl" className="mx-auto sm:mx-0 border-4 border-white shadow-lg" />
+              <UserAvatar
+                name={fullName}
+                photo={getMemberProfileImageUrl(member)}
+                size="3xl"
+                className="mx-auto sm:mx-0 border-4 border-white shadow-lg"
+              />
               <div className="text-center sm:text-left flex-1 min-w-0">
                 <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                  {member.name || 'Not provided'}
+                  {getMemberFirstName(member) || 'Not provided'}
                 </h3>
                 <p className="text-lg text-slate-600 font-medium mt-0.5">
-                  {member.surname || 'Not provided'}
+                  {getMemberLastName(member) || 'Not provided'}
                 </p>
                 <div className="mt-3 flex justify-center sm:justify-start">
                   <StatusBadge status={status} />
@@ -208,7 +231,7 @@ export default function MemberCard({
               <DetailItem
                 icon={Calendar}
                 label="Date of Birth"
-                value={member.dob ? formatDate(member.dob) : ''}
+                value={getMemberDateOfBirthValue(member) ? formatDate(getMemberDateOfBirthValue(member)) : ''}
               />
               <DetailItem
                 icon={Heart}
@@ -216,7 +239,11 @@ export default function MemberCard({
                 value={member.dateOfSalvation ? formatDate(member.dateOfSalvation) : ''}
               />
               <div className="sm:col-span-2">
-                <DetailItem icon={MapPin} label="Address" value={member.address} />
+                <DetailItem
+                  icon={MapPin}
+                  label="Address"
+                  value={getMemberHomeAddress(member)}
+                />
               </div>
             </div>
           </div>
