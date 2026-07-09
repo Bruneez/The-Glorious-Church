@@ -19,6 +19,8 @@ import ProfileSettingsPage from '@/pages/ProfileSettingsPage';
 import MapPage from '@/pages/MapPage';
 import DevelopmentBoardPage from '@/pages/DevelopmentBoardPage';
 import TasksPage from '@/pages/TasksPage';
+import MinistriesPage from '@/pages/MinistriesPage';
+import BlueprintPage from '@/pages/BlueprintPage';
 
 export default function AppRoutes() {
   return (
@@ -31,10 +33,12 @@ export default function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="blueprint" element={<BlueprintPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="system-users" element={<Navigate to="/users" replace />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="creative-arts" element={<CreativeArtsPage />} />
+          <Route path="ministries" element={<MinistriesPage />} />
           <Route path="schools" element={<SchoolsPage />} />
           <Route path="schools/primary" element={<PrimarySchoolsPage />} />
           <Route path="schools/high" element={<HighSchoolsPage />} />

@@ -4,10 +4,12 @@ const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.CA_LEADER];
 
 export const ROUTE_ACCESS = {
   '/dashboard': ALL_STAFF,
+  '/blueprint': ALL_STAFF,
   '/users': [ROLES.ADMIN],
   '/system-users': [ROLES.ADMIN],
   '/members': ALL_STAFF,
   '/creative-arts': ALL_STAFF,
+  '/ministries': ALL_STAFF,
   '/schools/primary': ALL_STAFF,
   '/schools/high': ALL_STAFF,
   '/schools/higher-education': ALL_STAFF,
@@ -35,6 +37,7 @@ export const ACTIONS = {
   MANAGE_OFFERINGS: [ROLES.ADMIN, ROLES.PASTOR],
   MANAGE_EVENTS: [ROLES.ADMIN, ROLES.PASTOR],
   MANAGE_CREATIVE_ARTS: [ROLES.ADMIN],
+  MANAGE_MINISTRIES: [ROLES.ADMIN],
   MANAGE_TRANSPORT: [ROLES.ADMIN, ROLES.PASTOR],
   MANAGE_SCHOOLS: [ROLES.ADMIN, ROLES.PASTOR],
   EDIT_DELETE_SCHOOLS: [ROLES.ADMIN],

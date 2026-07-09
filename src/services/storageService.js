@@ -40,6 +40,15 @@ export async function uploadCreativeArtsImage(file) {
   return logoUrl;
 }
 
+export async function uploadMinistryAvatar(file) {
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'avatar').replace(/[^\w.-]/g, '_');
+  const avatarPath = `ministry-avatars/${timestamp}_${safeName}`;
+  const avatarUrl = await uploadFile(file, avatarPath);
+
+  return { avatarUrl, avatarPath };
+}
+
 export async function deleteMemberPhoto(path) {
   return deleteFile(path);
 }
@@ -57,5 +66,9 @@ export async function deleteEventImage(path) {
 }
 
 export async function deleteCreativeArtsImage(path) {
+  return deleteFile(path);
+}
+
+export async function deleteMinistryAvatar(path) {
   return deleteFile(path);
 }

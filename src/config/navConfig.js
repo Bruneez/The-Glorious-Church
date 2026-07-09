@@ -1,8 +1,10 @@
 import {
   LayoutDashboard,
+  BookOpen,
   ShieldCheck,
   Users,
   Palette,
+  Church,
   School,
   Map,
   CalendarCheck,
@@ -15,9 +17,11 @@ import {
 
 export const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, roles: null },
+  { path: '/blueprint', label: 'Blueprint', icon: BookOpen, roles: null },
   { path: '/users', label: 'System Users', icon: ShieldCheck, roles: null },
   { path: '/members', label: 'Members Directory', icon: Users, roles: null },
   { path: '/creative-arts', label: 'Creative Arts', icon: Palette, roles: null },
+  { path: '/ministries', label: 'Ministries', icon: Church, roles: null },
   { path: '/schools', label: 'Schools', icon: School, roles: null },
   { path: '/map', label: 'Map', icon: Map, roles: null },
   { path: '/attendance', label: 'Attendance Tracker', icon: CalendarCheck, roles: null },
@@ -36,9 +40,11 @@ export function getNavItemsForRole(role) {
 
 export const PAGE_TITLES = {
   '/dashboard': 'Dashboard Overview',
+  '/blueprint': 'Blueprint',
   '/users': 'System Users',
   '/members': 'Members Directory',
   '/creative-arts': 'Creative Arts',
+  '/ministries': 'Ministries',
   '/schools': 'Schools',
   '/map': 'Map',
   '/attendance': 'Attendance Tracker',
