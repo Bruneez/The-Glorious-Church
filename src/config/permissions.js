@@ -18,6 +18,7 @@ export const ROUTE_ACCESS = {
   '/offerings': ALL_STAFF,
   '/transport': ALL_STAFF,
   '/calendar': ALL_STAFF,
+  '/service-program': ALL_STAFF,
   '/development-board': [ROLES.ADMIN],
   '/tasks': ALL_STAFF,
 };
@@ -45,6 +46,7 @@ export const ACTIONS = {
   MANAGE_TASKS: [ROLES.ADMIN],
   VIEW_ALL_TASKS: [ROLES.ADMIN],
   UPDATE_OWN_TASK_STATUS: [ROLES.PASTOR, ROLES.CA_LEADER],
+  MANAGE_SERVICE_PROGRAM: [ROLES.ADMIN, ROLES.PASTOR],
 };
 
 export function canPerformAction(role, action) {

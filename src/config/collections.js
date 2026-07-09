@@ -13,4 +13,5 @@ export const COLLECTIONS = {
   TASKS: 'tasks',
   NOTIFICATIONS: 'notifications',
   MINISTRIES: 'ministries',
+  SERVICE_PROGRAMS: 'servicePrograms',
 };

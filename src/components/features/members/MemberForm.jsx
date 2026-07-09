@@ -13,7 +13,7 @@ import {
   mapMemberToFormData,
   toSchoolSelectOptions,
 } from '@/config/memberOptions';
-import { SCHOOL_TYPE } from '@/config/schoolsOptions';
+import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
 import { uploadMemberPhoto } from '@/services/storageService';
 import UserAvatar from '@/components/ui/UserAvatar';
@@ -39,7 +39,9 @@ function resolveSchoolSelection(member, schools) {
 export default function MemberForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const { data: primarySchools = [] } = useSchoolsByType(SCHOOL_TYPE.PRIMARY);
   const { data: highSchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGH);
-  const { data: universitySchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGHER_EDUCATION);
+  const { data: universitySchools = [] } = useSchoolsByType(SCHOOL_TYPE.UNIVERSITY);
+  const { data: collegeSchools = [] } = useSchoolsByType(SCHOOL_TYPE.COLLEGE);
+  const { data: legacyHigherEducationSchools = [] } = useSchoolsByType(LEGACY_SCHOOL_TYPE.SLUG_HIGHER_ED);
 
   const [formData, setFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
@@ -50,9 +52,18 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
   const activeSchoolOptions = useMemo(() => {
     if (formData.occupation === 'Primary School') return primarySchools;
     if (formData.occupation === 'High School') return highSchools;
-    if (formData.occupation === 'University / College') return universitySchools;
+    if (formData.occupation === 'University') return universitySchools;
+    if (formData.occupation === 'College') return collegeSchools;
+    if (formData.occupation === 'University / College') return legacyHigherEducationSchools;
     return [];
-  }, [formData.occupation, primarySchools, highSchools, universitySchools]);
+  }, [
+    formData.occupation,
+    primarySchools,
+    highSchools,
+    universitySchools,
+    collegeSchools,
+    legacyHigherEducationSchools,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -167,7 +178,9 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
   const isPrimarySchool = formData.occupation === 'Primary School';
   const isHighSchool = formData.occupation === 'High School';
-  const isUniversity = formData.occupation === 'University / College';
+  const isUniversity = formData.occupation === 'University';
+  const isCollege = formData.occupation === 'College';
+  const isLegacyHigherEducation = formData.occupation === 'University / College';
 
   return (
     <Modal
@@ -297,12 +310,52 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
         {isUniversity && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Select
-              label="University / College"
+              label="University"
               name="schoolId"
               value={formData.schoolId}
               onChange={handleChange}
               options={toSchoolSelectOptions(universitySchools)}
-              placeholder="Select School"
+              placeholder="Select University"
+            />
+            <Input
+              label="Course"
+              name="course"
+              value={formData.course}
+              onChange={handleChange}
+              placeholder="e.g. BCom Accounting"
+            />
+          </div>
+        )}
+
+        {isCollege && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Select
+              label="College"
+              name="schoolId"
+              value={formData.schoolId}
+              onChange={handleChange}
+              options={toSchoolSelectOptions(collegeSchools)}
+              placeholder="Select College"
+            />
+            <Input
+              label="Course"
+              name="course"
+              value={formData.course}
+              onChange={handleChange}
+              placeholder="e.g. N6 Business Management"
+            />
+          </div>
+        )}
+
+        {isLegacyHigherEducation && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Select
+              label="University / College (Legacy)"
+              name="schoolId"
+              value={formData.schoolId}
+              onChange={handleChange}
+              options={toSchoolSelectOptions(legacyHigherEducationSchools)}
+              placeholder="Select Institution"
             />
             <Input
               label="Course"

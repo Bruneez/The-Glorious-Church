@@ -69,6 +69,20 @@ function getOccupationFields(member) {
     ];
   }
 
+  if (occupation === 'University') {
+    return [
+      { icon: GraduationCap, label: 'University', value: member.institution },
+      { icon: BookOpen, label: 'Course', value: member.course },
+    ];
+  }
+
+  if (occupation === 'College') {
+    return [
+      { icon: GraduationCap, label: 'College', value: member.institution },
+      { icon: BookOpen, label: 'Course', value: member.course },
+    ];
+  }
+
   if (occupation === 'University / College') {
     return [
       { icon: GraduationCap, label: 'University / College', value: member.institution },
