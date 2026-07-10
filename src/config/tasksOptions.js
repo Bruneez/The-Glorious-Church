@@ -263,6 +263,76 @@ export function buildStaffAssigneeOptions(staff = []) {
   ];
 }
 
+export function canViewAssigneeTasks(
+  assignee,
+  { staffDocId = '', firebaseUser = null } = {},
+  { canViewAll = false } = {},
+) {
+  if (canViewAll) return true;
+  if (!assignee) return false;
+
+  const currentUserId = String(staffDocId || firebaseUser?.uid || '').trim();
+  if (!currentUserId) return false;
+
+  return assignee.userId === currentUserId;
+}
+
+export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = '') {
+  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const term = searchTerm.trim().toLowerCase();
+
+  const groups = activeStaff.map((member) => {
+    const userTasks = tasks.filter((task) => task.assignedUserId === member.id);
+    const total = userTasks.length;
+    const completed = userTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+
+    return {
+      key: member.id,
+      userId: member.id,
+      name: member.fullName || member.name || 'Unknown',
+      role: member.role || '',
+      photo: member.photo || '',
+      tasks: userTasks,
+      total,
+      completed,
+      outstanding: total - completed,
+    };
+  });
+
+  const unassignedTasks = tasks.filter((task) => !task.assignedUserId);
+  if (unassignedTasks.length > 0) {
+    const completed = unassignedTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+
+    groups.push({
+      key: 'unassigned',
+      userId: '',
+      name: 'Unassigned',
+      role: '',
+      photo: '',
+      tasks: unassignedTasks,
+      total: unassignedTasks.length,
+      completed,
+      outstanding: unassignedTasks.length - completed,
+    });
+  }
+
+  const sortedGroups = groups.sort((left, right) => {
+    if (left.key === 'unassigned') return 1;
+    if (right.key === 'unassigned') return -1;
+    return left.name.localeCompare(right.name);
+  });
+
+  if (!term) {
+    return sortedGroups;
+  }
+
+  return sortedGroups.filter((group) => {
+    const nameMatches = group.name.toLowerCase().includes(term);
+    const taskMatches = group.tasks.some((task) => task.title?.toLowerCase().includes(term));
+    return nameMatches || taskMatches;
+  });
+}
+
 function getAssigneeKey(task) {
   if (task.assignedUserId) return task.assignedUserId;
   if (task.assignedUserName) return `name:${task.assignedUserName.toLowerCase()}`;
