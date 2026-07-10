@@ -23,6 +23,7 @@ import {
 import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
 import { uploadMemberPhoto, uploadMemberReportCard } from '@/services/storageService';
+import { getStorageErrorMessage } from '@/utils/storageErrors';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 function CoreSectionHeading({ title }) {
@@ -280,7 +281,13 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
         reportCardPath,
       });
     } catch (submitError) {
-      setError(submitError?.message || 'Failed to save member. Please try again.');
+      console.error('Error saving member:', submitError);
+      setError(
+        getStorageErrorMessage(submitError)
+          || submitError?.message
+          || 'Failed to save member. Please try again.',
+      );
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -490,7 +497,7 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isSubmitting}>
+          <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
             {initialData ? 'Save Changes' : 'Add Member'}
           </Button>
         </div>
