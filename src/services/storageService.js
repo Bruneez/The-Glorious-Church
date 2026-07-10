@@ -1,12 +1,36 @@
 import { uploadImage, uploadFile, deleteFile } from '@/hooks/useStorage';
+import {
+  MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+  getStorageErrorMessage,
+  withUploadTimeout,
+} from '@/utils/storageErrors';
+
+function rethrowStorageError(error) {
+  const message = getStorageErrorMessage(error);
+  if (message) {
+    const wrappedError = new Error(message);
+    wrappedError.code = error?.code;
+    throw wrappedError;
+  }
+
+  throw error;
+}
 
 export async function uploadMemberPhoto(file) {
   const timestamp = Date.now();
   const safeName = String(file.name || 'photo').replace(/[^\w.-]/g, '_');
   const profileImagePath = `member-photos/${timestamp}_${safeName}`;
-  const profileImageUrl = await uploadFile(file, profileImagePath);
 
-  return { profileImageUrl, profileImagePath };
+  try {
+    const profileImageUrl = await withUploadTimeout(
+      uploadFile(file, profileImagePath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { profileImageUrl, profileImagePath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function uploadMemberReportCard(file) {

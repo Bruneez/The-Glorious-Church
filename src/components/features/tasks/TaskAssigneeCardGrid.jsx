@@ -1,20 +1,28 @@
-import { CheckCircle2, CircleDot, ListTodo } from 'lucide-react';
+import { CheckCircle2, CircleDot, ListTodo, Lock } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
 
-function TaskAssigneeCard({ assignee, onClick }) {
+function TaskAssigneeCard({ assignee, onClick, canOpen }) {
   const taskLabel = assignee.total === 1 ? '1 Task' : `${assignee.total} Tasks`;
 
   return (
     <button
       type="button"
       onClick={() => onClick?.(assignee)}
-      className="w-full text-left bg-slate-900/60 border border-slate-700/70 rounded-xl p-4 flex flex-col gap-4 hover:border-indigo-500/40 hover:bg-slate-900/80 transition shadow-sm cursor-pointer"
+      className={`w-full text-left bg-slate-900/60 border rounded-xl p-4 flex flex-col gap-4 transition shadow-sm ${
+        canOpen
+          ? 'border-slate-700/70 hover:border-indigo-500/40 hover:bg-slate-900/80 cursor-pointer'
+          : 'border-slate-700/50 opacity-80 hover:bg-slate-900/50 cursor-not-allowed'
+      }`}
+      aria-disabled={!canOpen}
     >
       <div className="flex items-start gap-3">
         <UserAvatar name={assignee.name} photo={assignee.photo} size="lg" />
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-white tracking-wide truncate">{assignee.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-white tracking-wide truncate">{assignee.name}</h3>
+            {!canOpen ? <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" /> : null}
+          </div>
           {assignee.role ? (
             <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5 truncate">
               {assignee.role}
@@ -59,7 +67,11 @@ function TaskAssigneeCard({ assignee, onClick }) {
   );
 }
 
-export default function TaskAssigneeCardGrid({ assignees = [], onSelectAssignee }) {
+export default function TaskAssigneeCardGrid({
+  assignees = [],
+  onSelectAssignee,
+  canViewAssignee = () => true,
+}) {
   if (!assignees.length) {
     return null;
   }
@@ -71,6 +83,7 @@ export default function TaskAssigneeCardGrid({ assignees = [], onSelectAssignee 
           key={assignee.key}
           assignee={assignee}
           onClick={onSelectAssignee}
+          canOpen={canViewAssignee(assignee)}
         />
       ))}
     </div>

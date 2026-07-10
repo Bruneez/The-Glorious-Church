@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import TaskSummaryCards from '@/components/features/tasks/TaskSummaryCards';
@@ -19,9 +19,8 @@ import {
 import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
 import {
-  filterTasks,
-  filterTasksForCurrentUser,
-  groupTasksByAssignedUser,
+  buildStaffWorkloadOverview,
+  canViewAssigneeTasks,
   isTaskAssignedToCurrentUser,
 } from '@/config/tasksOptions';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,10 +58,6 @@ export default function TasksPage() {
   const canUpdateOwnTaskStatus = canPerformAction('UPDATE_OWN_TASK_STATUS');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [assignedUserFilter, setAssignedUserFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [dueDateFilter, setDueDateFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [deletingTask, setDeletingTask] = useState(null);
@@ -76,34 +71,12 @@ export default function TasksPage() {
     [staffDocId, staffProfile, firebaseUser],
   );
 
-  const visibleTasks = useMemo(
-    () => filterTasksForCurrentUser(tasks, userContext, { canViewAll: canViewAllTasks }),
-    [tasks, userContext, canViewAllTasks],
-  );
-
-  const filteredTasks = useMemo(
-    () =>
-      filterTasks(visibleTasks, {
-        searchTerm,
-        assignedUserId: assignedUserFilter,
-        status: statusFilter,
-        priority: priorityFilter,
-        dueDate: dueDateFilter,
-      }),
-    [visibleTasks, searchTerm, assignedUserFilter, statusFilter, priorityFilter, dueDateFilter],
-  );
-
   const assigneeGroups = useMemo(
-    () => groupTasksByAssignedUser(filteredTasks, staff),
-    [filteredTasks, staff],
+    () => buildStaffWorkloadOverview(staff, tasks, searchTerm),
+    [staff, tasks, searchTerm],
   );
 
-  const hasActiveFilters =
-    searchTerm.trim() !== '' ||
-    assignedUserFilter !== 'all' ||
-    statusFilter !== 'all' ||
-    priorityFilter !== 'all' ||
-    dueDateFilter !== 'all';
+  const hasSearchTerm = searchTerm.trim() !== '';
 
   const createdBy = staffDocId || firebaseUser?.uid || '';
   const createdByName =
@@ -112,6 +85,19 @@ export default function TasksPage() {
     firebaseUser?.displayName ||
     firebaseUser?.email ||
     'Admin';
+
+  const canViewAssignee = useCallback(
+    (assignee) => canViewAssigneeTasks(assignee, userContext, { canViewAll: canViewAllTasks }),
+    [userContext, canViewAllTasks],
+  );
+
+  const authorizedSelectedAssignee = useMemo(() => {
+    if (!selectedAssignee || !canViewAssignee(selectedAssignee)) {
+      return null;
+    }
+
+    return selectedAssignee;
+  }, [selectedAssignee, canViewAssignee]);
 
   const canUpdateTaskStatus = (task) => {
     if (canManageTasks) return true;
@@ -198,11 +184,17 @@ export default function TasksPage() {
   };
 
   const handleSelectAssignee = (assignee) => {
+    if (!canViewAssignee(assignee)) {
+      showFeedback('error', 'You can only view your own assigned tasks.');
+      return;
+    }
+
     setSelectedAssignee(assignee);
   };
 
   const handleTaskClick = (task) => {
     if (!canViewAllTasks && !isTaskAssignedToCurrentUser(task, userContext)) {
+      showFeedback('error', 'You can only view your own assigned tasks.');
       return;
     }
 
@@ -210,6 +202,9 @@ export default function TasksPage() {
   };
 
   const viewingTaskCanUpdateStatus = viewingTask ? canUpdateTaskStatus(viewingTask) : false;
+  const canViewSelectedTask =
+    viewingTask &&
+    (canViewAllTasks || isTaskAssignedToCurrentUser(viewingTask, userContext));
 
   return (
     <div className="space-y-6 w-full max-w-full min-w-0">
@@ -219,7 +214,7 @@ export default function TasksPage() {
           <p className="text-sm text-slate-400 mt-1">
             {canManageTasks
               ? 'Create and manage tasks assigned to staff members.'
-              : 'View and update tasks assigned to you.'}
+              : 'View staff workload summaries and manage tasks assigned to you.'}
           </p>
         </div>
         {canManageTasks && (
@@ -231,24 +226,9 @@ export default function TasksPage() {
 
       <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback({ type: '', message: '' })} />
 
-      <TaskSummaryCards tasks={filteredTasks} loading={loading} />
+      <TaskSummaryCards tasks={tasks} loading={loading} />
 
-      {!loading && !error && visibleTasks.length > 0 ? (
-        <TaskFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          assignedUserId={assignedUserFilter}
-          onAssignedUserChange={setAssignedUserFilter}
-          status={statusFilter}
-          onStatusChange={setStatusFilter}
-          priority={priorityFilter}
-          onPriorityChange={setPriorityFilter}
-          dueDate={dueDateFilter}
-          onDueDateChange={setDueDateFilter}
-          staff={staff}
-          showAssigneeFilter={canViewAllTasks}
-        />
-      ) : null}
+      {!loading && !error ? <TaskFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} /> : null}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -258,27 +238,28 @@ export default function TasksPage() {
         <div className="rounded-xl border border-rose-500/20 bg-rose-950/30 p-4 text-xs text-rose-400">
           Failed to load tasks. Please refresh and try again.
         </div>
-      ) : visibleTasks.length === 0 ? (
+      ) : assigneeGroups.length === 0 && hasSearchTerm ? (
+        <TaskEmptyState noSearchMatches />
+      ) : assigneeGroups.length === 0 ? (
         <TaskEmptyState canManageTasks={canManageTasks} />
-      ) : filteredTasks.length === 0 ? (
-        <TaskEmptyState canManageTasks={canManageTasks} hasFilters={hasActiveFilters} />
       ) : (
         <TaskAssigneeCardGrid
           assignees={assigneeGroups}
           onSelectAssignee={handleSelectAssignee}
+          canViewAssignee={canViewAssignee}
         />
       )}
 
       <UserTasksModal
-        assignee={selectedAssignee}
-        isOpen={Boolean(selectedAssignee)}
+        assignee={authorizedSelectedAssignee}
+        isOpen={Boolean(authorizedSelectedAssignee)}
         onClose={() => setSelectedAssignee(null)}
         onTaskClick={handleTaskClick}
       />
 
       <TaskDetailsModal
-        task={viewingTask}
-        isOpen={Boolean(viewingTask)}
+        task={canViewSelectedTask ? viewingTask : null}
+        isOpen={Boolean(canViewSelectedTask)}
         onClose={() => setViewingTask(null)}
         onEdit={canManageTasks ? handleEditTask : undefined}
         onDelete={canManageTasks ? handleDeletePrompt : undefined}
