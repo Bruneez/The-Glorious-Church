@@ -52,7 +52,7 @@ export default function HighSchoolsPage() {
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <PageHeader 
         title="High Schools Allocation Roster"
         action={

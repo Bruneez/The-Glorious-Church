@@ -8,15 +8,15 @@ export default function SidebarBrand({
 }) {
   return (
     <div
-      className={`h-16 px-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between shrink-0 ${className}`}
+      className={`h-[4.5rem] px-5 md:px-7 border-b border-slate-800 bg-slate-950 flex items-center justify-between shrink-0 ${className}`}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <img
           src={churchLogo}
           alt="Glorious Church Logo"
-          className="w-10 h-10 object-contain shrink-0"
+          className="w-11 h-11 object-contain shrink-0"
         />
-        <h1 className="text-sm font-bold tracking-wide uppercase text-indigo-300 truncate">
+        <h1 className="min-w-0 text-xs md:text-[0.8125rem] font-bold tracking-wide uppercase text-indigo-300 truncate leading-tight">
           The Glorious Church
         </h1>
       </div>

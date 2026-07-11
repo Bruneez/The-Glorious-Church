@@ -31,7 +31,7 @@ function formatTodayDate(date = new Date()) {
 
 function SummaryCard({ label, value, loading }) {
   return (
-    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/70 flex items-center justify-between shadow-sm">
+    <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700/70 flex items-center justify-between shadow-sm">
       <div>
         <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{label}</p>
         <h3 className="text-2xl md:text-3xl font-bold mt-1 text-indigo-400">
@@ -45,7 +45,7 @@ function SummaryCard({ label, value, loading }) {
 function PanelShell({ title, icon: Icon, loading, isEmpty, emptyMessage, children }) {
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700/70 overflow-hidden shadow-sm h-full">
-      <div className="p-4 border-b border-slate-700/70 bg-slate-800/40 flex items-center gap-2">
+      <div className="p-4 md:p-5 border-b border-slate-700/70 bg-slate-800/40 flex items-center gap-2">
         <Icon className="w-4 h-4 text-indigo-400 shrink-0" />
         <h2 className="text-sm font-bold text-white tracking-wide">{title}</h2>
       </div>
@@ -59,7 +59,7 @@ function PanelShell({ title, icon: Icon, loading, isEmpty, emptyMessage, childre
           <p className="text-slate-500 text-xs">{emptyMessage}</p>
         </div>
       ) : (
-        <div className="p-4 space-y-3">{children}</div>
+        <div className="p-4 md:p-5 space-y-3">{children}</div>
       )}
     </div>
   );
@@ -142,7 +142,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <div className="bg-slate-800 rounded-xl border border-slate-700/70 p-5 md:p-6 shadow-sm">
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-wide leading-snug">
           <span aria-hidden="true" className="mr-2">👋</span>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
         {summaryCards.map((card) => (
           <SummaryCard
             key={card.label}

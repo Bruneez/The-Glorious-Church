@@ -122,7 +122,7 @@ export default function MinistriesPage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-full min-w-0">
+    <div className="page-root">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-wide">Ministries</h1>

@@ -3,7 +3,7 @@ import { getMinistrySummaryCards } from '@/config/ministriesOptions';
 
 function SummaryCard({ label, value, loading }) {
   return (
-    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/70 shadow-sm">
+    <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700/70 shadow-sm">
       <h3 className="text-2xl md:text-3xl font-bold text-indigo-400">
         {loading ? '—' : value}
       </h3>
@@ -18,7 +18,7 @@ export default function MinistrySummaryCards({ ministries = [], loading = false 
   const cards = getMinistrySummaryCards(ministries);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
       {cards.map((card) => (
         <SummaryCard key={card.key} label={card.label} value={card.value} loading={loading} />
       ))}

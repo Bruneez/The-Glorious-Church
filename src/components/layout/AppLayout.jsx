@@ -15,13 +15,13 @@ export default function AppLayout() {
       <SidebarBackdrop isOpen={mobileMenu.isOpen} onClose={mobileMenu.close} />
       <MobileHeader isMenuOpen={mobileMenu.isOpen} onMenuToggle={mobileMenu.toggle} />
 
-      <div className="flex flex-1 min-h-0 flex-col md:grid md:grid-cols-[16rem_1fr] md:grid-rows-[4rem_minmax(0,1fr)] overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col md:grid md:grid-cols-[17.5rem_1fr] md:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
         <SidebarBrand className="hidden md:flex border-r border-slate-800 md:row-start-1 md:col-start-1" />
         <PageHeader />
 
         <Sidebar isMobileOpen={mobileMenu.isOpen} onCloseMobile={mobileMenu.close} />
 
-        <main className="min-h-0 min-w-0 overflow-y-auto flex-1 md:row-start-2 md:col-start-2 p-4 md:p-6 w-full max-w-none">
+        <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex-1 md:row-start-2 md:col-start-2 px-4 py-4 sm:px-5 md:px-7 md:py-6 lg:px-8 w-full max-w-none">
           <Outlet />
         </main>
       </div>
