@@ -24,7 +24,7 @@ import { formatCurrencySimple } from '@/utils/formatters';
 
 function SummaryCard({ label, value, loading }) {
   return (
-    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/70 shadow-sm">
+    <div className="bg-slate-800 p-4 md:p-5 rounded-xl border border-slate-700/70 shadow-sm">
       <h3 className="text-2xl md:text-3xl font-bold text-indigo-400">
         {loading ? '—' : value}
       </h3>
@@ -142,7 +142,7 @@ export default function OfferingsPage() {
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-wide">Offerings Log</h1>

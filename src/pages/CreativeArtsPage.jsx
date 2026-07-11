@@ -115,7 +115,7 @@ export default function CreativeArtsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-wide">Creative Arts</h1>

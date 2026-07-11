@@ -95,7 +95,7 @@ export default function CalendarPage() {
   const canManageEvents = canPerformAction('MANAGE_EVENTS');
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <div>
         <h1 className="text-xl font-bold text-white tracking-wide">Calendar</h1>
         <p className="text-sm text-slate-400 mt-1">
@@ -103,17 +103,16 @@ export default function CalendarPage() {
         </p>
       </div>
 
-      <main className="space-y-6">
-        <CalendarView
-          events={events}
-          members={members}
-          onDateClick={setSelectedDate}
-          selectedDate={selectedDate}
-          onAddEvent={canManageEvents ? handleAddEvent : undefined}
-          canAddEvent={canManageEvents}
-        />
+      <CalendarView
+        events={events}
+        members={members}
+        onDateClick={setSelectedDate}
+        selectedDate={selectedDate}
+        onAddEvent={canManageEvents ? handleAddEvent : undefined}
+        canAddEvent={canManageEvents}
+      />
 
-        <UpcomingEventsPanel
+      <UpcomingEventsPanel
           events={scheduleEvents}
           loading={loading}
           title={scheduleTitle}
@@ -122,8 +121,7 @@ export default function CalendarPage() {
           onEdit={handleEditEvent}
           onDelete={handleDeleteEvent}
           onClearSelection={() => setSelectedDate(null)}
-        />
-      </main>
+      />
 
       <EventForm
         isOpen={isFormOpen}

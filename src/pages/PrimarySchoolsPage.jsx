@@ -52,7 +52,7 @@ export default function PrimarySchoolsPage() {
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <PageHeader 
         title="Primary Schools Allocation Roster"
         action={

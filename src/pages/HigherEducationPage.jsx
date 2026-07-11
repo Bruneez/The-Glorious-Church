@@ -52,7 +52,7 @@ export default function HigherEducationPage() {
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
 
   return (
-    <div className="space-y-6">
+    <div className="page-root">
       <PageHeader 
         title="Universities & Colleges Allocation Roster"
         action={

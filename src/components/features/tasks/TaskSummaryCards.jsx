@@ -3,7 +3,7 @@ import { getTaskSummaryCards } from '@/config/tasksOptions';
 function SummaryCard({ label, value, loading, highlight = false }) {
   return (
     <div
-      className={`p-4 rounded-xl border shadow-sm ${
+      className={`p-4 md:p-5 rounded-xl border shadow-sm ${
         highlight
           ? 'bg-rose-950/30 border-rose-500/30'
           : 'bg-slate-800 border-slate-700/70'
@@ -27,7 +27,7 @@ export default function TaskSummaryCards({ tasks = [], loading = false }) {
   const cards = getTaskSummaryCards(tasks);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-5">
       {cards.map((card) => (
         <SummaryCard
           key={card.key}

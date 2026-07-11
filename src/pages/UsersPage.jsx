@@ -215,7 +215,7 @@ export default function UsersPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="page-root">
       <div className="space-y-2">
         <p className="text-[11px] text-slate-400">
           Signed in as:{' '}

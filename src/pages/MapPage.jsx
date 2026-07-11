@@ -61,7 +61,7 @@ export default function MapPage() {
   const loading = membersLoading || otherLoading;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full gap-4">
+    <div className="page-root flex-1 min-h-0 h-full gap-5 md:gap-6">
       <div className="shrink-0">
         <h1 className="text-xl font-bold text-white tracking-wide">Map</h1>
         <p className="text-sm text-slate-400 mt-1">
