@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ListTodo } from 'lucide-react';
+import { getRoleLabel } from '@/config/roles';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
@@ -99,7 +100,7 @@ export default function TaskDetailsModal({
               <p>{task.assignedUserName || '—'}</p>
               {task.assignedUserRole ? (
                 <p className="text-[11px] text-slate-400 font-normal mt-0.5">
-                  {task.assignedUserRole}
+                  {getRoleLabel(task.assignedUserRole)}
                 </p>
               ) : null}
             </div>

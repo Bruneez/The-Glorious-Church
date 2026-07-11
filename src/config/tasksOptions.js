@@ -1,3 +1,5 @@
+import { getRoleLabel } from './roles';
+
 export const TASK_STATUS = {
   OPEN: 'Open',
   IN_PROGRESS: 'In Progress',
@@ -256,7 +258,7 @@ export function buildStaffAssigneeOptions(staff = []) {
     { value: '', label: 'Unassigned' },
     ...activeStaff.map((member) => ({
       value: member.id,
-      label: `${member.fullName || member.name || 'Unknown'} (${member.role || 'Staff'})`,
+      label: `${member.fullName || member.name || 'Unknown'} (${getRoleLabel(member.role) || 'Staff'})`,
       name: member.fullName || member.name || '',
       role: member.role || '',
     })),

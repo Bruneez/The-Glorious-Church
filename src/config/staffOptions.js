@@ -3,7 +3,7 @@ import { ROLES, normalizeRole } from './roles';
 const ROLE_CARD_LABELS = {
   [ROLES.ADMIN]: 'Total Administrators',
   [ROLES.PASTOR]: 'Total Pastors',
-  [ROLES.CA_LEADER]: 'Total Creative Arts Leaders',
+  [ROLES.CA_LEADER]: 'Total Leaders',
 };
 
 export function getStaffSummaryCards(staff = []) {
