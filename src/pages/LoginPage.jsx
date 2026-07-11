@@ -45,18 +45,20 @@ export default function LoginPage() {
   return (
     <div className="bg-slate-900 text-slate-100 font-sans min-h-screen flex items-center justify-center p-4">
       <div className="bg-slate-800 border border-slate-700/70 rounded-xl w-full max-w-sm shadow-xl p-6 space-y-4 text-xs">
-        <div className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-full bg-slate-900/60 border border-slate-700/70 p-1.5 flex items-center justify-center shrink-0">
-            <img
-              src={churchLogo}
-              alt="Glorious Church Logo"
-              className="w-full h-full object-contain"
-            />
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-full bg-slate-900/60 border border-slate-700/70 p-1 flex items-center justify-center shrink-0">
+              <img
+                src={churchLogo}
+                alt="Glorious Church Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h2 className="min-w-0 text-lg font-bold text-indigo-300 tracking-wide truncate">
+              The Glorious Church
+            </h2>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-lg font-bold text-white tracking-wide">The Glorious Church</h2>
-            <p className="text-slate-400">The Glorious Church Management System</p>
-          </div>
+          <p className="text-center text-slate-400">The Glorious Church Management System</p>
         </div>
 
         <AlertBanner message={error} />
