@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { formatDate } from '@/utils/formatters';
 import { formatLastSeen, isUserOnline } from '@/utils/lastSeen';
-import { ROLES } from '@/config/roles';
+import { ROLES, getRoleLabel } from '@/config/roles';
 
 function DetailField({ label, value, children }) {
   return (
@@ -35,7 +35,7 @@ function RoleBadge({ role }) {
           : 'bg-blue-950/60 text-blue-400 border border-blue-500/20'
       }`}
     >
-      {role || 'Unknown'}
+      {getRoleLabel(role)}
     </span>
   );
 }

@@ -11,7 +11,7 @@ import { COLLECTIONS } from '@/config/collections';
 import { updateDocument, deleteDocument } from '@/hooks/useFirestore';
 import { createStaffUser } from '@/services/staffUserService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import { ROLES } from '@/config/roles';
+import { ROLES, getRoleLabel } from '@/config/roles';
 import { formatLastSeen, isUserOnline } from '@/utils/lastSeen';
 
 function LastSeenCell({ value }) {
@@ -167,7 +167,7 @@ export default function UsersPage() {
               : 'bg-blue-950/60 text-blue-400 border border-blue-500/20'
           }`}
         >
-          {value || 'Unknown'}
+          {getRoleLabel(value)}
         </span>
       ),
     },
@@ -280,7 +280,7 @@ export default function UsersPage() {
                 <option value="all">All Administrative Roles</option>
                 <option value={ROLES.ADMIN}>Admin Only</option>
                 <option value={ROLES.PASTOR}>Pastors Only</option>
-                <option value={ROLES.CA_LEADER}>Creative Arts Leaders</option>
+                <option value={ROLES.CA_LEADER}>Leaders Only</option>
               </select>
             </div>
 

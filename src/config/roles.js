@@ -4,6 +4,12 @@ export const ROLES = {
   CA_LEADER: 'Creative Arts Leader',
 };
 
+const ROLE_LABELS = {
+  [ROLES.ADMIN]: 'Admin',
+  [ROLES.PASTOR]: 'Pastor',
+  [ROLES.CA_LEADER]: 'Leader',
+};
+
 export function normalizeRole(role) {
   const value = String(role || '').trim();
   if (!value) return '';
@@ -13,6 +19,12 @@ export function normalizeRole(role) {
   if (lower === 'pastor') return ROLES.PASTOR;
   if (lower === 'ca leader' || lower === 'creative arts leader') return ROLES.CA_LEADER;
   return value;
+}
+
+export function getRoleLabel(role) {
+  const normalized = normalizeRole(role);
+  if (!normalized) return role || 'Unknown';
+  return ROLE_LABELS[normalized] || normalized;
 }
 
 export function isCALeader(role) {

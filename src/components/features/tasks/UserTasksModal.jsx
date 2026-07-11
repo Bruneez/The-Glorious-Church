@@ -1,4 +1,5 @@
 import { ListTodo } from 'lucide-react';
+import { getRoleLabel } from '@/config/roles';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { formatDate } from '@/utils/formatters';
@@ -51,7 +52,7 @@ export default function UserTasksModal({ assignee, isOpen, onClose, onTaskClick 
           <div className="min-w-0">
             <p className="text-sm font-semibold text-white truncate">{assignee.name}</p>
             {assignee.role ? (
-              <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5">{assignee.role}</p>
+              <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5">{getRoleLabel(assignee.role)}</p>
             ) : null}
             <p className="text-[11px] text-slate-400 mt-1">
               {assignee.completed} completed · {assignee.outstanding} outstanding

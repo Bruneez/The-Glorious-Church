@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, query, where, limit as firestoreLimit } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { isAdminOrPastor, isCALeader, normalizeRole } from '@/config/roles';
+import { isAdminOrPastor, isCALeader, normalizeRole, getRoleLabel } from '@/config/roles';
 import {
   NOTIFICATION_ENTITY_TYPE,
   NOTIFICATION_LIMIT,
@@ -271,7 +271,7 @@ export async function createUserCreatedNotification({
   excludeStaffId = '',
 }) {
   const fullName = String(staffName || 'A new user').trim();
-  const roleLabel = String(role || 'Staff').trim();
+  const roleLabel = getRoleLabel(role) || 'Staff';
 
   return dispatchScopedNotification({
     scope: NOTIFICATION_SCOPE.SYSTEM,

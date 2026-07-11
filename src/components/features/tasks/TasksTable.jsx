@@ -1,4 +1,5 @@
 import { Edit2, Trash2 } from 'lucide-react';
+import { getRoleLabel } from '@/config/roles';
 import Table from '@/components/ui/Table';
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/utils/formatters';
@@ -49,7 +50,7 @@ export default function TasksTable({ tasks = [], canManage = false, onEdit, onDe
         <div>
           <p>{value || '—'}</p>
           {row.assignedUserRole ? (
-            <p className="text-[10px] text-slate-500 mt-0.5">{row.assignedUserRole}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">{getRoleLabel(row.assignedUserRole)}</p>
           ) : null}
         </div>
       ),

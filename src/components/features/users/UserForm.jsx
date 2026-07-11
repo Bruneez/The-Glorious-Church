@@ -10,7 +10,7 @@ import { getCreateStaffUserErrorMessage } from '@/services/staffUserService';
 const ROLE_OPTIONS = [
   { value: ROLES.ADMIN, label: 'Admin' },
   { value: ROLES.PASTOR, label: 'Pastor' },
-  { value: ROLES.CA_LEADER, label: 'Creative Arts Leader' }
+  { value: ROLES.CA_LEADER, label: 'Leader' }
 ];
 
 export default function UserForm({ isOpen, onClose, onSubmit, initialData = null }) {

@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleDot, ListTodo, Lock } from 'lucide-react';
+import { getRoleLabel } from '@/config/roles';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 function TaskAssigneeCard({ assignee, onClick, canOpen }) {
@@ -25,7 +26,7 @@ function TaskAssigneeCard({ assignee, onClick, canOpen }) {
           </div>
           {assignee.role ? (
             <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5 truncate">
-              {assignee.role}
+              {getRoleLabel(assignee.role)}
             </p>
           ) : null}
           <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1.5">

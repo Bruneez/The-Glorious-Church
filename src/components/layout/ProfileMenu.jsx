@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { getRoleLabel } from '@/config/roles';
 import UserAvatar from '@/components/ui/UserAvatar';
 import AccountSettingsModal from '@/pages/profile/AccountSettingsModal';
 
@@ -77,7 +78,7 @@ export default function ProfileMenu({ className = '', compact = false }) {
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-medium text-slate-200">{displayName}</p>
               <p className="truncate text-[10px] font-medium uppercase tracking-wider text-indigo-400">
-                {role || 'Staff'}
+                {role ? getRoleLabel(role) : 'Staff'}
               </p>
             </div>
           ) : null}
