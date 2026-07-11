@@ -4,6 +4,7 @@ import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthErrorMessage } from '@/services/authService';
 import AlertBanner from '@/components/ui/AlertBanner';
+import churchLogo from '@/assets/The GC Official Logo.png';
 
 export default function LoginPage() {
   const { signIn, isAuthenticated, isLoading } = useAuth();
@@ -44,9 +45,18 @@ export default function LoginPage() {
   return (
     <div className="bg-slate-900 text-slate-100 font-sans min-h-screen flex items-center justify-center p-4">
       <div className="bg-slate-800 border border-slate-700/70 rounded-xl w-full max-w-sm shadow-xl p-6 space-y-4 text-xs">
-        <div className="text-center space-y-1">
-          <h2 className="text-lg font-bold text-white tracking-wide">The Glorious Church</h2>
-          <p className="text-slate-400">Management Roster Authentication Node</p>
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-full bg-slate-900/60 border border-slate-700/70 p-1.5 flex items-center justify-center shrink-0">
+            <img
+              src={churchLogo}
+              alt="Glorious Church Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-white tracking-wide">The Glorious Church</h2>
+            <p className="text-slate-400">The Glorious Church Management System</p>
+          </div>
         </div>
 
         <AlertBanner message={error} />
