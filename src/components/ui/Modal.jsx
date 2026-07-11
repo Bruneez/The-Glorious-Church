@@ -1,7 +1,15 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export default function Modal({ isOpen, onClose, title, icon: Icon, children, maxWidth = 'max-w-sm' }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  icon: Icon,
+  children,
+  maxWidth = 'max-w-sm',
+  panelClassName = 'p-4 space-y-4',
+}) {
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -27,7 +35,7 @@ export default function Modal({ isOpen, onClose, title, icon: Icon, children, ma
       }}
       role="presentation"
     >
-      <div className={`bg-slate-800 border border-slate-700 rounded-xl w-full ${maxWidth} shadow-xl p-4 space-y-4 max-h-[90vh] overflow-y-auto`}>
+      <div className={`bg-slate-800 border border-slate-700 rounded-xl w-full ${maxWidth} shadow-xl max-h-[90vh] overflow-y-auto ${panelClassName}`}>
         <div className="flex justify-between items-center border-b border-slate-700 pb-2">
           <h3 className="font-bold text-white text-sm flex items-center gap-1.5">
             {Icon ? <Icon className="text-indigo-400 w-4 h-4" /> : null}
