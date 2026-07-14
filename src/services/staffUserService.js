@@ -67,6 +67,7 @@ export async function createStaffUser(staffData) {
       status,
       phone,
       photo,
+      taskModuleEnabled: true,
       createdAt: serverTimestamp(),
       createdBy,
     });

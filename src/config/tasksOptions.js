@@ -4,12 +4,14 @@ export const TASK_STATUS = {
   OPEN: 'Open',
   IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
+  ARCHIVED: 'Archived',
 };
 
 export const TASK_STATUSES = [
   TASK_STATUS.OPEN,
   TASK_STATUS.IN_PROGRESS,
   TASK_STATUS.COMPLETED,
+  TASK_STATUS.ARCHIVED,
 ];
 
 export const TASK_PRIORITY = {
@@ -54,13 +56,33 @@ export const DUE_DATE_FILTER_OPTIONS = [
   { value: 'none', label: 'No Due Date' },
 ];
 
+export function isTasksModuleEligibleStaff(member) {
+  if (member?.status === 'Inactive') return false;
+  if (member?.taskModuleEnabled === false) return false;
+  return true;
+}
+
+function filterTasksEligibleStaff(staff = []) {
+  return staff.filter(isTasksModuleEligibleStaff);
+}
+
+export function getTasksModuleExcludedStaff(staff = []) {
+  return staff
+    .filter((member) => member?.taskModuleEnabled === false)
+    .sort((left, right) => {
+      const nameA = (left.fullName || left.name || '').toLowerCase();
+      const nameB = (right.fullName || right.name || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+}
+
 export function buildAssigneeFilterOptions(staff = []) {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
 
   return [
     { value: 'all', label: 'All Users' },
     { value: 'unassigned', label: 'Unassigned' },
-    ...activeStaff.map((member) => ({
+    ...eligibleStaff.map((member) => ({
       value: member.id,
       label: member.fullName || member.name || 'Unknown',
     })),
@@ -156,7 +178,16 @@ export const STATUS_BADGE_CLASSES = {
   [TASK_STATUS.OPEN]: 'bg-sky-950/60 text-sky-400 border-sky-500/20',
   [TASK_STATUS.IN_PROGRESS]: 'bg-amber-950/60 text-amber-400 border-amber-500/20',
   [TASK_STATUS.COMPLETED]: 'bg-emerald-950/60 text-emerald-400 border-emerald-500/20',
+  [TASK_STATUS.ARCHIVED]: 'bg-slate-800 text-slate-400 border-slate-600/40',
 };
+
+export function isActiveTaskStatus(status) {
+  return status === TASK_STATUS.OPEN || status === TASK_STATUS.IN_PROGRESS;
+}
+
+export function getActiveTasksForAssignee(tasks = []) {
+  return tasks.filter((task) => isActiveTaskStatus(task.status));
+}
 
 export function buildTaskPayload(taskData = {}) {
   return {
@@ -172,7 +203,9 @@ export function buildTaskPayload(taskData = {}) {
 }
 
 export function isTaskOverdue(task) {
-  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED) return false;
+  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.ARCHIVED) {
+    return false;
+  }
 
   const due = new Date(task.dueDate);
   if (Number.isNaN(due.getTime())) return false;
@@ -252,11 +285,11 @@ export function filterTasksForCurrentUser(
 }
 
 export function buildStaffAssigneeOptions(staff = []) {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
 
   return [
     { value: '', label: 'Unassigned' },
-    ...activeStaff.map((member) => ({
+    ...eligibleStaff.map((member) => ({
       value: member.id,
       label: `${member.fullName || member.name || 'Unknown'} (${getRoleLabel(member.role) || 'Staff'})`,
       name: member.fullName || member.name || '',
@@ -280,13 +313,14 @@ export function canViewAssigneeTasks(
 }
 
 export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = '') {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
   const term = searchTerm.trim().toLowerCase();
 
-  const groups = activeStaff.map((member) => {
+  const groups = eligibleStaff.map((member) => {
     const userTasks = tasks.filter((task) => task.assignedUserId === member.id);
     const total = userTasks.length;
     const completed = userTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const outstanding = userTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     return {
       key: member.id,
@@ -297,13 +331,14 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       tasks: userTasks,
       total,
       completed,
-      outstanding: total - completed,
+      outstanding,
     };
   });
 
   const unassignedTasks = tasks.filter((task) => !task.assignedUserId);
   if (unassignedTasks.length > 0) {
     const completed = unassignedTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const outstanding = unassignedTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     groups.push({
       key: 'unassigned',
@@ -314,7 +349,7 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       tasks: unassignedTasks,
       total: unassignedTasks.length,
       completed,
-      outstanding: unassignedTasks.length - completed,
+      outstanding,
     });
   }
 

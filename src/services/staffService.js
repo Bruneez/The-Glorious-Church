@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { normalizeRole } from '@/config/roles';
+import { normalizeRole, ROLES } from '@/config/roles';
 
 export async function resolveStaffProfile(user) {
   if (!user?.email) {
@@ -40,4 +40,30 @@ export async function getStaffProfile(staffDocId) {
   const staffRef = doc(db, COLLECTIONS.STAFF, staffDocId);
   const snapshot = await getDoc(staffRef);
   return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+}
+
+export async function excludeStaffFromTasksModule(staffDocId, { role } = {}) {
+  if (normalizeRole(role) !== ROLES.ADMIN) {
+    throw new Error('Only administrators can remove users from the Tasks module.');
+  }
+
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  if (!normalizedStaffDocId) {
+    throw new Error('Staff member ID is required.');
+  }
+
+  await updateStaffProfile(normalizedStaffDocId, { taskModuleEnabled: false });
+}
+
+export async function restoreStaffToTasksModule(staffDocId, { role } = {}) {
+  if (normalizeRole(role) !== ROLES.ADMIN) {
+    throw new Error('Only administrators can restore users to the Tasks module.');
+  }
+
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  if (!normalizedStaffDocId) {
+    throw new Error('Staff member ID is required.');
+  }
+
+  await updateStaffProfile(normalizedStaffDocId, { taskModuleEnabled: true });
 }

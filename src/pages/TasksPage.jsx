@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import TaskSummaryCards from '@/components/features/tasks/TaskSummaryCards';
 import TaskEmptyState from '@/components/features/tasks/TaskEmptyState';
@@ -9,18 +9,25 @@ import UserTasksModal from '@/components/features/tasks/UserTasksModal';
 import TaskDetailsModal from '@/components/features/tasks/TaskDetailsModal';
 import TaskForm from '@/components/features/tasks/TaskForm';
 import TaskDeleteModal from '@/components/features/tasks/TaskDeleteModal';
+import RemoveFromTasksModal from '@/components/features/tasks/RemoveFromTasksModal';
+import ExcludedTaskUsersModal from '@/components/features/tasks/ExcludedTaskUsersModal';
 import {
   useTasks,
   createTask,
   updateTask,
   updateTaskStatus,
   deleteTask,
+  reassignActiveTasks,
+  archiveActiveTasks,
 } from '@/services/tasksService';
+import { excludeStaffFromTasksModule, restoreStaffToTasksModule } from '@/services/staffService';
 import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
 import {
   buildStaffWorkloadOverview,
   canViewAssigneeTasks,
+  getActiveTasksForAssignee,
+  getTasksModuleExcludedStaff,
   isTaskAssignedToCurrentUser,
 } from '@/config/tasksOptions';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,7 +58,7 @@ export default function TasksPage() {
   const { data: tasks = [], loading, error } = useTasks();
   const { data: staff = [] } = useCollection(COLLECTIONS.STAFF);
   const { staffProfile, firebaseUser, staffDocId } = useAuth();
-  const { canPerformAction } = useRoleAccess();
+  const { canPerformAction, role } = useRoleAccess();
 
   const canManageTasks = canPerformAction('MANAGE_TASKS');
   const canViewAllTasks = canPerformAction('VIEW_ALL_TASKS');
@@ -64,6 +71,10 @@ export default function TasksPage() {
   const [selectedAssignee, setSelectedAssignee] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [removingAssignee, setRemovingAssignee] = useState(null);
+  const [isRemovingFromTasks, setIsRemovingFromTasks] = useState(false);
+  const [isExcludedUsersOpen, setIsExcludedUsersOpen] = useState(false);
+  const [isRestoringToTasks, setIsRestoringToTasks] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const userContext = useMemo(
@@ -75,6 +86,8 @@ export default function TasksPage() {
     () => buildStaffWorkloadOverview(staff, tasks, searchTerm),
     [staff, tasks, searchTerm],
   );
+
+  const excludedStaff = useMemo(() => getTasksModuleExcludedStaff(staff), [staff]);
 
   const hasSearchTerm = searchTerm.trim() !== '';
 
@@ -201,6 +214,103 @@ export default function TasksPage() {
     setViewingTask(task);
   };
 
+  const handleRemoveFromTasksPrompt = (assignee) => {
+    if (!canManageTasks || assignee.key === 'unassigned') return;
+    setRemovingAssignee(assignee);
+  };
+
+  const finalizeRemoveFromTasks = async (assignee) => {
+    await excludeStaffFromTasksModule(assignee.userId, { role });
+    showFeedback('success', `${assignee.name} was removed from the Tasks module.`);
+    setRemovingAssignee(null);
+
+    if (selectedAssignee?.userId === assignee.userId) {
+      setSelectedAssignee(null);
+    }
+  };
+
+  const handleRemoveFromTasks = async (assignee) => {
+    if (!canManageTasks) {
+      throw new Error('You do not have permission to remove users from Tasks.');
+    }
+
+    const activeTasks = getActiveTasksForAssignee(assignee.tasks);
+    if (activeTasks.length > 0) {
+      throw new Error('Active tasks must be reassigned or archived before removal.');
+    }
+
+    setIsRemovingFromTasks(true);
+
+    try {
+      await finalizeRemoveFromTasks(assignee);
+    } finally {
+      setIsRemovingFromTasks(false);
+    }
+  };
+
+  const handleReassignAndRemoveFromTasks = async (assignee, targetStaffId) => {
+    if (!canManageTasks) {
+      throw new Error('You do not have permission to remove users from Tasks.');
+    }
+
+    const activeTasks = getActiveTasksForAssignee(assignee.tasks);
+    const targetStaffMember = staff.find((member) => member.id === targetStaffId);
+
+    if (!targetStaffMember) {
+      throw new Error('Selected staff member could not be found.');
+    }
+
+    setIsRemovingFromTasks(true);
+
+    try {
+      if (activeTasks.length > 0) {
+        await reassignActiveTasks(activeTasks, targetStaffMember, { role });
+      }
+
+      await finalizeRemoveFromTasks(assignee);
+    } finally {
+      setIsRemovingFromTasks(false);
+    }
+  };
+
+  const handleArchiveAndRemoveFromTasks = async (assignee) => {
+    if (!canManageTasks) {
+      throw new Error('You do not have permission to remove users from Tasks.');
+    }
+
+    const activeTasks = getActiveTasksForAssignee(assignee.tasks);
+
+    setIsRemovingFromTasks(true);
+
+    try {
+      if (activeTasks.length > 0) {
+        await archiveActiveTasks(activeTasks, { role });
+      }
+
+      await finalizeRemoveFromTasks(assignee);
+    } finally {
+      setIsRemovingFromTasks(false);
+    }
+  };
+
+  const handleRestoreToTasks = async (member) => {
+    if (!canManageTasks) {
+      throw new Error('You do not have permission to restore users to Tasks.');
+    }
+
+    setIsRestoringToTasks(true);
+
+    try {
+      await restoreStaffToTasksModule(member.id, { role });
+      showFeedback(
+        'success',
+        `${member.fullName || member.name || 'User'} was restored to the Tasks module.`,
+      );
+    } finally {
+      setIsRestoringToTasks(false);
+    }
+  };
+
   const viewingTaskCanUpdateStatus = viewingTask ? canUpdateTaskStatus(viewingTask) : false;
   const canViewSelectedTask =
     viewingTask &&
@@ -218,9 +328,14 @@ export default function TasksPage() {
           </p>
         </div>
         {canManageTasks && (
-          <Button icon={Plus} onClick={handleAddTask}>
-            New Task
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <Button variant="secondary" icon={Users} onClick={() => setIsExcludedUsersOpen(true)}>
+              Excluded Users{excludedStaff.length > 0 ? ` (${excludedStaff.length})` : ''}
+            </Button>
+            <Button icon={Plus} onClick={handleAddTask}>
+              New Task
+            </Button>
+          </div>
         )}
       </div>
 
@@ -246,7 +361,9 @@ export default function TasksPage() {
         <TaskAssigneeCardGrid
           assignees={assigneeGroups}
           onSelectAssignee={handleSelectAssignee}
+          onRemoveFromTasks={handleRemoveFromTasksPrompt}
           canViewAssignee={canViewAssignee}
+          canRemoveFromTasks={canManageTasks}
         />
       )}
 
@@ -287,6 +404,25 @@ export default function TasksPage() {
             onClose={() => setDeletingTask(null)}
             onConfirm={handleDeleteConfirm}
             isDeleting={isDeleting}
+          />
+
+          <RemoveFromTasksModal
+            assignee={removingAssignee}
+            staff={staff}
+            isOpen={Boolean(removingAssignee)}
+            onClose={() => setRemovingAssignee(null)}
+            onRemove={handleRemoveFromTasks}
+            onReassignAndRemove={handleReassignAndRemoveFromTasks}
+            onArchiveAndRemove={handleArchiveAndRemoveFromTasks}
+            isProcessing={isRemovingFromTasks}
+          />
+
+          <ExcludedTaskUsersModal
+            excludedStaff={excludedStaff}
+            isOpen={isExcludedUsersOpen}
+            onClose={() => setIsExcludedUsersOpen(false)}
+            onRestore={handleRestoreToTasks}
+            isProcessing={isRestoringToTasks}
           />
         </>
       )}
