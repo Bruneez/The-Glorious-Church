@@ -47,7 +47,12 @@ export function MapMemberPopup({ data }) {
   return (
     <PopupShell
       action={
-        <PopupActionButton href={data.profilePath || '/members'} label="View Member" />
+        <a
+          href={data.profilePath || '/members'}
+          className="block w-full text-center text-[11px] font-semibold py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition !text-white hover:!text-white focus:!text-white active:!text-white visited:!text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          View Member
+        </a>
       }
     >
       <div className="flex items-center gap-3">

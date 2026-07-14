@@ -4,12 +4,17 @@ export default function Input({
   placeholder = '', 
   value, 
   onChange, 
+  onKeyDown,
   required = false,
   disabled = false,
   error = '',
   className = '',
+  inputClassName = '',
+  trailingIcon = null,
+  inputRef = null,
   name,
-  id
+  id,
+  ...rest
 }) {
   const inputId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
 
@@ -21,17 +26,27 @@ export default function Input({
           {required && <span className="text-rose-400 ml-1">*</span>}
         </label>
       )}
-      <input
-        type={type}
-        id={inputId}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        className={`w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs ${error ? 'border-rose-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      />
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type={type}
+          id={inputId}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          className={`w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs ${error ? 'border-rose-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${inputClassName}`}
+          {...rest}
+        />
+        {trailingIcon ? (
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+            {trailingIcon}
+          </div>
+        ) : null}
+      </div>
       {error && <p className="text-rose-400 text-[10px] mt-1">{error}</p>}
     </div>
   );
