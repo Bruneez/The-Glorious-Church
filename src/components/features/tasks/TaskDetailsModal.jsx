@@ -5,8 +5,8 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import { formatDate } from '@/utils/formatters';
-import { PriorityBadge, StatusBadge } from '@/components/features/tasks/TaskBadges';
-import { isTaskOverdue, STATUS_OPTIONS, TASK_STATUS } from '@/config/tasksOptions';
+import { PriorityBadge, StatusBadge, TaskDueDateDetail } from '@/components/features/tasks/TaskBadges';
+import { STATUS_OPTIONS, TASK_STATUS } from '@/config/tasksOptions';
 
 function DetailField({ label, value, children }) {
   return (
@@ -50,7 +50,6 @@ export default function TaskDetailsModal({
 
   if (!task) return null;
 
-  const overdue = isTaskOverdue(task);
   const showStatusControls = canUpdateStatus && onStatusUpdate;
   const statusChanged = status !== task.status;
 
@@ -112,10 +111,7 @@ export default function TaskDetailsModal({
             <StatusBadge status={task.status} />
           </DetailField>
           <DetailField label="Due Date">
-            <span className={overdue ? 'text-rose-400' : undefined}>
-              {task.dueDate ? formatDate(task.dueDate, 'long') : '—'}
-              {overdue ? ' (Overdue)' : ''}
-            </span>
+            <TaskDueDateDetail task={task} />
           </DetailField>
           <DetailField label="Created By" value={task.createdByName || task.createdBy || '—'} />
           <DetailField label="Created Date" value={formatTimestamp(task.createdAt)} />

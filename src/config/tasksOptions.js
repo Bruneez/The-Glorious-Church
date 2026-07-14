@@ -4,12 +4,14 @@ export const TASK_STATUS = {
   OPEN: 'Open',
   IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
+  ARCHIVED: 'Archived',
 };
 
 export const TASK_STATUSES = [
   TASK_STATUS.OPEN,
   TASK_STATUS.IN_PROGRESS,
   TASK_STATUS.COMPLETED,
+  TASK_STATUS.ARCHIVED,
 ];
 
 export const TASK_PRIORITY = {
@@ -54,13 +56,33 @@ export const DUE_DATE_FILTER_OPTIONS = [
   { value: 'none', label: 'No Due Date' },
 ];
 
+export function isTasksModuleEligibleStaff(member) {
+  if (member?.status === 'Inactive') return false;
+  if (member?.taskModuleEnabled === false) return false;
+  return true;
+}
+
+function filterTasksEligibleStaff(staff = []) {
+  return staff.filter(isTasksModuleEligibleStaff);
+}
+
+export function getTasksModuleExcludedStaff(staff = []) {
+  return staff
+    .filter((member) => member?.taskModuleEnabled === false)
+    .sort((left, right) => {
+      const nameA = (left.fullName || left.name || '').toLowerCase();
+      const nameB = (right.fullName || right.name || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+}
+
 export function buildAssigneeFilterOptions(staff = []) {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
 
   return [
     { value: 'all', label: 'All Users' },
     { value: 'unassigned', label: 'Unassigned' },
-    ...activeStaff.map((member) => ({
+    ...eligibleStaff.map((member) => ({
       value: member.id,
       label: member.fullName || member.name || 'Unknown',
     })),
@@ -96,8 +118,7 @@ export function filterTasks(
   }
 
   if (dueDate && dueDate !== 'all') {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getLocalCalendarDate();
 
     filtered = filtered.filter((task) => {
       if (dueDate === 'none') {
@@ -108,15 +129,13 @@ export function filterTasks(
         return false;
       }
 
-      const taskDue = new Date(task.dueDate);
-      if (Number.isNaN(taskDue.getTime())) {
+      const taskDue = parseTaskDueDate(task.dueDate);
+      if (!taskDue) {
         return false;
       }
 
-      taskDue.setHours(0, 0, 0, 0);
-
       if (dueDate === 'overdue') {
-        return taskDue < today && task.status !== TASK_STATUS.COMPLETED;
+        return isTaskOverdue(task);
       }
 
       if (dueDate === 'today') {
@@ -156,7 +175,16 @@ export const STATUS_BADGE_CLASSES = {
   [TASK_STATUS.OPEN]: 'bg-sky-950/60 text-sky-400 border-sky-500/20',
   [TASK_STATUS.IN_PROGRESS]: 'bg-amber-950/60 text-amber-400 border-amber-500/20',
   [TASK_STATUS.COMPLETED]: 'bg-emerald-950/60 text-emerald-400 border-emerald-500/20',
+  [TASK_STATUS.ARCHIVED]: 'bg-slate-800 text-slate-400 border-slate-600/40',
 };
+
+export function isActiveTaskStatus(status) {
+  return status === TASK_STATUS.OPEN || status === TASK_STATUS.IN_PROGRESS;
+}
+
+export function getActiveTasksForAssignee(tasks = []) {
+  return tasks.filter((task) => isActiveTaskStatus(task.status));
+}
 
 export function buildTaskPayload(taskData = {}) {
   return {
@@ -171,30 +199,71 @@ export function buildTaskPayload(taskData = {}) {
   };
 }
 
-export function isTaskOverdue(task) {
-  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED) return false;
+function parseTaskDueDate(value) {
+  if (!value) return null;
 
-  const due = new Date(task.dueDate);
-  if (Number.isNaN(due.getTime())) return false;
+  const text = String(value).trim();
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return null;
 
-  return due < today;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
 }
 
-export function getTaskSummaryStats(tasks = []) {
-  const open = tasks.filter((task) => task.status === TASK_STATUS.OPEN).length;
-  const inProgress = tasks.filter((task) => task.status === TASK_STATUS.IN_PROGRESS).length;
+function getLocalCalendarDate(referenceDate = new Date()) {
+  const date = new Date(referenceDate);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+export function isTaskOverdue(task, { today } = {}) {
+  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED) {
+    return false;
+  }
+
+  const dueDate = parseTaskDueDate(task.dueDate);
+  if (!dueDate) return false;
+
+  const todayDate = today ?? getLocalCalendarDate();
+  return dueDate.getTime() < todayDate.getTime();
+}
+
+export function getTaskStatistics(tasks = [], { today } = {}) {
+  const total = tasks.length;
   const completed = tasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
-  const overdue = tasks.filter((task) => isTaskOverdue(task)).length;
+  const outstanding = total - completed;
+  const overdue = tasks.filter((task) => isTaskOverdue(task, { today })).length;
 
   return {
-    total: tasks.length,
+    total,
+    completed,
+    outstanding,
+    overdue,
+  };
+}
+
+export function getTaskStatisticsForUser(tasks = [], userId = '') {
+  const userTasks = tasks.filter((task) => task.assignedUserId === userId);
+  return getTaskStatistics(userTasks);
+}
+
+export function getTaskSummaryStats(tasks = [], options = {}) {
+  const open = tasks.filter((task) => task.status === TASK_STATUS.OPEN).length;
+  const inProgress = tasks.filter((task) => task.status === TASK_STATUS.IN_PROGRESS).length;
+  const { total, completed, outstanding, overdue } = getTaskStatistics(tasks, options);
+
+  return {
+    total,
     open,
     inProgress,
     completed,
+    outstanding,
     overdue,
   };
 }
@@ -252,11 +321,11 @@ export function filterTasksForCurrentUser(
 }
 
 export function buildStaffAssigneeOptions(staff = []) {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
 
   return [
     { value: '', label: 'Unassigned' },
-    ...activeStaff.map((member) => ({
+    ...eligibleStaff.map((member) => ({
       value: member.id,
       label: `${member.fullName || member.name || 'Unknown'} (${getRoleLabel(member.role) || 'Staff'})`,
       name: member.fullName || member.name || '',
@@ -280,13 +349,13 @@ export function canViewAssigneeTasks(
 }
 
 export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = '') {
-  const activeStaff = staff.filter((member) => member.status !== 'Inactive');
+  const eligibleStaff = filterTasksEligibleStaff(staff);
   const term = searchTerm.trim().toLowerCase();
 
-  const groups = activeStaff.map((member) => {
+  const groups = eligibleStaff.map((member) => {
     const userTasks = tasks.filter((task) => task.assignedUserId === member.id);
-    const total = userTasks.length;
-    const completed = userTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const { total, completed, overdue } = getTaskStatistics(userTasks);
+    const outstanding = userTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     return {
       key: member.id,
@@ -297,13 +366,15 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       tasks: userTasks,
       total,
       completed,
-      outstanding: total - completed,
+      outstanding,
+      overdue,
     };
   });
 
   const unassignedTasks = tasks.filter((task) => !task.assignedUserId);
   if (unassignedTasks.length > 0) {
-    const completed = unassignedTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const { total, completed, overdue } = getTaskStatistics(unassignedTasks);
+    const outstanding = unassignedTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     groups.push({
       key: 'unassigned',
@@ -312,9 +383,10 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       role: '',
       photo: '',
       tasks: unassignedTasks,
-      total: unassignedTasks.length,
+      total,
       completed,
-      outstanding: unassignedTasks.length - completed,
+      outstanding,
+      overdue,
     });
   }
 
@@ -368,17 +440,10 @@ export function groupTasksByAssignedUser(tasks = [], staff = []) {
   });
 
   return Array.from(groups.values())
-    .map((group) => {
-      const total = group.tasks.length;
-      const completed = group.tasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
-
-      return {
-        ...group,
-        total,
-        completed,
-        outstanding: total - completed,
-      };
-    })
+    .map((group) => ({
+      ...group,
+      ...getTaskStatistics(group.tasks),
+    }))
     .sort((a, b) => {
       if (a.key === 'unassigned') return 1;
       if (b.key === 'unassigned') return -1;

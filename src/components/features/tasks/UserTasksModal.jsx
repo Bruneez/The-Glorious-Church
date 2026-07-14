@@ -2,13 +2,9 @@ import { ListTodo } from 'lucide-react';
 import { getRoleLabel } from '@/config/roles';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { formatDate } from '@/utils/formatters';
-import { PriorityBadge, StatusBadge } from '@/components/features/tasks/TaskBadges';
-import { isTaskOverdue } from '@/config/tasksOptions';
+import { PriorityBadge, StatusBadge, TaskDueDateDisplay } from '@/components/features/tasks/TaskBadges';
 
 function TaskListItem({ task, onClick }) {
-  const overdue = isTaskOverdue(task);
-
   return (
     <button
       type="button"
@@ -18,10 +14,7 @@ function TaskListItem({ task, onClick }) {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white truncate">{task.title}</p>
-          <p className={`text-[11px] mt-1 ${overdue ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>
-            Due: {task.dueDate ? formatDate(task.dueDate, 'short') : '—'}
-            {overdue ? ' (Overdue)' : ''}
-          </p>
+          <TaskDueDateDisplay task={task} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
