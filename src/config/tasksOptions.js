@@ -118,8 +118,7 @@ export function filterTasks(
   }
 
   if (dueDate && dueDate !== 'all') {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getLocalCalendarDate();
 
     filtered = filtered.filter((task) => {
       if (dueDate === 'none') {
@@ -130,15 +129,13 @@ export function filterTasks(
         return false;
       }
 
-      const taskDue = new Date(task.dueDate);
-      if (Number.isNaN(taskDue.getTime())) {
+      const taskDue = parseTaskDueDate(task.dueDate);
+      if (!taskDue) {
         return false;
       }
 
-      taskDue.setHours(0, 0, 0, 0);
-
       if (dueDate === 'overdue') {
-        return taskDue < today && task.status !== TASK_STATUS.COMPLETED;
+        return isTaskOverdue(task);
       }
 
       if (dueDate === 'today') {
@@ -202,32 +199,71 @@ export function buildTaskPayload(taskData = {}) {
   };
 }
 
-export function isTaskOverdue(task) {
-  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.ARCHIVED) {
+function parseTaskDueDate(value) {
+  if (!value) return null;
+
+  const text = String(value).trim();
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function getLocalCalendarDate(referenceDate = new Date()) {
+  const date = new Date(referenceDate);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+export function isTaskOverdue(task, { today } = {}) {
+  if (!task?.dueDate || task.status === TASK_STATUS.COMPLETED) {
     return false;
   }
 
-  const due = new Date(task.dueDate);
-  if (Number.isNaN(due.getTime())) return false;
+  const dueDate = parseTaskDueDate(task.dueDate);
+  if (!dueDate) return false;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
-
-  return due < today;
+  const todayDate = today ?? getLocalCalendarDate();
+  return dueDate.getTime() < todayDate.getTime();
 }
 
-export function getTaskSummaryStats(tasks = []) {
-  const open = tasks.filter((task) => task.status === TASK_STATUS.OPEN).length;
-  const inProgress = tasks.filter((task) => task.status === TASK_STATUS.IN_PROGRESS).length;
+export function getTaskStatistics(tasks = [], { today } = {}) {
+  const total = tasks.length;
   const completed = tasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
-  const overdue = tasks.filter((task) => isTaskOverdue(task)).length;
+  const outstanding = total - completed;
+  const overdue = tasks.filter((task) => isTaskOverdue(task, { today })).length;
 
   return {
-    total: tasks.length,
+    total,
+    completed,
+    outstanding,
+    overdue,
+  };
+}
+
+export function getTaskStatisticsForUser(tasks = [], userId = '') {
+  const userTasks = tasks.filter((task) => task.assignedUserId === userId);
+  return getTaskStatistics(userTasks);
+}
+
+export function getTaskSummaryStats(tasks = [], options = {}) {
+  const open = tasks.filter((task) => task.status === TASK_STATUS.OPEN).length;
+  const inProgress = tasks.filter((task) => task.status === TASK_STATUS.IN_PROGRESS).length;
+  const { total, completed, outstanding, overdue } = getTaskStatistics(tasks, options);
+
+  return {
+    total,
     open,
     inProgress,
     completed,
+    outstanding,
     overdue,
   };
 }
@@ -318,8 +354,7 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
 
   const groups = eligibleStaff.map((member) => {
     const userTasks = tasks.filter((task) => task.assignedUserId === member.id);
-    const total = userTasks.length;
-    const completed = userTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const { total, completed, overdue } = getTaskStatistics(userTasks);
     const outstanding = userTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     return {
@@ -332,12 +367,13 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       total,
       completed,
       outstanding,
+      overdue,
     };
   });
 
   const unassignedTasks = tasks.filter((task) => !task.assignedUserId);
   if (unassignedTasks.length > 0) {
-    const completed = unassignedTasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
+    const { total, completed, overdue } = getTaskStatistics(unassignedTasks);
     const outstanding = unassignedTasks.filter((task) => isActiveTaskStatus(task.status)).length;
 
     groups.push({
@@ -347,9 +383,10 @@ export function buildStaffWorkloadOverview(staff = [], tasks = [], searchTerm = 
       role: '',
       photo: '',
       tasks: unassignedTasks,
-      total: unassignedTasks.length,
+      total,
       completed,
       outstanding,
+      overdue,
     });
   }
 
@@ -403,17 +440,10 @@ export function groupTasksByAssignedUser(tasks = [], staff = []) {
   });
 
   return Array.from(groups.values())
-    .map((group) => {
-      const total = group.tasks.length;
-      const completed = group.tasks.filter((task) => task.status === TASK_STATUS.COMPLETED).length;
-
-      return {
-        ...group,
-        total,
-        completed,
-        outstanding: total - completed,
-      };
-    })
+    .map((group) => ({
+      ...group,
+      ...getTaskStatistics(group.tasks),
+    }))
     .sort((a, b) => {
       if (a.key === 'unassigned') return 1;
       if (b.key === 'unassigned') return -1;

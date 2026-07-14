@@ -1,9 +1,11 @@
-import { CheckCircle2, CircleDot, ListTodo, Lock, UserMinus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleDot, ListTodo, Lock, UserMinus } from 'lucide-react';
 import { getRoleLabel } from '@/config/roles';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 function TaskAssigneeCard({ assignee, onClick, onRemoveFromTasks, canOpen, canRemoveFromTasks }) {
   const taskLabel = assignee.total === 1 ? '1 Task' : `${assignee.total} Tasks`;
+  const overdue = assignee.overdue ?? 0;
+  const hasOverdue = overdue > 0;
   const showRemoveControl =
     canRemoveFromTasks && assignee.key !== 'unassigned' && onRemoveFromTasks;
 
@@ -58,31 +60,51 @@ function TaskAssigneeCard({ assignee, onClick, onRemoveFromTasks, canOpen, canRe
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="min-w-0 w-full rounded-lg bg-slate-800/80 border border-slate-700/60 px-2.5 py-2 sm:px-3 sm:py-2.5">
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-wide sm:tracking-wider text-slate-500 font-semibold leading-tight">
               Total
             </p>
-            <p className="text-lg font-bold text-white mt-0.5">{assignee.total}</p>
+            <p className="text-base sm:text-lg font-bold text-white mt-0.5 tabular-nums">{assignee.total}</p>
           </div>
 
-          <div className="rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
+          <div className="min-w-0 w-full rounded-lg bg-slate-800/80 border border-slate-700/60 px-2.5 py-2 sm:px-3 sm:py-2.5">
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-wide sm:tracking-wider text-slate-500 font-semibold leading-tight">
               Completed
             </p>
-            <p className="text-lg font-bold text-emerald-400 mt-0.5 flex items-center gap-1.5">
+            <p className="text-base sm:text-lg font-bold text-emerald-400 mt-0.5 flex items-center gap-1 min-w-0">
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              {assignee.completed}
+              <span className="tabular-nums">{assignee.completed}</span>
             </p>
           </div>
 
-          <div className="rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
+          <div className="min-w-0 w-full rounded-lg bg-slate-800/80 border border-slate-700/60 px-2.5 py-2 sm:px-3 sm:py-2.5">
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-wide sm:tracking-wider text-slate-500 font-semibold leading-tight">
               Outstanding
             </p>
-            <p className="text-lg font-bold text-amber-400 mt-0.5 flex items-center gap-1.5">
+            <p className="text-base sm:text-lg font-bold text-amber-400 mt-0.5 flex items-center gap-1 min-w-0">
               <CircleDot className="w-3.5 h-3.5 shrink-0" />
-              {assignee.outstanding}
+              <span className="tabular-nums">{assignee.outstanding}</span>
+            </p>
+          </div>
+
+          <div
+            className={`min-w-0 w-full rounded-lg border px-2.5 py-2 sm:px-3 sm:py-2.5 ${
+              hasOverdue
+                ? 'bg-rose-950/30 border-rose-500/30'
+                : 'bg-slate-800/80 border-slate-700/60'
+            }`}
+          >
+            <p className="text-[9px] sm:text-[10px] uppercase tracking-wide sm:tracking-wider text-slate-500 font-semibold leading-tight">
+              Overdue
+            </p>
+            <p
+              className={`text-base sm:text-lg font-bold mt-0.5 flex items-center gap-1 min-w-0 ${
+                hasOverdue ? 'text-rose-400' : 'text-slate-400'
+              }`}
+            >
+              {hasOverdue ? <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> : null}
+              <span className="tabular-nums">{overdue}</span>
             </p>
           </div>
         </div>
