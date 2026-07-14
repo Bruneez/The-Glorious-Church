@@ -23,7 +23,10 @@ import {
 import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
 import { uploadMemberPhoto, uploadMemberReportCard } from '@/services/storageService';
+import { geocodeAddress } from '@/services/mapService';
 import { getStorageErrorMessage } from '@/utils/storageErrors';
+import { getGeocodingErrorMessage } from '@/utils/geocodingErrors';
+import { normalizeMemberCoordinate } from '@/utils/memberLocations';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 function CoreSectionHeading({ title }) {
@@ -73,6 +76,7 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
   const [photoPreview, setPhotoPreview] = useState('');
   const [reportCardFile, setReportCardFile] = useState(null);
   const [error, setError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const schoolLists = useMemo(
@@ -111,6 +115,7 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     setPhotoPreview(mapped.photo || '');
     setReportCardFile(null);
     setError('');
+    setAddressError('');
     setIsSubmitting(false);
   }, [initialData, isOpen]);
 
@@ -161,6 +166,7 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     }
 
     if (name === 'address') {
+      setAddressError('');
       setFormData((prev) => ({
         ...prev,
         address: value,
@@ -229,6 +235,17 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     setReportCardFile(file);
   };
 
+  const handleHomeAddressSelect = ({ address, latitude, longitude }) => {
+    setAddressError('');
+    setFormData((prev) => ({
+      ...prev,
+      address,
+      fullAddress: address,
+      latitude,
+      longitude,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -273,13 +290,45 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
         reportCardPath = uploadedReportCard.reportCardPath;
       }
 
-      await onSubmit({
+      let submitData = {
         ...formData,
         photo: photoUrl,
         profileImagePath,
         reportCardUrl,
         reportCardPath,
-      });
+      };
+
+      const homeAddress = (
+        submitData.address
+        || submitData.fullAddress
+        || ''
+      ).trim();
+      let latitude = normalizeMemberCoordinate(submitData.latitude);
+      let longitude = normalizeMemberCoordinate(submitData.longitude);
+
+      if (homeAddress && (latitude == null || longitude == null)) {
+        try {
+          const geocoded = await geocodeAddress(homeAddress);
+
+          if (geocoded) {
+            submitData = {
+              ...submitData,
+              address: geocoded.formattedAddress,
+              fullAddress: geocoded.formattedAddress,
+              latitude: geocoded.latitude,
+              longitude: geocoded.longitude,
+            };
+          }
+        } catch (geocodeError) {
+          const message = getGeocodingErrorMessage(geocodeError)
+            || 'Could not locate this address on the map. Choose a suggestion or refine the address.';
+          setAddressError(message);
+          setError(message);
+          return;
+        }
+      }
+
+      await onSubmit(submitData);
     } catch (submitError) {
       console.error('Error saving member:', submitError);
       setError(
@@ -396,6 +445,9 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
             name="address"
             value={formData.address}
             onChange={handleChange}
+            onAddressSelect={handleHomeAddressSelect}
+            fieldError={addressError}
+            showUnverifiedMessage={Boolean(formData.address?.trim())}
             latitude={formData.latitude}
             longitude={formData.longitude}
             placeholder="Street, city, province"

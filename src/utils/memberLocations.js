@@ -52,11 +52,15 @@ export function getMemberWorkAddress(member) {
 
 /** Resolves stored home coordinates from a member record. */
 export function getMemberHomeCoords(member) {
-  if (member?.homeLocation) {
-    return normalizeMemberCoords(
+  const fromHomeLocation = member?.homeLocation
+    ? normalizeMemberCoords(
       member.homeLocation.latitude,
       member.homeLocation.longitude,
-    );
+    )
+    : null;
+
+  if (fromHomeLocation) {
+    return fromHomeLocation;
   }
 
   return normalizeMemberCoords(
@@ -67,11 +71,15 @@ export function getMemberHomeCoords(member) {
 
 /** Resolves stored work coordinates from a working member record. */
 export function getMemberWorkCoords(member) {
-  if (member?.workLocation) {
-    return normalizeMemberCoords(
+  const fromWorkLocation = member?.workLocation
+    ? normalizeMemberCoords(
       member.workLocation.latitude,
       member.workLocation.longitude,
-    );
+    )
+    : null;
+
+  if (fromWorkLocation) {
+    return fromWorkLocation;
   }
 
   return normalizeMemberCoords(member?.workLatitude, member?.workLongitude);

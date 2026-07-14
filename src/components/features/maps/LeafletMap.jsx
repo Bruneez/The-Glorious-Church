@@ -52,7 +52,7 @@ export default function LeafletMap({
       <FitBounds positions={positions} enabled={fitBounds && positions.length > 0} />
       {markers.map((marker) => (
         <Marker
-          key={marker.id}
+          key={`${marker.id}:${marker.coords[0]}:${marker.coords[1]}`}
           position={marker.coords}
           icon={createMapMarkerIcon(marker)}
         >
