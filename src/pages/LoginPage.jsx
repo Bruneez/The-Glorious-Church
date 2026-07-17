@@ -17,14 +17,6 @@ export default function LoginPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
-        <p className="text-sm text-slate-400">Verifying session...</p>
-      </div>
-    );
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
