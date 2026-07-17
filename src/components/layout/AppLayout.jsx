@@ -1,9 +1,10 @@
 import { Outlet } from 'react-router-dom';
-import MobileHeader, { SidebarBackdrop, useMobileMenu } from './MobileHeader';
+import SidebarBackdrop from './SidebarBackdrop';
 import Sidebar from './Sidebar';
 import SidebarBrand from './SidebarBrand';
 import PageHeader from './PageHeader';
 import { useStaffLastSeen } from '@/hooks/useStaffLastSeen';
+import { useMobileMenu } from '@/hooks/useMobileMenu';
 
 export default function AppLayout() {
   const mobileMenu = useMobileMenu();
@@ -12,16 +13,24 @@ export default function AppLayout() {
 
   return (
     <div className="bg-slate-900 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
+      <SidebarBrand />
       <SidebarBackdrop isOpen={mobileMenu.isOpen} onClose={mobileMenu.close} />
-      <MobileHeader isMenuOpen={mobileMenu.isOpen} onMenuToggle={mobileMenu.toggle} />
 
-      <div className="flex flex-1 min-h-0 flex-col md:grid md:grid-cols-[17.5rem_1fr] md:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
-        <SidebarBrand className="hidden md:flex border-r border-slate-800 md:row-start-1 md:col-start-1" />
-        <PageHeader />
+      <div className="flex flex-1 min-h-0 flex-col lg:grid lg:grid-cols-[17.5rem_1fr] lg:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
+        <PageHeader
+          isMenuOpen={mobileMenu.isOpen}
+          onMenuToggle={mobileMenu.toggle}
+          menuButtonRef={mobileMenu.menuButtonRef}
+        />
 
-        <Sidebar isMobileOpen={mobileMenu.isOpen} onCloseMobile={mobileMenu.close} />
+        <Sidebar
+          isMobileOpen={mobileMenu.isOpen}
+          onCloseMobile={mobileMenu.close}
+          drawerRef={mobileMenu.drawerRef}
+          labelId={mobileMenu.labelId}
+        />
 
-        <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex-1 md:row-start-2 md:col-start-2 px-4 py-4 sm:px-5 md:px-7 md:py-6 lg:px-8 w-full max-w-none">
+        <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex-1 lg:row-start-2 lg:col-start-2 px-4 py-4 sm:px-5 lg:px-7 lg:py-6 xl:px-8 w-full max-w-none">
           <Outlet />
         </main>
       </div>
