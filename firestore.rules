@@ -2,109 +2,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuthenticated() {
-      return request.auth != null;
+    // Development: allow read/write for authenticated users only
+    // Change before shipping to production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
 
-    function staffExists() {
-      return isAuthenticated()
-        && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
-    }
-
-    function staffRole() {
-      return staffExists()
-        ? get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role
-        : '';
-    }
-
-    function normalizedRole(role) {
-      return role == 'Admin' || role == 'admin' || role == 'Administrator'
-        ? 'Admin'
-        : role == 'Pastor' || role == 'pastor'
-          ? 'Pastor'
-          : role == 'Creative Arts Leader' || role == 'ca leader' || role == 'CA Leader'
-            ? 'Creative Arts Leader'
-            : role;
-    }
-
-    function userRole() {
-      return normalizedRole(staffRole());
-    }
-
-    function isAdmin() {
-      return userRole() == 'Admin';
-    }
-
-    function canViewTravelling() {
-      return userRole() in ['Admin', 'Pastor', 'Creative Arts Leader'];
-    }
-
-    function isTravelDestinationPath(path) {
-      return path[0] == 'travelDestinations';
-    }
-
-    function isValidTravelExtent(value) {
-      return value == 'international' || value == 'national';
-    }
-
-    function isOptionalNonNegativeNumber(value) {
-      return value == null || (value is number && value >= 0);
-    }
-
-    function isRequiredNonNegativeNumber(value) {
-      return value is number && value >= 0;
-    }
-
-    function isValidRecommendedTransport(value) {
-      return value in ['car', 'taxi', 'bus', 'train', 'plane'];
-    }
-
-    function hasSharedTravelFields(data) {
-      return data.keys().hasAll(['travelExtent', 'createdBy', 'createdAt', 'updatedAt'])
-        && isValidTravelExtent(data.travelExtent)
-        && data.createdBy is string
-        && data.createdAt is timestamp
-        && data.updatedAt is timestamp
-        && (!('imageUrl' in data) || data.imageUrl is string)
-        && (!('imageStoragePath' in data) || data.imageStoragePath is string)
-        && isOptionalNonNegativeNumber(data.get('estimatedCostZar', null))
-        && isOptionalNonNegativeNumber(data.get('distanceFromCapeTownKm', null));
-    }
-
-    function isValidInternationalDestination(data) {
-      return data.travelExtent == 'international'
-        && hasSharedTravelFields(data)
-        && data.keys().hasAll(['country', 'visaRequired'])
-        && data.country is string
-        && data.country.size() > 0
-        && data.visaRequired is bool
-        && !data.keys().hasAny(['townCity', 'recommendedTransport']);
-    }
-
-    function isValidNationalDestination(data) {
-      return data.travelExtent == 'national'
-        && hasSharedTravelFields(data)
-        && data.keys().hasAll(['townCity', 'recommendedTransport'])
-        && data.townCity is string
-        && data.townCity.size() > 0
-        && isValidRecommendedTransport(data.recommendedTransport)
-        && !data.keys().hasAny(['country', 'visaRequired']);
-    }
-
-    function isValidTravelDestinationData(data) {
-      return isValidInternationalDestination(data) || isValidNationalDestination(data);
-    }
-
-    match /travelDestinations/{destinationId} {
-      allow read: if canViewTravelling();
-      allow create: if isAdmin() && isValidTravelDestinationData(request.resource.data);
-      allow update: if isAdmin() && isValidTravelDestinationData(request.resource.data);
-      allow delete: if isAdmin();
-    }
-
-    // Development: allow read/write for authenticated users on other collections.
-    match /{path=**} {
-      allow read, write: if isAuthenticated() && !isTravelDestinationPath(path);
-    }
+    // Example: stricter rules for the `members` collection
+    // Uncomment and adjust ownership/role checks to use this.
+    // match /members/{memberId} {
+    //   // allow anyone to read member records (optional)
+    //   allow read: if true;
+    //   // only authenticated users can create
+    //   allow create: if request.auth != null;
+    //   // only the owner or admins can update/delete
+    //   allow update, delete: if request.auth.uid == resource.data.owner || request.auth.token.admin == true;
+    // }
   }
 }
