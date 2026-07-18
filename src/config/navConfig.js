@@ -14,6 +14,7 @@ import {
   ClipboardList,
   KanbanSquare,
   ListTodo,
+  Plane,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -28,6 +29,7 @@ export const NAV_ITEMS = [
   { path: '/attendance', label: 'Attendance Tracker', icon: CalendarCheck, roles: null },
   { path: '/offerings', label: 'Offerings Log', icon: Banknote, roles: null },
   { path: '/transport', label: 'Saturday Transport', icon: Bus, roles: null },
+  { path: '/travelling', label: 'Travelling', icon: Plane, roles: null },
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
   { path: '/service-program', label: 'Service Program', icon: ClipboardList, roles: null },
   { path: '/tasks', label: 'Tasks', icon: ListTodo, roles: null },
@@ -52,6 +54,7 @@ export const PAGE_TITLES = {
   '/attendance': 'Attendance Tracker',
   '/offerings': 'Offerings Log',
   '/transport': 'Saturday Transport',
+  '/travelling': 'Travelling',
   '/calendar': 'Calendar',
   '/service-program': 'Service Program',
   '/development-board': 'Development Board',

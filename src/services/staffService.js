@@ -2,9 +2,28 @@ import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'fireb
 import { db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
 import { normalizeRole, ROLES } from '@/config/roles';
+import {
+  getStaffAuthUid,
+  getStaffDocByAuthUid,
+  isStaffDocAtAuthUid,
+  migrateLegacyStaffDocToAuthUid,
+} from '@/services/staffAuthDocService';
 
 export async function resolveStaffProfile(user) {
-  if (!user?.email) {
+  if (!user?.uid) {
+    return null;
+  }
+
+  const authUidDoc = await getStaffDocByAuthUid(user.uid);
+  if (authUidDoc) {
+    return {
+      staffDocId: authUidDoc.staffDocId,
+      staffProfile: authUidDoc.staffProfile,
+      role: normalizeRole(authUidDoc.staffProfile.role),
+    };
+  }
+
+  if (!user.email) {
     return null;
   }
 
@@ -20,6 +39,26 @@ export async function resolveStaffProfile(user) {
 
   const staffDoc = snapshot.docs[0];
   const data = staffDoc.data();
+  const storedAuthUid = getStaffAuthUid(data);
+  const migrationAuthUid = storedAuthUid || user.uid;
+
+  if (!isStaffDocAtAuthUid(staffDoc.id, { ...data, uid: migrationAuthUid })) {
+    try {
+      await migrateLegacyStaffDocToAuthUid(staffDoc, migrationAuthUid);
+    } catch (error) {
+      console.error('Failed to migrate legacy staff document to auth UID path:', error);
+      throw error;
+    }
+
+    const migratedDoc = await getStaffDocByAuthUid(migrationAuthUid);
+    if (migratedDoc) {
+      return {
+        staffDocId: migratedDoc.staffDocId,
+        staffProfile: migratedDoc.staffProfile,
+        role: normalizeRole(migratedDoc.staffProfile.role),
+      };
+    }
+  }
 
   return {
     staffDocId: staffDoc.id,

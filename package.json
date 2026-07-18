@@ -9,9 +9,14 @@
     "preview": "vite preview",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "firebase:login": "npm exec --package firebase-tools -- firebase login --no-localhost",
-    "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules --project the-glorious-church",
+    "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules,storage --project the-glorious-church",
     "firebase:deploy-functions": "npm exec --package firebase-tools -- firebase deploy --only functions --project the-glorious-church",
-    "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore,functions"
+    "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore,storage,functions",
+    "test": "node --test src/config/travellingOptions.test.js src/services/travellingAccess.test.js src/services/staffAuthDocService.test.js",
+    "migrate:staff-auth-docs": "node scripts/migrate-staff-to-auth-uid.mjs",
+    "migrate:staff-auth-docs:dry-run": "node scripts/migrate-staff-to-auth-uid.mjs --dry-run",
+    "verify:staff-auth-docs": "node scripts/verify-staff-auth-docs.mjs",
+    "test:rules": "npm exec --package firebase-tools -- firebase emulators:exec --only firestore,storage \"node --test tests/rules/travelDestinations.rules.test.js tests/rules/travelStorage.rules.test.js\""
   },
   "dependencies": {
     "firebase": "^10.14.1",
@@ -23,6 +28,7 @@
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "sharp": "^0.35.3",

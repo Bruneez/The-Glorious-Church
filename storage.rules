@@ -1,0 +1,63 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function staffExists() {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/staff/$(request.auth.uid));
+    }
+
+    function staffRole() {
+      return staffExists()
+        ? firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data.role
+        : '';
+    }
+
+    function normalizedRole(role) {
+      return role == 'Admin' || role == 'admin' || role == 'Administrator'
+        ? 'Admin'
+        : role == 'Pastor' || role == 'pastor'
+          ? 'Pastor'
+          : role == 'Creative Arts Leader' || role == 'ca leader' || role == 'CA Leader'
+            ? 'Creative Arts Leader'
+            : role;
+    }
+
+    function userRole() {
+      return normalizedRole(staffRole());
+    }
+
+    function isAdmin() {
+      return userRole() == 'Admin';
+    }
+
+    function canViewTravelling() {
+      return userRole() in ['Admin', 'Pastor', 'Creative Arts Leader'];
+    }
+
+    function isTravelDestinationPath(storagePath) {
+      return storagePath.matches('travel-destinations/.*');
+    }
+
+    function isAllowedTravelImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    match /travel-destinations/{destinationId}/{fileName} {
+      allow read: if canViewTravelling();
+      allow create, update: if isAdmin() && isAllowedTravelImage();
+      allow delete: if isAdmin();
+    }
+
+    // Development: allow authenticated access on other storage paths.
+    match /{allPaths=**} {
+      allow read, write: if isAuthenticated() && !isTravelDestinationPath(allPaths);
+    }
+  }
+}
