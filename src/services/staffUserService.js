@@ -1,9 +1,8 @@
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { serverTimestamp } from 'firebase/firestore';
-import { app, auth } from '@/config/firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { app, auth, db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { addDocument } from '@/hooks/useFirestore';
 import { getAuthErrorMessage } from '@/services/authService';
 import { createUserCreatedNotification } from '@/services/notificationService';
 
@@ -58,8 +57,10 @@ export async function createStaffUser(staffData) {
     const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     const uid = credential.user.uid;
 
-    const staffDoc = await addDocument(COLLECTIONS.STAFF, {
+    const staffRef = doc(db, COLLECTIONS.STAFF, uid);
+    await setDoc(staffRef, {
       uid,
+      authUid: uid,
       fullName,
       name: fullName,
       email,
@@ -73,14 +74,14 @@ export async function createStaffUser(staffData) {
     });
 
     await createUserCreatedNotification({
-      staffDocId: staffDoc.id,
+      staffDocId: uid,
       staffName: fullName,
       role,
     }).catch((error) => {
       console.error('Failed to create user notification:', error);
     });
 
-    return { uid, staffDocId: staffDoc.id };
+    return { uid, staffDocId: uid };
   } finally {
     if (secondaryApp) {
       await deleteApp(secondaryApp).catch(() => {});

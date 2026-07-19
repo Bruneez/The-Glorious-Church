@@ -1,4 +1,4 @@
-import churchLogo from '@/assets/The GC Official Logo.png';
+import churchLogo from '@/assets/tgc-logo-trimmed.png';
 import ProfileMenu from '@/components/layout/ProfileMenu';
 import NotificationBell from '@/components/layout/NotificationBell';
 
@@ -9,7 +9,7 @@ export default function SidebarBrand() {
         <img
           src={churchLogo}
           alt="Glorious Church Logo"
-          className="w-11 h-11 object-contain shrink-0"
+          className="h-9 w-9 sm:h-10 sm:w-10 lg:h-11 lg:w-11 object-contain shrink-0"
         />
         <h1 className="min-w-0 text-xs lg:text-[0.8125rem] font-bold tracking-wide uppercase text-indigo-300 truncate leading-tight">
           The Glorious Church

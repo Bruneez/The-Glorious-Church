@@ -17,6 +17,7 @@ export default function Input({
   ...rest
 }) {
   const inputId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
+  const errorId = error ? `${inputId}-error` : undefined;
 
   return (
     <div className={className}>
@@ -38,6 +39,8 @@ export default function Input({
           placeholder={placeholder}
           required={required}
           disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           className={`w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs ${error ? 'border-rose-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${inputClassName}`}
           {...rest}
         />
@@ -47,7 +50,11 @@ export default function Input({
           </div>
         ) : null}
       </div>
-      {error && <p className="text-rose-400 text-[10px] mt-1">{error}</p>}
+      {error && (
+        <p id={errorId} role="alert" className="text-rose-400 text-[10px] mt-1">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

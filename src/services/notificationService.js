@@ -77,7 +77,12 @@ async function resolveActorStaffId(excludeStaffId = '') {
   if (!actorUid) return '';
 
   const staffMembers = await getStaffDirectory();
-  const actor = staffMembers.find((staffMember) => staffMember.uid === actorUid);
+  const actor = staffMembers.find(
+    (staffMember) =>
+      staffMember.id === actorUid ||
+      staffMember.uid === actorUid ||
+      staffMember.authUid === actorUid,
+  );
   return actor?.id || '';
 }
 

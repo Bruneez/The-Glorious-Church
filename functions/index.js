@@ -123,20 +123,23 @@ exports.createStaffUser = onCall(async (request) => {
       displayName: payload.name,
     });
 
-    const staffRef = await db.collection(STAFF_COLLECTION).add({
+    await db.collection(STAFF_COLLECTION).doc(authUser.uid).set({
+      uid: authUser.uid,
+      authUid: authUser.uid,
       name: payload.name,
+      fullName: payload.name,
       email: payload.email,
       role: payload.role,
       phone: payload.phone,
       photo: payload.photo,
-      authUid: authUser.uid,
+      taskModuleEnabled: true,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       createdBy: request.auth.uid,
     });
 
     return {
       uid: authUser.uid,
-      staffDocId: staffRef.id,
+      staffDocId: authUser.uid,
     };
   } catch (error) {
     if (authUser?.uid) {

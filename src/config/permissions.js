@@ -1,4 +1,4 @@
-import { ROLES, normalizeRole } from './roles';
+import { ROLES, normalizeRole } from './roles.js';
 
 const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.CA_LEADER];
 
@@ -21,6 +21,7 @@ export const ROUTE_ACCESS = {
   '/service-program': ALL_STAFF,
   '/development-board': [ROLES.ADMIN],
   '/tasks': ALL_STAFF,
+  '/travelling': ALL_STAFF,
 };
 
 export function canAccessRoute(role, pathname) {
@@ -47,6 +48,8 @@ export const ACTIONS = {
   VIEW_ALL_TASKS: [ROLES.ADMIN],
   UPDATE_OWN_TASK_STATUS: [ROLES.PASTOR, ROLES.CA_LEADER],
   MANAGE_SERVICE_PROGRAM: [ROLES.ADMIN, ROLES.PASTOR],
+  VIEW_TRAVELLING: ALL_STAFF,
+  MANAGE_TRAVELLING: [ROLES.ADMIN],
 };
 
 export function canPerformAction(role, action) {

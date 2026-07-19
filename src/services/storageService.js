@@ -4,6 +4,7 @@ import {
   getStorageErrorMessage,
   withUploadTimeout,
 } from '@/utils/storageErrors';
+import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/travellingOptions';
 
 function rethrowStorageError(error) {
   const message = getStorageErrorMessage(error);
@@ -108,5 +109,26 @@ export async function deleteCreativeArtsImage(path) {
 }
 
 export async function deleteMinistryAvatar(path) {
+  return deleteFile(path);
+}
+
+export async function uploadTravelDestinationImage(file, destinationId) {
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'image').replace(/[^\w.-]/g, '_');
+  const imageStoragePath = `travel-destinations/${destinationId}/${timestamp}_${safeName}`;
+
+  try {
+    const imageUrl = await withUploadTimeout(
+      uploadFile(file, imageStoragePath),
+      TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { imageUrl, imageStoragePath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteTravelDestinationImage(path) {
   return deleteFile(path);
 }
