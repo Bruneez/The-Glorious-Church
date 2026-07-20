@@ -66,6 +66,26 @@ function SummaryCard({ label, value }) {
   );
 }
 
+function FeedbackBanner({ feedback }) {
+  if (!feedback?.message) return null;
+
+  const styles = {
+    success: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400',
+    warning: 'bg-amber-500/10 border border-amber-500/20 text-amber-300',
+    error: 'bg-rose-500/10 border border-rose-500/20 text-rose-400',
+  };
+
+  return (
+    <div
+      className={`p-3 rounded-lg text-xs font-medium ${
+        styles[feedback.type] || styles.error
+      }`}
+    >
+      {feedback.message}
+    </div>
+  );
+}
+
 export default function SchoolsPage() {
   const { data: schools = [], loading: schoolsLoading } = useSchoolsDirectory();
   const { data: members = [], loading: membersLoading } = useMembers();
@@ -110,16 +130,45 @@ export default function SchoolsPage() {
   };
 
   const handleFormSubmit = async (formData) => {
-    if (editingSchool?.id) {
-      await updateSchoolRecord(editingSchool.id, formData, editingSchool);
-      setFeedback({ type: 'success', message: 'School updated successfully.' });
-    } else {
-      await createSchoolRecord(formData, getCreatedByName());
-      setFeedback({ type: 'success', message: 'School saved successfully.' });
-    }
+    try {
+      if (editingSchool?.id) {
+        const { storageWarnings = [] } = await updateSchoolRecord(
+          editingSchool.id,
+          formData,
+          editingSchool,
+        );
 
-    setIsFormOpen(false);
-    setEditingSchool(null);
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `School updated successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'School updated successfully.' });
+        }
+      } else {
+        const { storageWarnings = [] } = await createSchoolRecord(formData, getCreatedByName());
+
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `School saved successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'School saved successfully.' });
+        }
+      }
+
+      setIsFormOpen(false);
+      setEditingSchool(null);
+    } catch (saveError) {
+      console.error('Error saving school:', saveError);
+      setFeedback({
+        type: 'error',
+        message: saveError?.message || 'Failed to save school. Please try again.',
+      });
+      throw saveError;
+    }
   };
 
   const handleCloseForm = () => {
@@ -148,10 +197,18 @@ export default function SchoolsPage() {
     if (!confirmed) return;
 
     try {
-      await deleteSchoolRecord(tableSchool.id);
-      setFeedback({ type: 'success', message: 'School deleted successfully.' });
-    } catch (error) {
-      console.error('Error deleting school:', error);
+      const { storageWarnings = [] } = await deleteSchoolRecord(tableSchool.id);
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `School deleted successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'School deleted successfully.' });
+      }
+    } catch (deleteError) {
+      console.error('Error deleting school:', deleteError);
       setFeedback({ type: 'error', message: 'Failed to delete school. Please try again.' });
     }
   };
@@ -172,17 +229,7 @@ export default function SchoolsPage() {
         )}
       </div>
 
-      {feedback.message && (
-        <div
-          className={`p-3 rounded-lg text-xs font-medium ${
-            feedback.type === 'success'
-              ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-              : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-          }`}
-        >
-          {feedback.message}
-        </div>
-      )}
+      {feedback.message && <FeedbackBanner feedback={feedback} />}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {SUMMARY_CARDS.map((card) => (
