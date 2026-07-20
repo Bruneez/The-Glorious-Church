@@ -1,4 +1,4 @@
-import { uploadImage, uploadFile, deleteFile } from '@/hooks/useStorage';
+import { uploadImage, uploadFile, deleteFile, deleteFileSafe } from '@/hooks/useStorage';
 import {
   MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
   getStorageErrorMessage,
@@ -89,7 +89,11 @@ export async function uploadMinistryAvatar(file) {
 }
 
 export async function deleteMemberPhoto(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
+}
+
+export async function deleteMemberReportCard(path) {
+  return deleteFileSafe(path);
 }
 
 export async function deleteStaffPhoto(path) {

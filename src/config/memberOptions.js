@@ -156,6 +156,13 @@ export const UNEMPLOYED_EDUCATION_LEVEL_OPTIONS = [
 
 export const MAX_MEMBER_SUBJECTS = 7;
 
+export {
+  ACCEPTED_MEMBER_PHOTO_ACCEPT,
+  ACCEPTED_MEMBER_PHOTO_TYPES,
+  MAX_MEMBER_PHOTO_SIZE_BYTES,
+  validateMemberPhotoFile,
+} from '@/config/memberPhotoValidation';
+
 export const ACCEPTED_REPORT_CARD_TYPES = [
   'image/jpeg',
   'image/png',

@@ -26,14 +26,16 @@ import {
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
-  const isSuccess = feedback.type === 'success';
+  const styles = {
+    success: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400',
+    warning: 'bg-amber-500/10 border border-amber-500/20 text-amber-300',
+    error: 'bg-rose-500/10 border border-rose-500/20 text-rose-400',
+  };
 
   return (
     <div
       className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${
-        isSuccess
-          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-          : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+        styles[feedback.type] || styles.error
       }`}
     >
       <span>{feedback.message}</span>
@@ -154,11 +156,19 @@ export default function MembersPage() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingMember) {
-        await updateMember(editingMember.id, {
+        const { storageWarnings = [] } = await updateMember(editingMember.id, {
           ...formData,
           department: getMemberDepartment(editingMember),
         });
-        showFeedback('success', 'Member updated successfully.');
+
+        if (storageWarnings.length) {
+          showFeedback(
+            'warning',
+            `Member updated successfully. ${storageWarnings.join(' ')}`,
+          );
+        } else {
+          showFeedback('success', 'Member updated successfully.');
+        }
       } else {
         await createMember(
           {
@@ -193,8 +203,16 @@ export default function MembersPage() {
     }
 
     try {
-      await deleteMember(memberId);
-      showFeedback('success', 'Member deleted successfully.');
+      const { storageWarnings = [] } = await deleteMember(memberId);
+
+      if (storageWarnings.length) {
+        showFeedback(
+          'warning',
+          `Member deleted successfully. ${storageWarnings.join(' ')}`,
+        );
+      } else {
+        showFeedback('success', 'Member deleted successfully.');
+      }
     } catch (deleteError) {
       console.error('Error deleting member:', deleteError);
       showFeedback('error', 'Failed to delete member. Please try again.');
