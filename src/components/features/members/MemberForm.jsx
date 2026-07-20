@@ -19,15 +19,21 @@ import {
   isSeniorSchoolGrade,
   mapMemberToFormData,
   MAX_MEMBER_SUBJECTS,
+  ACCEPTED_MEMBER_PHOTO_ACCEPT,
+  validateMemberPhotoFile,
 } from '@/config/memberOptions';
 import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
-import { uploadMemberPhoto, uploadMemberReportCard } from '@/services/storageService';
+import { uploadMemberPhoto, uploadMemberReportCard, deleteMemberPhoto, deleteMemberReportCard } from '@/services/storageService';
 import { geocodeAddress } from '@/services/mapService';
 import { getStorageErrorMessage } from '@/utils/storageErrors';
 import { getGeocodingErrorMessage } from '@/utils/geocodingErrors';
 import { normalizeMemberCoordinate } from '@/utils/memberLocations';
-import UserAvatar from '@/components/ui/UserAvatar';
+import {
+  resolveMemberPhotoStoragePath,
+  resolveMemberReportCardStoragePath,
+} from '@/utils/storagePathUtils';
+import ImageUploadField from '@/components/common/ImageUploadField';
 
 function CoreSectionHeading({ title }) {
   return (
@@ -73,7 +79,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
   const [formData, setFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
   const [reportCardFile, setReportCardFile] = useState(null);
   const [error, setError] = useState('');
   const [addressError, setAddressError] = useState('');
@@ -112,7 +119,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     const mapped = mapMemberToFormData(initialData);
     setFormData(mapped);
     setPhotoFile(null);
-    setPhotoPreview(mapped.photo || '');
+    setRemovePhoto(false);
+    setPhotoError('');
     setReportCardFile(null);
     setError('');
     setAddressError('');
@@ -235,6 +243,43 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     setReportCardFile(file);
   };
 
+  const handlePhotoSelect = (file) => {
+    const validationMessage = validateMemberPhotoFile(file);
+    if (validationMessage) {
+      setPhotoError(validationMessage);
+      setPhotoFile(null);
+      return;
+    }
+
+    setPhotoError('');
+    setPhotoFile(file);
+    setRemovePhoto(false);
+  };
+
+  const handlePhotoRemove = () => {
+    setPhotoFile(null);
+    setRemovePhoto(true);
+    setPhotoError('');
+  };
+
+  const rollbackUploadedMemberFiles = async (uploadedPaths = []) => {
+    await Promise.all(
+      uploadedPaths.map(async ({ type, path }) => {
+        if (!path) return;
+
+        try {
+          if (type === 'photo') {
+            await deleteMemberPhoto(path);
+          } else if (type === 'reportCard') {
+            await deleteMemberReportCard(path);
+          }
+        } catch (rollbackError) {
+          console.warn('Failed to roll back uploaded member file:', rollbackError);
+        }
+      }),
+    );
+  };
+
   const handleHomeAddressSelect = ({ address, latitude, longitude }) => {
     setAddressError('');
     setFormData((prev) => ({
@@ -272,22 +317,47 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
     setIsSubmitting(true);
 
+    const uploadedPaths = [];
+
     try {
+      const previousProfileImagePath =
+        formData.profileImagePath
+        || initialData?.profileImagePath
+        || resolveMemberPhotoStoragePath(formData)
+        || resolveMemberPhotoStoragePath(initialData)
+        || '';
+      const previousReportCardPath =
+        formData.reportCardPath
+        || initialData?.reportCardPath
+        || resolveMemberReportCardStoragePath(formData)
+        || resolveMemberReportCardStoragePath(initialData)
+        || '';
       let photoUrl = formData.photo;
       let profileImagePath = formData.profileImagePath;
       let reportCardUrl = formData.reportCardUrl;
       let reportCardPath = formData.reportCardPath;
 
-      if (photoFile) {
+      if (removePhoto) {
+        photoUrl = '';
+        profileImagePath = '';
+      } else if (photoFile) {
+        const validationMessage = validateMemberPhotoFile(photoFile);
+        if (validationMessage) {
+          setPhotoError(validationMessage);
+          return;
+        }
+
         const uploadedPhoto = await uploadMemberPhoto(photoFile);
         photoUrl = uploadedPhoto.profileImageUrl;
         profileImagePath = uploadedPhoto.profileImagePath;
+        uploadedPaths.push({ type: 'photo', path: profileImagePath });
       }
 
       if (reportCardFile) {
         const uploadedReportCard = await uploadMemberReportCard(reportCardFile);
         reportCardUrl = uploadedReportCard.reportCardUrl;
         reportCardPath = uploadedReportCard.reportCardPath;
+        uploadedPaths.push({ type: 'reportCard', path: reportCardPath });
       }
 
       let submitData = {
@@ -296,6 +366,9 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
         profileImagePath,
         reportCardUrl,
         reportCardPath,
+        previousProfileImagePath:
+          removePhoto || photoFile ? previousProfileImagePath : '',
+        previousReportCardPath: reportCardFile ? previousReportCardPath : '',
       };
 
       const homeAddress = (
@@ -324,12 +397,14 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
             || 'Could not locate this address on the map. Choose a suggestion or refine the address.';
           setAddressError(message);
           setError(message);
+          await rollbackUploadedMemberFiles(uploadedPaths);
           return;
         }
       }
 
       await onSubmit(submitData);
     } catch (submitError) {
+      await rollbackUploadedMemberFiles(uploadedPaths);
       console.error('Error saving member:', submitError);
       setError(
         getStorageErrorMessage(submitError)
@@ -341,17 +416,8 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     }
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setPhotoFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
+  const memberPreviewName = `${formData.name} ${formData.surname}`.trim() || 'Member';
+  const existingPhotoUrl = !removePhoto && !photoFile ? formData.photo : '';
 
   return (
     <Modal
@@ -362,22 +428,21 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
       maxWidth="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-slate-400 mb-0.5 text-xs">Profile Picture</label>
-          <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
-            <UserAvatar
-              name={`${formData.name} ${formData.surname}`.trim()}
-              photo={photoPreview}
-              size="md"
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer"
-            />
-          </div>
-        </div>
+        <ImageUploadField
+          label="Profile Picture"
+          existingImageUrl={existingPhotoUrl}
+          selectedFile={photoFile}
+          onFileSelect={handlePhotoSelect}
+          onRemove={handlePhotoRemove}
+          accept={ACCEPTED_MEMBER_PHOTO_ACCEPT}
+          maxSizeMB={5}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          previewShape="circle"
+          previewName={memberPreviewName}
+          helperText="JPG, PNG, or WEBP up to 5 MB."
+          error={photoError}
+        />
 
         <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
           <CoreSectionHeading title="Core Information" />

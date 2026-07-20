@@ -5,6 +5,15 @@ import {
   createMemberStatusChangedNotification,
 } from '@/services/notificationService';
 import {
+  deleteMemberPhoto,
+  deleteMemberReportCard,
+} from '@/services/storageService';
+import {
+  resolveMemberPhotoStoragePath,
+  resolveMemberReportCardStoragePath,
+} from '@/utils/storagePathUtils';
+import { storage } from '@/config/firebase';
+import {
   getDocuments,
   addDocument,
   updateDocument,
@@ -13,6 +22,93 @@ import {
   useDocument,
 } from '@/hooks/useFirestore';
 import { where, orderBy } from 'firebase/firestore';
+
+const MEMBER_STORAGE_CLEANUP_LOG = '[Member Storage Cleanup]';
+
+async function cleanupMemberStoragePath(path, deleteFn, label) {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return null;
+
+  console.info(`${MEMBER_STORAGE_CLEANUP_LOG} deleting:`, {
+    label,
+    path: normalizedPath,
+    bucket: storage?.app?.options?.storageBucket || '',
+  });
+
+  try {
+    await deleteFn(normalizedPath);
+    console.info(`${MEMBER_STORAGE_CLEANUP_LOG} deleted:`, {
+      label,
+      path: normalizedPath,
+    });
+    return null;
+  } catch (error) {
+    if (error?.code === 'storage/object-not-found') {
+      console.info(`${MEMBER_STORAGE_CLEANUP_LOG} failed:`, {
+        label,
+        path: normalizedPath,
+        code: error.code,
+        message: error.message,
+      });
+      return null;
+    }
+
+    console.warn(`${MEMBER_STORAGE_CLEANUP_LOG} failed:`, {
+      label,
+      path: normalizedPath,
+      code: error?.code || 'unknown',
+      message: error?.message || 'Unknown storage delete error',
+    });
+
+    return `The previous ${label} could not be removed from storage. Please contact an administrator if this persists.`;
+  }
+}
+
+async function cleanupReplacedMemberFiles(existingMember, payload, memberData = {}) {
+  const warnings = [];
+  const previousPhotoPath = String(
+    memberData.previousProfileImagePath
+    || resolveMemberPhotoStoragePath(existingMember)
+    || '',
+  ).trim();
+  const nextPhotoPath = String(payload.profileImagePath || '').trim();
+  const previousReportCardPath = String(
+    memberData.previousReportCardPath
+    || resolveMemberReportCardStoragePath(existingMember)
+    || '',
+  ).trim();
+  const nextReportCardPath = String(payload.reportCardPath || '').trim();
+
+  console.info(`${MEMBER_STORAGE_CLEANUP_LOG} compare photo paths:`, {
+    previousProfileImagePath: previousPhotoPath,
+    newProfileImagePath: nextPhotoPath,
+  });
+
+  if (previousPhotoPath && previousPhotoPath !== nextPhotoPath) {
+    const warning = await cleanupMemberStoragePath(
+      previousPhotoPath,
+      deleteMemberPhoto,
+      'profile photo',
+    );
+    if (warning) warnings.push(warning);
+  }
+
+  console.info(`${MEMBER_STORAGE_CLEANUP_LOG} compare report card paths:`, {
+    previousReportCardPath,
+    newReportCardPath: nextReportCardPath,
+  });
+
+  if (previousReportCardPath && previousReportCardPath !== nextReportCardPath) {
+    const warning = await cleanupMemberStoragePath(
+      previousReportCardPath,
+      deleteMemberReportCard,
+      'report card',
+    );
+    if (warning) warnings.push(warning);
+  }
+
+  return warnings;
+}
 
 export function useMembers(filters = {}) {
   const constraints = [];
@@ -82,10 +178,22 @@ export async function updateMember(memberId, memberData) {
   const existingMember = await getMember(memberId);
   const payload = buildMemberPayload(memberData, memberData.status);
 
+  console.info(`${MEMBER_STORAGE_CLEANUP_LOG} updateMember payload paths:`, {
+    previousProfileImagePath: memberData.previousProfileImagePath || existingMember?.profileImagePath || '',
+    newProfileImagePath: payload.profileImagePath || '',
+    existingPhoto: existingMember?.photo || '',
+  });
+
   const updatedMember = await updateDocument(COLLECTIONS.MEMBERS, memberId, {
     ...payload,
     updatedAt: new Date().toISOString(),
   });
+
+  const storageWarnings = await cleanupReplacedMemberFiles(
+    existingMember,
+    payload,
+    memberData,
+  );
 
   const previousStatus = existingMember?.status;
   const nextStatus = payload.status;
@@ -102,11 +210,44 @@ export async function updateMember(memberId, memberData) {
     });
   }
 
-  return updatedMember;
+  return { member: updatedMember, storageWarnings };
 }
 
 export async function deleteMember(memberId) {
-  return deleteDocument(COLLECTIONS.MEMBERS, memberId);
+  const existingMember = await getMember(memberId);
+  if (!existingMember) {
+    throw new Error('Member not found.');
+  }
+
+  const profileImagePath = resolveMemberPhotoStoragePath(existingMember);
+  const reportCardPath = resolveMemberReportCardStoragePath(existingMember);
+
+  console.info(`${MEMBER_STORAGE_CLEANUP_LOG} deleteMember captured paths:`, {
+    memberId,
+    profileImagePath,
+    reportCardPath,
+    bucket: storage?.app?.options?.storageBucket || '',
+  });
+
+  await deleteDocument(COLLECTIONS.MEMBERS, memberId);
+
+  const storageWarnings = [];
+
+  const photoWarning = await cleanupMemberStoragePath(
+    profileImagePath,
+    deleteMemberPhoto,
+    'profile photo',
+  );
+  if (photoWarning) storageWarnings.push(photoWarning);
+
+  const reportCardWarning = await cleanupMemberStoragePath(
+    reportCardPath,
+    deleteMemberReportCard,
+    'report card',
+  );
+  if (reportCardWarning) storageWarnings.push(reportCardWarning);
+
+  return { memberId, storageWarnings };
 }
 
 export function filterMembers(members, searchTerm) {
