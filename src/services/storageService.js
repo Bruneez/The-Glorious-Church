@@ -101,7 +101,7 @@ export async function deleteStaffPhoto(path) {
 }
 
 export async function deleteSchoolLogo(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function deleteEventImage(path) {

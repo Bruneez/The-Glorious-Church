@@ -1,6 +1,16 @@
 import { COLLECTIONS } from '@/config/collections';
-import { buildSchoolPayload, buildSchoolUpdatePayload, schoolMatchesTypeFilter } from '@/config/schoolsOptions';
+import {
+  buildSchoolPayload,
+  buildSchoolUpdatePayload,
+  resolvePreviousSchoolBadgePath,
+  schoolMatchesTypeFilter,
+  shouldCleanupPreviousSchoolBadge,
+} from '@/config/schoolsOptions';
+import { resolveSchoolBadgeStoragePath } from '@/utils/storagePathUtils';
 import { deleteSchoolLogo } from '@/services/storageService';
+import {
+  cleanupSchoolBadgeStoragePath,
+} from '@/services/schoolsStorageLifecycle';
 import { 
   getDocuments, 
   addDocument, 
@@ -10,16 +20,6 @@ import {
   useDocument
 } from '@/hooks/useFirestore';
 import { where, orderBy } from 'firebase/firestore';
-
-async function cleanupSchoolBadge(badgePath) {
-  if (!badgePath) return;
-
-  try {
-    await deleteSchoolLogo(badgePath);
-  } catch (error) {
-    console.warn('Failed to delete school badge from storage:', error);
-  }
-}
 
 export function useSchools(type = null) {
   const constraints = [];
@@ -103,25 +103,48 @@ export function useSchoolsByType(schoolType = null) {
 }
 
 export async function createSchoolRecord(formData, createdBy) {
-  return addDocument(COLLECTIONS.SCHOOLS, buildSchoolPayload(formData, createdBy));
+  const school = await addDocument(COLLECTIONS.SCHOOLS, buildSchoolPayload(formData, createdBy));
+  return { school, storageWarnings: [] };
+}
+
+export async function getSchoolRecord(schoolId) {
+  const { getDocument } = await import('@/hooks/useFirestore');
+  return getDocument(COLLECTIONS.SCHOOLS, schoolId);
 }
 
 export async function updateSchoolRecord(schoolId, formData, initialData = null) {
   const payload = buildSchoolUpdatePayload(formData, initialData);
+  const previousBadgePath = resolvePreviousSchoolBadgePath(formData, initialData);
+  const nextBadgePath = String(payload.badgePath || '').trim();
 
-  if (formData.removeBadge) {
-    await cleanupSchoolBadge(initialData?.badgePath);
-  } else if (
-    payload.badgePath &&
-    initialData?.badgePath &&
-    payload.badgePath !== initialData.badgePath
-  ) {
-    await cleanupSchoolBadge(initialData.badgePath);
+  const updatedSchool = await updateDocument(COLLECTIONS.SCHOOLS, schoolId, {
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  });
+
+  const storageWarnings = [];
+
+  if (shouldCleanupPreviousSchoolBadge(previousBadgePath, nextBadgePath)) {
+    const warning = await cleanupSchoolBadgeStoragePath(previousBadgePath, deleteSchoolLogo);
+    if (warning) storageWarnings.push(warning);
   }
 
-  return updateDocument(COLLECTIONS.SCHOOLS, schoolId, payload);
+  return { school: updatedSchool, storageWarnings };
 }
 
 export async function deleteSchoolRecord(schoolId) {
-  return deleteDocument(COLLECTIONS.SCHOOLS, schoolId);
+  const existingSchool = await getSchoolRecord(schoolId);
+  if (!existingSchool) {
+    throw new Error('School not found.');
+  }
+
+  const badgePath = resolveSchoolBadgeStoragePath(existingSchool);
+
+  await deleteDocument(COLLECTIONS.SCHOOLS, schoolId);
+
+  const storageWarnings = [];
+  const warning = await cleanupSchoolBadgeStoragePath(badgePath, deleteSchoolLogo);
+  if (warning) storageWarnings.push(warning);
+
+  return { schoolId, storageWarnings };
 }

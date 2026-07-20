@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { School } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import UserAvatar from '@/components/ui/UserAvatar';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import {
   SCHOOL_STATUS,
   SCHOOL_STATUS_OPTIONS,
@@ -15,7 +15,9 @@ import {
   validateSchoolBadgeFile,
   validateSchoolForm,
 } from '@/config/schoolsOptions';
-import { uploadSchoolBadge } from '@/services/storageService';
+import { resolveSchoolBadgeStoragePath } from '@/utils/storagePathUtils';
+import { uploadSchoolBadge, deleteSchoolLogo } from '@/services/storageService';
+import { getStorageErrorMessage } from '@/utils/storageErrors';
 
 const EMPTY_FORM = {
   name: '',
@@ -27,11 +29,10 @@ const EMPTY_FORM = {
 };
 
 export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = null, defaultType = '' }) {
-  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [badgeFile, setBadgeFile] = useState(null);
-  const [badgePreview, setBadgePreview] = useState('');
   const [removeBadge, setRemoveBadge] = useState(false);
+  const [badgeError, setBadgeError] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,24 +43,53 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
 
     if (isEditing) {
       setFormData(mapSchoolToFormData(initialData));
-      setBadgePreview(getSchoolBadge(initialData));
     } else {
       setFormData({
         ...EMPTY_FORM,
         type: defaultType || '',
       });
-      setBadgePreview('');
     }
 
     setBadgeFile(null);
     setRemoveBadge(false);
+    setBadgeError('');
     setError('');
     setIsSubmitting(false);
   }, [defaultType, initialData, isEditing, isOpen]);
 
+  const rollbackUploadedBadge = async (badgePath) => {
+    if (!badgePath) return;
+
+    try {
+      await deleteSchoolLogo(badgePath);
+    } catch (rollbackError) {
+      console.warn('Failed to roll back uploaded school badge:', rollbackError);
+    }
+  };
+
+  const handleBadgeSelect = (file) => {
+    const validationMessage = validateSchoolBadgeFile(file);
+    if (validationMessage) {
+      setBadgeError(validationMessage);
+      setBadgeFile(null);
+      return;
+    }
+
+    setBadgeError('');
+    setBadgeFile(file);
+    setRemoveBadge(false);
+  };
+
+  const handleBadgeRemove = () => {
+    setBadgeFile(null);
+    setRemoveBadge(true);
+    setBadgeError('');
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setBadgeError('');
 
     const validationError = validateSchoolForm(formData);
     if (validationError) {
@@ -70,14 +100,22 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
     if (badgeFile) {
       const badgeValidationError = validateSchoolBadgeFile(badgeFile);
       if (badgeValidationError) {
-        setError(badgeValidationError);
+        setBadgeError(badgeValidationError);
         return;
       }
     }
 
     setIsSubmitting(true);
 
+    let uploadedBadgePath = '';
+
     try {
+      const previousBadgePath =
+        formData.badgePath
+        || initialData?.badgePath
+        || resolveSchoolBadgeStoragePath(formData)
+        || resolveSchoolBadgeStoragePath(initialData)
+        || '';
       let nextBadgeUrl = formData.badgeUrl;
       let nextBadgePath = formData.badgePath;
 
@@ -88,6 +126,7 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
         const uploadedBadge = await uploadSchoolBadge(badgeFile);
         nextBadgeUrl = uploadedBadge.badgeUrl;
         nextBadgePath = uploadedBadge.badgePath;
+        uploadedBadgePath = uploadedBadge.badgePath;
       }
 
       await onSubmit({
@@ -99,50 +138,19 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
         badgePath: nextBadgePath,
         logo: nextBadgeUrl,
         removeBadge,
+        previousBadgePath:
+          removeBadge || badgeFile ? previousBadgePath : '',
       });
-
-      setIsSubmitting(false);
     } catch (submitError) {
-      setError(submitError?.message || 'Failed to save school. Please try again.');
+      await rollbackUploadedBadge(uploadedBadgePath);
+      setError(
+        getStorageErrorMessage(submitError)
+          || submitError?.message
+          || 'Failed to save school. Please try again.',
+      );
+    } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleBadgeChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const validationMessage = validateSchoolBadgeFile(file);
-    if (validationMessage) {
-      setError(validationMessage);
-      event.target.value = '';
-      return;
-    }
-
-    setError('');
-    setBadgeFile(file);
-    setRemoveBadge(false);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setBadgePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveBadge = () => {
-    setBadgeFile(null);
-    setBadgePreview('');
-    setRemoveBadge(true);
-    setFormData((prev) => ({ ...prev, badgeUrl: '', badgePath: '' }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleReplaceBadge = () => {
-    fileInputRef.current?.click();
   };
 
   const handleChange = (event) => {
@@ -150,7 +158,10 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const hasBadge = Boolean(!removeBadge && badgePreview);
+  const existingBadgeUrl =
+    !removeBadge && !badgeFile
+      ? formData.badgeUrl || getSchoolBadge(initialData)
+      : '';
 
   return (
     <Modal
@@ -161,47 +172,21 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-slate-400 mb-1 text-xs">School Badge / Logo</label>
-          <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 space-y-3">
-            <div className="flex items-center gap-3">
-              <UserAvatar name={formData.name || 'School'} photo={hasBadge ? badgePreview : ''} size="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-white">
-                  {hasBadge ? 'School badge uploaded' : 'No badge uploaded'}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  JPG, PNG, or WEBP. Images keep their aspect ratio inside a circular avatar.
-                </p>
-              </div>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_SCHOOL_BADGE_ACCEPT}
-              onChange={handleBadgeChange}
-              className="hidden"
-            />
-
-            <div className="flex flex-wrap gap-2">
-              {!hasBadge ? (
-                <Button type="button" variant="secondary" onClick={handleReplaceBadge}>
-                  Upload School Badge
-                </Button>
-              ) : (
-                <>
-                  <Button type="button" variant="secondary" onClick={handleReplaceBadge}>
-                    Replace Badge
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handleRemoveBadge}>
-                    Remove Badge
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <ImageUploadField
+          label="School Badge / Logo"
+          existingImageUrl={existingBadgeUrl}
+          selectedFile={badgeFile}
+          onFileSelect={handleBadgeSelect}
+          onRemove={handleBadgeRemove}
+          accept={ACCEPTED_SCHOOL_BADGE_ACCEPT}
+          maxSizeMB={5}
+          previewShape="circle"
+          previewName={formData.name || 'School'}
+          helperText="JPG, PNG, or WEBP up to 5 MB. Images keep their aspect ratio inside a circular avatar."
+          error={badgeError}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+        />
 
         <Input
           label="School Name"

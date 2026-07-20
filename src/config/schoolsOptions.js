@@ -1,4 +1,10 @@
 import { getMemberFullName, normalizeOccupationForForm } from '@/config/memberOptions';
+import {
+  ACCEPTED_SCHOOL_BADGE_ACCEPT,
+  ACCEPTED_SCHOOL_BADGE_TYPES,
+  MAX_SCHOOL_BADGE_SIZE_BYTES,
+  validateSchoolBadgeFile,
+} from '@/config/schoolsBadgeValidation';
 
 export const SCHOOL_TYPE = {
   PRIMARY: 'Primary School',
@@ -39,9 +45,17 @@ export const SCHOOL_STATUS_OPTIONS = [
   { value: SCHOOL_STATUS.INACTIVE, label: 'Inactive' },
 ];
 
-export const ACCEPTED_SCHOOL_BADGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export {
+  ACCEPTED_SCHOOL_BADGE_ACCEPT,
+  ACCEPTED_SCHOOL_BADGE_TYPES,
+  MAX_SCHOOL_BADGE_SIZE_BYTES,
+  validateSchoolBadgeFile,
+} from '@/config/schoolsBadgeValidation';
 
-export const ACCEPTED_SCHOOL_BADGE_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+export {
+  resolvePreviousSchoolBadgePath,
+  shouldCleanupPreviousSchoolBadge,
+} from '@/services/schoolsStorageLifecycle';
 
 const LEGACY_SCHOOL_TYPE_MAP = {
   [LEGACY_SCHOOL_TYPE.SLUG_PRIMARY]: SCHOOL_TYPE.PRIMARY,
@@ -89,19 +103,6 @@ export function schoolMatchesTypeFilter(school, typeFilter) {
 
 export function getSchoolBadge(school) {
   return school?.badgeUrl || school?.logo || school?.photo || '';
-}
-
-export function validateSchoolBadgeFile(file) {
-  if (!file) return '';
-
-  const hasAllowedType = ACCEPTED_SCHOOL_BADGE_TYPES.includes(file.type);
-  const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name || '');
-
-  if (!hasAllowedType && !hasAllowedExtension) {
-    return 'Please upload a JPG, PNG, or WEBP image.';
-  }
-
-  return '';
 }
 
 export function validateSchoolForm(formData) {

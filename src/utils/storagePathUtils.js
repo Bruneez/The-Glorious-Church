@@ -12,6 +12,18 @@ export function extractStoragePathFromDownloadUrl(url = '') {
   }
 }
 
+export function isNonFirebaseStorageReference(value = '') {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith('blob:')) return true;
+  if (trimmed.startsWith('data:')) return true;
+  if (trimmed.startsWith('http') && !trimmed.includes('firebasestorage.googleapis.com')) {
+    return true;
+  }
+
+  return false;
+}
+
 export function normalizeStorageObjectPath(path = '') {
   const value = String(path || '').trim();
   if (!value) return '';
@@ -35,4 +47,19 @@ export function resolveMemberReportCardStoragePath(member = {}) {
   if (directPath) return directPath;
 
   return extractStoragePathFromDownloadUrl(member.reportCardUrl || '');
+}
+
+export function resolveSchoolBadgeStoragePath(school = {}) {
+  const directPath = normalizeStorageObjectPath(school.badgePath);
+  if (directPath) return directPath;
+
+  const fromBadgeUrl = extractStoragePathFromDownloadUrl(school.badgeUrl || '');
+  if (fromBadgeUrl) return fromBadgeUrl;
+
+  const logo = String(school.logo || '').trim();
+  if (!isNonFirebaseStorageReference(logo)) {
+    return extractStoragePathFromDownloadUrl(logo);
+  }
+
+  return '';
 }
