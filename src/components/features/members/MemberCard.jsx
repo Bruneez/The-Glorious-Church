@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Edit2,
@@ -132,6 +133,17 @@ export default function MemberCard({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen || !member) return null;
 
   const fullName = getMemberFullName(member);
@@ -147,24 +159,30 @@ export default function MemberCard({
     onClose();
   };
 
-  return (
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  return createPortal(
     <div
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-      role="presentation"
+      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-slate-900/60 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="member-profile-title"
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="member-profile-title"
+        className="flex min-h-[100vh] min-h-[100dvh] w-full items-start justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-6"
+        onClick={handleBackdropClick}
       >
+        <div
+          className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-2xl max-h-[min(calc(100dvh-2rem),calc(100vh-2rem))] overflow-hidden flex flex-col"
+          onClick={(event) => event.stopPropagation()}
+        >
         {/* Header bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
+        <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">
               Member Profile
@@ -183,7 +201,7 @@ export default function MemberCard({
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {/* Profile hero */}
           <div className="px-5 pt-6 pb-5 border-b border-slate-100">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
@@ -250,7 +268,7 @@ export default function MemberCard({
         </div>
 
         {/* Actions */}
-        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="shrink-0 px-5 py-4 border-t border-slate-100 bg-slate-50/80 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           {canManage && onDelete ? (
             <button
               type="button"
@@ -287,7 +305,9 @@ export default function MemberCard({
             )}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
