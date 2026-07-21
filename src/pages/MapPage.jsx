@@ -4,11 +4,15 @@ import MapLayerControls from '@/components/features/maps/MapLayerControls';
 import MapMarkerPopup from '@/components/features/maps/popups/MapMarkerPopup';
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM } from '@/config/mapConfig';
 import { createDefaultActiveLayers, filterMarkersByActiveLayers, MAP_LAYER_IDS } from '@/config/mapOptions';
-import { buildMemberHomeLocationMarkers, fetchMapMarkers } from '@/services/mapService';
+import { computeMemberCountsBySchool } from '@/config/schoolsOptions';
+import { mergeMemberAndSchoolMarkers } from '@/utils/schoolLocations';
+import { buildMemberHomeLocationMarkers, buildSchoolLocationMarkers, fetchMapMarkers } from '@/services/mapService';
 import { useMembers } from '@/services/membersService';
+import { useSchoolsDirectory } from '@/services/schoolsService';
 
 export default function MapPage() {
   const { data: members = [], loading: membersLoading } = useMembers();
+  const { data: schools = [], loading: schoolsLoading } = useSchoolsDirectory();
   const [activeLayers, setActiveLayers] = useState(createDefaultActiveLayers);
   const [otherMarkers, setOtherMarkers] = useState([]);
   const [otherLoading, setOtherLoading] = useState(true);
@@ -38,9 +42,19 @@ export default function MapPage() {
     [members],
   );
 
+  const memberCounts = useMemo(
+    () => computeMemberCountsBySchool(members, schools),
+    [members, schools],
+  );
+
+  const schoolMarkers = useMemo(
+    () => buildSchoolLocationMarkers(schools, memberCounts),
+    [memberCounts, schools],
+  );
+
   const mapMarkers = useMemo(
-    () => [...memberMarkers, ...otherMarkers],
-    [memberMarkers, otherMarkers],
+    () => mergeMemberAndSchoolMarkers(memberMarkers, [...schoolMarkers, ...otherMarkers]),
+    [memberMarkers, otherMarkers, schoolMarkers],
   );
 
   const visibleMarkers = useMemo(() => {
@@ -58,7 +72,7 @@ export default function MapPage() {
     }));
   };
 
-  const loading = membersLoading || otherLoading;
+  const loading = membersLoading || schoolsLoading || otherLoading;
 
   return (
     <div className="page-root flex-1 min-h-0 h-full gap-5 md:gap-6">

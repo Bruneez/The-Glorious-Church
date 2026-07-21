@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { School } from 'lucide-react';
 import Input from '@/components/ui/Input';
+import AddressInput from '@/components/ui/AddressInput';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -16,13 +17,24 @@ import {
   validateSchoolForm,
 } from '@/config/schoolsOptions';
 import { resolveSchoolBadgeStoragePath } from '@/utils/storagePathUtils';
+import {
+  applyGeocodedSchoolLocation,
+  getSchoolAddressManualChangeFormUpdates,
+  getSchoolAddressSelectionFormUpdates,
+  normalizeSchoolCoordinate,
+  shouldFallbackGeocodeSchoolAddress,
+} from '@/utils/schoolLocations';
 import { uploadSchoolBadge, deleteSchoolLogo } from '@/services/storageService';
+import { geocodeAddress } from '@/services/mapService';
+import { getGeocodingErrorMessage } from '@/utils/geocodingErrors';
 import { getStorageErrorMessage } from '@/utils/storageErrors';
 
 const EMPTY_FORM = {
   name: '',
   type: '',
   address: '',
+  latitude: null,
+  longitude: null,
   status: SCHOOL_STATUS.ACTIVE,
   badgeUrl: '',
   badgePath: '',
@@ -33,6 +45,7 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
   const [badgeFile, setBadgeFile] = useState(null);
   const [removeBadge, setRemoveBadge] = useState(false);
   const [badgeError, setBadgeError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,6 +66,7 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
     setBadgeFile(null);
     setRemoveBadge(false);
     setBadgeError('');
+    setAddressError('');
     setError('');
     setIsSubmitting(false);
   }, [defaultType, initialData, isEditing, isOpen]);
@@ -86,10 +100,19 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
     setBadgeError('');
   };
 
+  const handleAddressSelect = ({ address, latitude, longitude }) => {
+    setAddressError('');
+    setFormData((prev) => ({
+      ...prev,
+      ...getSchoolAddressSelectionFormUpdates({ address, latitude, longitude }),
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
     setBadgeError('');
+    setAddressError('');
 
     const validationError = validateSchoolForm(formData);
     if (validationError) {
@@ -129,10 +152,12 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
         uploadedBadgePath = uploadedBadge.badgePath;
       }
 
-      await onSubmit({
+      let submitData = {
         name: formData.name.trim(),
         type: formData.type,
         address: formData.address.trim(),
+        latitude: normalizeSchoolCoordinate(formData.latitude),
+        longitude: normalizeSchoolCoordinate(formData.longitude),
         status: formData.status,
         badgeUrl: nextBadgeUrl,
         badgePath: nextBadgePath,
@@ -140,7 +165,32 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
         removeBadge,
         previousBadgePath:
           removeBadge || badgeFile ? previousBadgePath : '',
-      });
+      };
+
+      if (
+        shouldFallbackGeocodeSchoolAddress(
+          submitData.address,
+          submitData.latitude,
+          submitData.longitude,
+        )
+      ) {
+        try {
+          const geocoded = await geocodeAddress(submitData.address);
+
+          if (geocoded) {
+            submitData = applyGeocodedSchoolLocation(submitData, geocoded);
+          }
+        } catch (geocodeError) {
+          const message = getGeocodingErrorMessage(geocodeError)
+            || 'Could not locate this address on the map. Choose a suggestion or refine the address.';
+          setAddressError(message);
+          setError(message);
+          await rollbackUploadedBadge(uploadedBadgePath);
+          return;
+        }
+      }
+
+      await onSubmit(submitData);
     } catch (submitError) {
       await rollbackUploadedBadge(uploadedBadgePath);
       setError(
@@ -155,6 +205,16 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === 'address') {
+      setAddressError('');
+      setFormData((prev) => ({
+        ...prev,
+        ...getSchoolAddressManualChangeFormUpdates(value),
+      }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -207,12 +267,18 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
           required
         />
 
-        <Input
+        <AddressInput
           label="Address"
           name="address"
           value={formData.address}
           onChange={handleChange}
-          placeholder="123 Main Street, Suburb"
+          onAddressSelect={handleAddressSelect}
+          fieldError={addressError}
+          showUnverifiedMessage={Boolean(formData.address?.trim())}
+          latitude={formData.latitude}
+          longitude={formData.longitude}
+          placeholder="Street, city, province"
+          disabled={isSubmitting}
         />
 
         <Select

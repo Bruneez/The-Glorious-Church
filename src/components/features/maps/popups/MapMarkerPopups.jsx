@@ -115,7 +115,14 @@ export function MapMemberWorkPopup({ data }) {
 export function MapSchoolPopup({ data }) {
   return (
     <PopupShell
-      action={<PopupActionButton href={data.schoolPath || '/schools'} label="View School" />}
+      action={
+        <a
+          href={data.schoolPath || '/schools'}
+          className="block w-full text-center text-[11px] font-semibold py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition !text-white hover:!text-white focus:!text-white active:!text-white visited:!text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          View School
+        </a>
+      }
     >
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-lg bg-sky-600 border border-sky-400/30 overflow-hidden flex items-center justify-center font-bold uppercase text-white shrink-0 text-xs">
@@ -132,6 +139,7 @@ export function MapSchoolPopup({ data }) {
       </div>
 
       <div className="space-y-2 pt-1 border-t border-slate-700/60">
+        <PopupDetailRow label="Address" value={data.address} />
         <PopupDetailRow
           label="Church Members Attending"
           value={String(data.memberCount ?? 0)}
