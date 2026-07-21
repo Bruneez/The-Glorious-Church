@@ -10,7 +10,7 @@ import AttendanceTable from '@/components/features/attendance/AttendanceTable';
 import AttendanceMobileList from '@/components/features/attendance/AttendanceMobileList';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { isAdminOrPastor, isCALeader, normalizeRole } from '@/config/roles';
+import { isChurchWideStaff, isCALeader, normalizeRole } from '@/config/roles';
 import {
   useAttendance,
   createAttendanceRecord,
@@ -52,7 +52,7 @@ export default function AttendancePage() {
   const { staffProfile, firebaseUser } = useAuth();
 
   const effectiveRole = normalizeRole(role || staffProfile?.role || '');
-  const isChurchWideUser = isAdminOrPastor(effectiveRole);
+  const isChurchWideUser = isChurchWideStaff(effectiveRole);
   const isDepartmentLeader = isCALeader(effectiveRole);
 
   const canRecordChurchAttendance = isChurchWideUser && canPerformAction('MANAGE_ATTENDANCE');

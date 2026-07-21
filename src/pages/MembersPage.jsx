@@ -15,7 +15,7 @@ import {
 } from '@/services/membersService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { ROLES, normalizeRole } from '@/config/roles';
+import { ROLES, normalizeRole, isChurchWideStaff, isCALeader } from '@/config/roles';
 import {
   MEMBER_STATUS,
   getMemberDepartment,
@@ -79,24 +79,23 @@ export default function MembersPage() {
   }, [loading, members, searchParams, setSearchParams]);
 
   const normalizedRole = normalizeRole(role);
-  const isAdminOrPastor =
-    normalizedRole === ROLES.ADMIN || normalizedRole === ROLES.PASTOR;
+  const isChurchWideUser = isChurchWideStaff(normalizedRole);
   const isCALeader = normalizedRole === ROLES.LEADER;
   const creatorDepartment = getStaffDepartment(staffProfile);
   const canManageMembers =
     canPerformAction('MANAGE_MEMBERS') || isCALeader;
 
   const scopedMembers = useMemo(() => {
-    if (isAdminOrPastor) return members;
+    if (isChurchWideUser) return members;
     if (isCALeader && creatorDepartment) {
       return members.filter((member) => memberBelongsToDepartment(member, creatorDepartment));
     }
     return members;
-  }, [members, isAdminOrPastor, isCALeader, creatorDepartment]);
+  }, [members, isChurchWideUser, isCALeader, creatorDepartment]);
 
   const canManageMember = (member) => {
     if (!canManageMembers) return false;
-    if (isAdminOrPastor) return true;
+    if (isChurchWideUser) return true;
     if (isCALeader && creatorDepartment) {
       return memberBelongsToDepartment(member, creatorDepartment);
     }

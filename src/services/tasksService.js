@@ -2,7 +2,7 @@ import { orderBy } from 'firebase/firestore';
 import { COLLECTIONS } from '@/config/collections';
 import { buildTaskPayload, TASK_STATUS } from '@/config/tasksOptions';
 import { createTaskAssignedNotification } from '@/services/notificationService';
-import { ROLES, normalizeRole } from '@/config/roles';
+import { assertFullAccessRole } from '@/config/roles';
 import {
   useCollection,
   addDocument,
@@ -17,9 +17,7 @@ export function useTasks() {
 }
 
 function assertTasksAdmin(role) {
-  if (normalizeRole(role) !== ROLES.ADMIN) {
-    throw new Error('Only administrators can perform this action.');
-  }
+  assertFullAccessRole(role);
 }
 
 async function notifyTaskAssignee(taskId, payload, previousAssignedUserId = '') {

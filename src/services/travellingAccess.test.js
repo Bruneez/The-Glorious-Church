@@ -50,9 +50,15 @@ test('role normalization aliases still grant expected travelling permissions', (
   assert.equal(canPerformAction('administrator', 'VIEW_TRAVELLING'), true);
 });
 
-test('new roles do not inherit travelling permissions until configured', () => {
-  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'VIEW_TRAVELLING'), false);
+test('Lead Pastor receives full travelling permissions', () => {
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'VIEW_TRAVELLING'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_TRAVELLING'), true);
+  assert.doesNotThrow(() => assertCanManageTravelling(ROLES.LEAD_PASTOR));
+  assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, '/travelling'), true);
+  assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, '/users'), true);
+});
+
+test('Elder still does not inherit travelling permissions until configured', () => {
   assert.equal(canPerformAction(ROLES.ELDER, 'VIEW_TRAVELLING'), false);
-  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_TRAVELLING'), false);
   assert.equal(canPerformAction(ROLES.ELDER, 'MANAGE_TRAVELLING'), false);
 });

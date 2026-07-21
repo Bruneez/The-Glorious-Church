@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { canPerformAction } from '@/config/permissions';
-import { normalizeRole } from '@/config/roles';
+import { normalizeRole, isFullAccessRole } from '@/config/roles';
 
 export default function RoleGate({
   allowedRoles,
@@ -10,6 +10,10 @@ export default function RoleGate({
 }) {
   const { role } = useAuth();
   const normalizedRole = normalizeRole(role);
+
+  if (isFullAccessRole(normalizedRole)) {
+    return children;
+  }
 
   if (allowedAction) {
     if (!canPerformAction(role, allowedAction)) {
