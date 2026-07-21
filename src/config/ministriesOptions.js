@@ -10,10 +10,10 @@ export const MINISTRY_STATUS_OPTIONS = MINISTRY_STATUSES.map((status) => ({
   label: status,
 }));
 
-export const ACCEPTED_MINISTRY_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-export const ACCEPTED_MINISTRY_AVATAR_ACCEPT =
-  '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+export {
+  ACCEPTED_MINISTRY_AVATAR_ACCEPT,
+  validateMinistryAvatarFile,
+} from './ministriesAvatarValidation.js';
 
 export const MINISTRY_FUTURE_SECTIONS = [
   'Ministry Members',
@@ -27,17 +27,9 @@ export const MINISTRY_FUTURE_SECTIONS = [
 ];
 
 export function getMinistryAvatar(ministry) {
-  return ministry?.avatarUrl || '';
-}
-
-export function validateMinistryAvatarFile(file) {
-  if (!file) return '';
-
-  const hasAllowedType = ACCEPTED_MINISTRY_AVATAR_TYPES.includes(file.type);
-  const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name || '');
-
-  if (!hasAllowedType && !hasAllowedExtension) {
-    return 'Please upload a JPG, PNG, or WEBP image.';
+  const avatarUrl = String(ministry?.avatarUrl || '').trim();
+  if (avatarUrl && !avatarUrl.startsWith('blob:') && !avatarUrl.startsWith('data:')) {
+    return avatarUrl;
   }
 
   return '';
@@ -74,6 +66,15 @@ export function getMinistryMemberCount(ministry) {
   return Number.isFinite(count) && count >= 0 ? count : 0;
 }
 
+function sanitizeAvatarUrl(value) {
+  const url = String(value || '').trim();
+  if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
+    return '';
+  }
+
+  return url;
+}
+
 export function buildMinistryPayload(formData, { createdBy = '', initialData = null } = {}) {
   if (formData.removeAvatar) {
     return {
@@ -87,8 +88,10 @@ export function buildMinistryPayload(formData, { createdBy = '', initialData = n
     };
   }
 
-  const avatarUrl = formData.avatarUrl ?? getMinistryAvatar(initialData) ?? '';
-  const avatarPath = formData.avatarPath ?? initialData?.avatarPath ?? '';
+  const avatarUrl = sanitizeAvatarUrl(
+    formData.avatarUrl ?? getMinistryAvatar(initialData) ?? '',
+  );
+  const avatarPath = String(formData.avatarPath ?? initialData?.avatarPath ?? '').trim();
 
   return {
     ministryName: String(formData.ministryName || '').trim(),

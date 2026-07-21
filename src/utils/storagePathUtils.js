@@ -78,3 +78,13 @@ export function resolveCreativeArtsLogoStoragePath(department = {}) {
 
   return '';
 }
+
+export function resolveMinistryAvatarStoragePath(ministry = {}) {
+  const directPath = normalizeStorageObjectPath(ministry.avatarPath);
+  if (directPath) return directPath;
+
+  const fromAvatarUrl = extractStoragePathFromDownloadUrl(ministry.avatarUrl || '');
+  if (fromAvatarUrl) return fromAvatarUrl;
+
+  return '';
+}

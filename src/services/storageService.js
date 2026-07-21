@@ -91,9 +91,17 @@ export async function uploadMinistryAvatar(file) {
   const timestamp = Date.now();
   const safeName = String(file.name || 'avatar').replace(/[^\w.-]/g, '_');
   const avatarPath = `ministry-avatars/${timestamp}_${safeName}`;
-  const avatarUrl = await uploadFile(file, avatarPath);
 
-  return { avatarUrl, avatarPath };
+  try {
+    const avatarUrl = await withUploadTimeout(
+      uploadFile(file, avatarPath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { avatarUrl, avatarPath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function deleteMemberPhoto(path) {
@@ -121,7 +129,7 @@ export async function deleteCreativeArtsImage(path) {
 }
 
 export async function deleteMinistryAvatar(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function uploadTravelDestinationImage(file, destinationId) {

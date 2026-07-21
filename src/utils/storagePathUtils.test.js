@@ -4,6 +4,7 @@ import {
   extractStoragePathFromDownloadUrl,
   resolveCreativeArtsLogoStoragePath,
   resolveMemberPhotoStoragePath,
+  resolveMinistryAvatarStoragePath,
   resolveSchoolBadgeStoragePath,
 } from './storagePathUtils.js';
 
@@ -124,6 +125,39 @@ test('resolveCreativeArtsLogoStoragePath ignores external URLs', () => {
     resolveCreativeArtsLogoStoragePath({
       logoPath: '',
       logoUrl: 'https://example.com/external-logo.png',
+    }),
+    '',
+  );
+});
+
+test('resolveMinistryAvatarStoragePath prefers avatarPath', () => {
+  assert.equal(
+    resolveMinistryAvatarStoragePath({
+      avatarPath: 'ministry-avatars/1712345678_ushering.jpg',
+      avatarUrl: 'https://example.com/other.jpg',
+    }),
+    'ministry-avatars/1712345678_ushering.jpg',
+  );
+});
+
+test('resolveMinistryAvatarStoragePath resolves Firebase Storage path from avatarUrl', () => {
+  const url =
+    'https://firebasestorage.googleapis.com/v0/b/the-glorious-church.firebasestorage.app/o/ministry-avatars%2F999_avatar.webp?alt=media&token=abc';
+
+  assert.equal(
+    resolveMinistryAvatarStoragePath({
+      avatarPath: '',
+      avatarUrl: url,
+    }),
+    'ministry-avatars/999_avatar.webp',
+  );
+});
+
+test('resolveMinistryAvatarStoragePath ignores blob preview URLs', () => {
+  assert.equal(
+    resolveMinistryAvatarStoragePath({
+      avatarPath: '',
+      avatarUrl: 'blob:http://localhost/fake-preview',
     }),
     '',
   );
