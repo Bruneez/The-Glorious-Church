@@ -88,3 +88,13 @@ export function resolveMinistryAvatarStoragePath(ministry = {}) {
 
   return '';
 }
+
+export function resolveTravelDestinationImageStoragePath(destination = {}) {
+  const directPath = normalizeStorageObjectPath(destination.imageStoragePath);
+  if (directPath) return directPath;
+
+  const fromImageUrl = extractStoragePathFromDownloadUrl(destination.imageUrl || '');
+  if (fromImageUrl) return fromImageUrl;
+
+  return '';
+}

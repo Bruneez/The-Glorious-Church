@@ -150,5 +150,5 @@ export async function uploadTravelDestinationImage(file, destinationId) {
 }
 
 export async function deleteTravelDestinationImage(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plane } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import { TRAVEL_COUNTRY_OPTIONS } from '@/config/travelCountryOptions';
 import {
   TRAVEL_EXTENT,
@@ -15,8 +16,9 @@ import {
   validateTravelDestinationFieldErrors,
   validateTravelImageFile,
 } from '@/config/travellingOptions';
+import { getTravelStorageErrorMessage } from '@/config/travellingImageValidation';
+import { resolveTravelDestinationImageStoragePath } from '@/utils/storagePathUtils';
 import { getDestinationImageUrl, getDestinationImageAlt } from '@/config/travellingDisplay';
-import { DestinationImage } from '@/components/features/travelling/TravellingCardGrid';
 
 function clearExtentSpecificFields(travelExtent) {
   if (travelExtent === TRAVEL_EXTENT.INTERNATIONAL) {
@@ -33,15 +35,12 @@ export default function TravellingForm({
   initialData = null,
   defaultTravelExtent = TRAVEL_EXTENT.INTERNATIONAL,
 }) {
-  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState(mapTravelDestinationToFormData(null));
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
   const [removeImage, setRemoveImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,17 +51,14 @@ export default function TravellingForm({
 
     setFormData(mapped);
     setImageFile(null);
-    setImagePreview(getDestinationImageUrl(initialData));
     setRemoveImage(false);
     setFieldErrors({});
     setFormError('');
     setIsSubmitting(false);
-    setIsUploading(false);
   }, [defaultTravelExtent, initialData, isOpen]);
 
   const isInternational = formData.travelExtent === TRAVEL_EXTENT.INTERNATIONAL;
-  const isEditing = Boolean(initialData);
-  const hasImagePreview = Boolean(!removeImage && imagePreview);
+  const isEditing = Boolean(initialData?.id);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -88,41 +84,23 @@ export default function TravellingForm({
     setFieldErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const handleImageSelect = (file) => {
     const validationMessage = validateTravelImageFile(file);
     if (validationMessage) {
       setFieldErrors((prev) => ({ ...prev, image: validationMessage }));
-      event.target.value = '';
+      setImageFile(null);
       return;
     }
 
     setFieldErrors((prev) => ({ ...prev, image: '' }));
     setImageFile(file);
     setRemoveImage(false);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = () => {
+  const handleImageRemove = () => {
     setImageFile(null);
-    setImagePreview('');
     setRemoveImage(true);
-    setFormData((prev) => ({ ...prev, imageUrl: '', imageStoragePath: '' }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleReplaceImage = () => {
-    fileInputRef.current?.click();
+    setFieldErrors((prev) => ({ ...prev, image: '' }));
   };
 
   const handleSubmit = async (event) => {
@@ -142,32 +120,45 @@ export default function TravellingForm({
 
     setFieldErrors({});
     setIsSubmitting(true);
-    setIsUploading(Boolean(imageFile));
 
     try {
+      const previousImagePath =
+        formData.imageStoragePath
+        || initialData?.imageStoragePath
+        || resolveTravelDestinationImageStoragePath(formData)
+        || resolveTravelDestinationImageStoragePath(initialData)
+        || '';
+
       await onSubmit({
         formData: {
           ...formData,
           imageUrl: removeImage ? '' : formData.imageUrl,
           imageStoragePath: removeImage ? '' : formData.imageStoragePath,
+          previousImagePath:
+            removeImage || imageFile ? previousImagePath : '',
         },
         imageFile: removeImage ? null : imageFile,
         removeImage,
       });
     } catch (submitError) {
-      setFormError(submitError?.message || 'Failed to save travel destination. Please try again.');
+      setFormError(
+        getTravelStorageErrorMessage(submitError)
+          || submitError?.message
+          || 'Failed to save travel destination. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
-      setIsUploading(false);
     }
   };
 
-  const previewDestination = {
-    travelExtent: formData.travelExtent,
-    imageUrl: removeImage ? '' : imagePreview,
-    country: formData.country,
-    townCity: formData.townCity,
-  };
+  const existingImageUrl =
+    !removeImage && !imageFile
+      ? formData.imageUrl || getDestinationImageUrl(initialData)
+      : '';
+
+  const previewName = isInternational
+    ? formData.country || getDestinationImageAlt(initialData)
+    : formData.townCity || getDestinationImageAlt(initialData);
 
   return (
     <Modal
@@ -188,53 +179,21 @@ export default function TravellingForm({
           error={fieldErrors.travelExtent}
         />
 
-        <div>
-          <label className="block text-slate-400 mb-1 text-xs">Destination Image</label>
-          <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 space-y-3">
-            {hasImagePreview ? (
-              <img
-                src={imagePreview}
-                alt={getDestinationImageAlt(previewDestination)}
-                className="w-full aspect-[16/10] rounded-lg object-cover bg-slate-800"
-              />
-            ) : (
-              <DestinationImage destination={previewDestination} className="w-full aspect-[16/10] rounded-lg" />
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_TRAVEL_IMAGE_ACCEPT}
-              onChange={handleImageChange}
-              className="hidden"
-            />
-
-            <div className="flex flex-wrap gap-2">
-              {!hasImagePreview ? (
-                <Button type="button" variant="secondary" onClick={handleReplaceImage}>
-                  Upload Image
-                </Button>
-              ) : (
-                <>
-                  <Button type="button" variant="secondary" onClick={handleReplaceImage}>
-                    Replace Image
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handleRemoveImage}>
-                    Remove Image
-                  </Button>
-                </>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400">
-              JPG, JPEG, PNG, or WEBP up to 5 MB. Preview only — permanent URLs are saved after upload.
-            </p>
-            {fieldErrors.image && (
-              <p role="alert" className="text-rose-400 text-[10px]">
-                {fieldErrors.image}
-              </p>
-            )}
-          </div>
-        </div>
+        <ImageUploadField
+          label="Destination Image"
+          existingImageUrl={existingImageUrl}
+          selectedFile={imageFile}
+          onFileSelect={handleImageSelect}
+          onRemove={handleImageRemove}
+          accept={ACCEPTED_TRAVEL_IMAGE_ACCEPT}
+          maxSizeMB={5}
+          previewShape="square"
+          previewName={previewName || 'Destination'}
+          helperText="JPG, PNG, or WEBP up to 5 MB. Permanent URLs are saved after upload."
+          error={fieldErrors.image}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+        />
 
         {isInternational ? (
           <>
@@ -338,7 +297,7 @@ export default function TravellingForm({
             Cancel
           </Button>
           <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-            {isUploading ? 'Uploading...' : isEditing ? 'Save Changes' : 'Add Location'}
+            {isEditing ? 'Save Changes' : 'Add Location'}
           </Button>
         </div>
       </form>

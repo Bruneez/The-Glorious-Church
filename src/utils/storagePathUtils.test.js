@@ -6,6 +6,7 @@ import {
   resolveMemberPhotoStoragePath,
   resolveMinistryAvatarStoragePath,
   resolveSchoolBadgeStoragePath,
+  resolveTravelDestinationImageStoragePath,
 } from './storagePathUtils.js';
 
 test('extractStoragePathFromDownloadUrl decodes Firebase download URLs', () => {
@@ -158,6 +159,39 @@ test('resolveMinistryAvatarStoragePath ignores blob preview URLs', () => {
     resolveMinistryAvatarStoragePath({
       avatarPath: '',
       avatarUrl: 'blob:http://localhost/fake-preview',
+    }),
+    '',
+  );
+});
+
+test('resolveTravelDestinationImageStoragePath prefers imageStoragePath', () => {
+  assert.equal(
+    resolveTravelDestinationImageStoragePath({
+      imageStoragePath: 'travel-destinations/abc123/1712345678_paris.jpg',
+      imageUrl: 'https://example.com/other.jpg',
+    }),
+    'travel-destinations/abc123/1712345678_paris.jpg',
+  );
+});
+
+test('resolveTravelDestinationImageStoragePath resolves Firebase Storage path from imageUrl', () => {
+  const url =
+    'https://firebasestorage.googleapis.com/v0/b/the-glorious-church.firebasestorage.app/o/travel-destinations%2Fabc123%2F999_image.webp?alt=media&token=abc';
+
+  assert.equal(
+    resolveTravelDestinationImageStoragePath({
+      imageStoragePath: '',
+      imageUrl: url,
+    }),
+    'travel-destinations/abc123/999_image.webp',
+  );
+});
+
+test('resolveTravelDestinationImageStoragePath ignores blob preview URLs', () => {
+  assert.equal(
+    resolveTravelDestinationImageStoragePath({
+      imageStoragePath: '',
+      imageUrl: 'blob:http://localhost/fake-preview',
     }),
     '',
   );
