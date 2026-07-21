@@ -69,9 +69,17 @@ export async function uploadCreativeArtsLogo(file) {
   const timestamp = Date.now();
   const safeName = String(file.name || 'logo').replace(/[^\w.-]/g, '_');
   const logoPath = `creative-arts-images/${timestamp}_${safeName}`;
-  const logoUrl = await uploadFile(file, logoPath);
 
-  return { logoUrl, logoPath };
+  try {
+    const logoUrl = await withUploadTimeout(
+      uploadFile(file, logoPath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { logoUrl, logoPath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function uploadCreativeArtsImage(file) {
@@ -109,7 +117,7 @@ export async function deleteEventImage(path) {
 }
 
 export async function deleteCreativeArtsImage(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function deleteMinistryAvatar(path) {

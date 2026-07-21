@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   extractStoragePathFromDownloadUrl,
+  resolveCreativeArtsLogoStoragePath,
   resolveMemberPhotoStoragePath,
   resolveSchoolBadgeStoragePath,
 } from './storagePathUtils.js';
@@ -79,6 +80,50 @@ test('resolveSchoolBadgeStoragePath ignores blob and data URLs', () => {
       badgePath: '',
       badgeUrl: 'blob:http://localhost/fake-preview',
       logo: 'data:image/png;base64,abc123',
+    }),
+    '',
+  );
+});
+
+test('resolveCreativeArtsLogoStoragePath prefers logoPath', () => {
+  assert.equal(
+    resolveCreativeArtsLogoStoragePath({
+      logoPath: 'creative-arts-images/1712345678_choir.jpg',
+      logoUrl: 'https://example.com/other.jpg',
+    }),
+    'creative-arts-images/1712345678_choir.jpg',
+  );
+});
+
+test('resolveCreativeArtsLogoStoragePath resolves Firebase Storage path from logoUrl', () => {
+  const url =
+    'https://firebasestorage.googleapis.com/v0/b/the-glorious-church.firebasestorage.app/o/creative-arts-images%2F999_logo.webp?alt=media&token=abc';
+
+  assert.equal(
+    resolveCreativeArtsLogoStoragePath({
+      logoPath: '',
+      logoUrl: url,
+    }),
+    'creative-arts-images/999_logo.webp',
+  );
+});
+
+test('resolveCreativeArtsLogoStoragePath ignores blob preview URLs', () => {
+  assert.equal(
+    resolveCreativeArtsLogoStoragePath({
+      logoPath: '',
+      logoUrl: 'blob:http://localhost/fake-preview',
+      photo: 'blob:http://localhost/fake-preview',
+    }),
+    '',
+  );
+});
+
+test('resolveCreativeArtsLogoStoragePath ignores external URLs', () => {
+  assert.equal(
+    resolveCreativeArtsLogoStoragePath({
+      logoPath: '',
+      logoUrl: 'https://example.com/external-logo.png',
     }),
     '',
   );

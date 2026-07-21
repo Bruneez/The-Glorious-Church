@@ -63,3 +63,18 @@ export function resolveSchoolBadgeStoragePath(school = {}) {
 
   return '';
 }
+
+export function resolveCreativeArtsLogoStoragePath(department = {}) {
+  const directPath = normalizeStorageObjectPath(department.logoPath);
+  if (directPath) return directPath;
+
+  const fromLogoUrl = extractStoragePathFromDownloadUrl(department.logoUrl || '');
+  if (fromLogoUrl) return fromLogoUrl;
+
+  const photo = String(department.photo || '').trim();
+  if (!isNonFirebaseStorageReference(photo)) {
+    return extractStoragePathFromDownloadUrl(photo);
+  }
+
+  return '';
+}

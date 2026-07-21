@@ -8,22 +8,20 @@ export const DEPARTMENT_STATUS_OPTIONS = [
   { value: DEPARTMENT_STATUS.INACTIVE, label: 'Inactive' },
 ];
 
-export const ACCEPTED_DEPARTMENT_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-export const ACCEPTED_DEPARTMENT_LOGO_ACCEPT = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+export {
+  ACCEPTED_CREATIVE_ARTS_LOGO_ACCEPT as ACCEPTED_DEPARTMENT_LOGO_ACCEPT,
+  validateCreativeArtsLogoFile as validateDepartmentLogoFile,
+} from './creativeArtsLogoValidation.js';
 
 export function getDepartmentLogo(department) {
-  return department?.logoUrl || department?.photo || '';
-}
+  const logoUrl = String(department?.logoUrl || '').trim();
+  if (logoUrl && !logoUrl.startsWith('blob:') && !logoUrl.startsWith('data:')) {
+    return logoUrl;
+  }
 
-export function validateDepartmentLogoFile(file) {
-  if (!file) return '';
-
-  const hasAllowedType = ACCEPTED_DEPARTMENT_LOGO_TYPES.includes(file.type);
-  const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name || '');
-
-  if (!hasAllowedType && !hasAllowedExtension) {
-    return 'Please upload a JPG, PNG, or WEBP image.';
+  const photo = String(department?.photo || '').trim();
+  if (photo && !photo.startsWith('blob:') && !photo.startsWith('data:')) {
+    return photo;
   }
 
   return '';
@@ -73,8 +71,10 @@ export function buildDepartmentPayload(formData, initialData = null) {
     };
   }
 
-  const logoUrl = formData.logoUrl ?? formData.photo ?? getDepartmentLogo(initialData) ?? '';
-  const logoPath = formData.logoPath ?? initialData?.logoPath ?? '';
+  const logoUrl = sanitizeDepartmentLogoUrl(
+    formData.logoUrl ?? formData.photo ?? getDepartmentLogo(initialData) ?? '',
+  );
+  const logoPath = String(formData.logoPath ?? initialData?.logoPath ?? '').trim();
 
   return {
     ...base,
@@ -82,6 +82,15 @@ export function buildDepartmentPayload(formData, initialData = null) {
     logoPath,
     photo: logoUrl,
   };
+}
+
+function sanitizeDepartmentLogoUrl(value) {
+  const url = String(value || '').trim();
+  if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
+    return '';
+  }
+
+  return url;
 }
 
 export function filterDepartments(departments, searchTerm) {

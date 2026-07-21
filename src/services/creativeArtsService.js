@@ -1,6 +1,12 @@
 import { COLLECTIONS } from '@/config/collections';
 import { DEFAULT_DEPARTMENTS, buildDepartmentPayload } from '@/config/creativeArtsOptions';
+import { resolveCreativeArtsLogoStoragePath } from '@/utils/storagePathUtils';
 import { deleteCreativeArtsImage } from '@/services/storageService';
+import {
+  cleanupCreativeArtsLogoStoragePath,
+  resolvePreviousCreativeArtsLogoPath,
+  shouldCleanupPreviousCreativeArtsLogo,
+} from '@/services/creativeArtsStorageLifecycle';
 import {
   getDocuments,
   addDocument,
@@ -10,16 +16,6 @@ import {
   useDocument,
 } from '@/hooks/useFirestore';
 import { orderBy } from 'firebase/firestore';
-
-async function cleanupDepartmentLogo(logoPath) {
-  if (!logoPath) return;
-
-  try {
-    await deleteCreativeArtsImage(logoPath);
-  } catch (error) {
-    console.warn('Failed to delete department logo from storage:', error);
-  }
-}
 
 export function useCreativeArts() {
   return useCollection(COLLECTIONS.CREATIVE_ARTS, {
@@ -44,34 +40,53 @@ export async function createCreativeArtsTeam(teamData) {
   const timestamp = new Date().toISOString();
   const payload = buildDepartmentPayload(teamData);
 
-  return addDocument(COLLECTIONS.CREATIVE_ARTS, {
+  const team = await addDocument(COLLECTIONS.CREATIVE_ARTS, {
     ...payload,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
+
+  return { team, storageWarnings: [] };
 }
 
 export async function updateCreativeArtsTeam(teamId, teamData, initialData = null) {
   const payload = buildDepartmentPayload(teamData, initialData);
+  const previousLogoPath = resolvePreviousCreativeArtsLogoPath(teamData, initialData);
+  const nextLogoPath = String(payload.logoPath || '').trim();
 
-  if (teamData.removeLogo) {
-    await cleanupDepartmentLogo(initialData?.logoPath);
-  } else if (
-    payload.logoPath &&
-    initialData?.logoPath &&
-    payload.logoPath !== initialData.logoPath
-  ) {
-    await cleanupDepartmentLogo(initialData.logoPath);
-  }
-
-  return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
+  const team = await updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
     ...payload,
     updatedAt: new Date().toISOString(),
   });
+
+  const storageWarnings = [];
+
+  if (shouldCleanupPreviousCreativeArtsLogo(previousLogoPath, nextLogoPath)) {
+    const warning = await cleanupCreativeArtsLogoStoragePath(
+      previousLogoPath,
+      deleteCreativeArtsImage,
+    );
+    if (warning) storageWarnings.push(warning);
+  }
+
+  return { team, storageWarnings };
 }
 
 export async function deleteCreativeArtsTeam(teamId) {
-  return deleteDocument(COLLECTIONS.CREATIVE_ARTS, teamId);
+  const existingTeam = await getCreativeArtsTeam(teamId);
+  if (!existingTeam) {
+    throw new Error('Department not found.');
+  }
+
+  const logoPath = resolveCreativeArtsLogoStoragePath(existingTeam);
+
+  await deleteDocument(COLLECTIONS.CREATIVE_ARTS, teamId);
+
+  const storageWarnings = [];
+  const warning = await cleanupCreativeArtsLogoStoragePath(logoPath, deleteCreativeArtsImage);
+  if (warning) storageWarnings.push(warning);
+
+  return { teamId, storageWarnings };
 }
 
 export async function seedDefaultDepartmentsIfEmpty() {
