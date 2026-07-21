@@ -1,7 +1,13 @@
 import { orderBy } from 'firebase/firestore';
 import { COLLECTIONS } from '@/config/collections';
 import { buildMinistryPayload } from '@/config/ministriesOptions';
+import { resolveMinistryAvatarStoragePath } from '@/utils/storagePathUtils';
 import { deleteMinistryAvatar } from '@/services/storageService';
+import {
+  cleanupMinistryAvatarStoragePath,
+  resolvePreviousMinistryAvatarPath,
+  shouldCleanupPreviousMinistryAvatar,
+} from '@/services/ministriesStorageLifecycle';
 import {
   useCollection,
   addDocument,
@@ -9,20 +15,15 @@ import {
   deleteDocument,
 } from '@/hooks/useFirestore';
 
-async function cleanupMinistryAvatar(avatarPath) {
-  if (!avatarPath) return;
-
-  try {
-    await deleteMinistryAvatar(avatarPath);
-  } catch (error) {
-    console.warn('Failed to delete ministry avatar from storage:', error);
-  }
-}
-
 export function useMinistries() {
   return useCollection(COLLECTIONS.MINISTRIES, {
     constraints: [orderBy('ministryName', 'asc')],
   });
+}
+
+export async function getMinistry(ministryId) {
+  const { getDocument } = await import('@/hooks/useFirestore');
+  return getDocument(COLLECTIONS.MINISTRIES, ministryId);
 }
 
 export async function createMinistry(formData, createdBy = '') {
@@ -33,38 +34,57 @@ export async function createMinistry(formData, createdBy = '') {
     throw new Error('Ministry name is required.');
   }
 
-  return addDocument(COLLECTIONS.MINISTRIES, {
+  const ministry = await addDocument(COLLECTIONS.MINISTRIES, {
     ...payload,
     totalMembers: 0,
     createdAt: timestamp,
     updatedAt: timestamp,
     createdBy: String(createdBy || '').trim(),
   });
+
+  return { ministry, storageWarnings: [] };
 }
 
 export async function updateMinistry(ministryId, formData, initialData = null) {
   const payload = buildMinistryPayload(formData, { initialData });
+  const previousAvatarPath = resolvePreviousMinistryAvatarPath(formData, initialData);
+  const nextAvatarPath = String(payload.avatarPath || '').trim();
 
   if (!payload.ministryName) {
     throw new Error('Ministry name is required.');
   }
 
-  if (formData.removeAvatar) {
-    await cleanupMinistryAvatar(initialData?.avatarPath);
-  } else if (
-    payload.avatarPath &&
-    initialData?.avatarPath &&
-    payload.avatarPath !== initialData.avatarPath
-  ) {
-    await cleanupMinistryAvatar(initialData.avatarPath);
-  }
-
-  return updateDocument(COLLECTIONS.MINISTRIES, ministryId, {
+  const ministry = await updateDocument(COLLECTIONS.MINISTRIES, ministryId, {
     ...payload,
     updatedAt: new Date().toISOString(),
   });
+
+  const storageWarnings = [];
+
+  if (shouldCleanupPreviousMinistryAvatar(previousAvatarPath, nextAvatarPath)) {
+    const warning = await cleanupMinistryAvatarStoragePath(
+      previousAvatarPath,
+      deleteMinistryAvatar,
+    );
+    if (warning) storageWarnings.push(warning);
+  }
+
+  return { ministry, storageWarnings };
 }
 
 export async function deleteMinistry(ministryId) {
-  return deleteDocument(COLLECTIONS.MINISTRIES, ministryId);
+  const existingMinistry = await getMinistry(ministryId);
+  if (!existingMinistry) {
+    throw new Error('Ministry not found.');
+  }
+
+  const avatarPath = resolveMinistryAvatarStoragePath(existingMinistry);
+
+  await deleteDocument(COLLECTIONS.MINISTRIES, ministryId);
+
+  const storageWarnings = [];
+  const warning = await cleanupMinistryAvatarStoragePath(avatarPath, deleteMinistryAvatar);
+  if (warning) storageWarnings.push(warning);
+
+  return { ministryId, storageWarnings };
 }

@@ -69,9 +69,17 @@ export async function uploadCreativeArtsLogo(file) {
   const timestamp = Date.now();
   const safeName = String(file.name || 'logo').replace(/[^\w.-]/g, '_');
   const logoPath = `creative-arts-images/${timestamp}_${safeName}`;
-  const logoUrl = await uploadFile(file, logoPath);
 
-  return { logoUrl, logoPath };
+  try {
+    const logoUrl = await withUploadTimeout(
+      uploadFile(file, logoPath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { logoUrl, logoPath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function uploadCreativeArtsImage(file) {
@@ -83,9 +91,17 @@ export async function uploadMinistryAvatar(file) {
   const timestamp = Date.now();
   const safeName = String(file.name || 'avatar').replace(/[^\w.-]/g, '_');
   const avatarPath = `ministry-avatars/${timestamp}_${safeName}`;
-  const avatarUrl = await uploadFile(file, avatarPath);
 
-  return { avatarUrl, avatarPath };
+  try {
+    const avatarUrl = await withUploadTimeout(
+      uploadFile(file, avatarPath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { avatarUrl, avatarPath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function deleteMemberPhoto(path) {
@@ -109,11 +125,11 @@ export async function deleteEventImage(path) {
 }
 
 export async function deleteCreativeArtsImage(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function deleteMinistryAvatar(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function uploadTravelDestinationImage(file, destinationId) {
@@ -134,5 +150,5 @@ export async function uploadTravelDestinationImage(file, destinationId) {
 }
 
 export async function deleteTravelDestinationImage(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }

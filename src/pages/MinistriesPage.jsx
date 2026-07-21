@@ -19,15 +19,16 @@ import { useRoleAccess } from '@/hooks/useRoleAccess';
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
-  const isSuccess = feedback.type === 'success';
+  const toneClass =
+    feedback.type === 'success'
+      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+      : feedback.type === 'warning'
+        ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300'
+        : 'bg-rose-500/10 border border-rose-500/20 text-rose-400';
 
   return (
     <div
-      className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${
-        isSuccess
-          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-          : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-      }`}
+      className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${toneClass}`}
     >
       <span>{feedback.message}</span>
       <button type="button" onClick={onDismiss} className="text-current hover:opacity-80 shrink-0">
@@ -95,11 +96,31 @@ export default function MinistriesPage() {
     }
 
     if (editingMinistry) {
-      await updateMinistry(editingMinistry.id, formData, editingMinistry);
-      setFeedback({ type: 'success', message: 'Ministry updated successfully.' });
+      const { storageWarnings = [] } = await updateMinistry(
+        editingMinistry.id,
+        formData,
+        editingMinistry,
+      );
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Ministry updated successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Ministry updated successfully.' });
+      }
     } else {
-      await createMinistry(formData, createdBy);
-      setFeedback({ type: 'success', message: 'Ministry added successfully.' });
+      const { storageWarnings = [] } = await createMinistry(formData, createdBy);
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Ministry added successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Ministry added successfully.' });
+      }
     }
 
     setIsFormOpen(false);
@@ -110,8 +131,17 @@ export default function MinistriesPage() {
     setIsDeleting(true);
 
     try {
-      await deleteMinistry(ministry.id);
-      setFeedback({ type: 'success', message: 'Ministry deleted successfully.' });
+      const { storageWarnings = [] } = await deleteMinistry(ministry.id);
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Ministry deleted successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Ministry deleted successfully.' });
+      }
+
       setDeletingMinistry(null);
     } catch (deleteError) {
       console.error('Error deleting ministry:', deleteError);

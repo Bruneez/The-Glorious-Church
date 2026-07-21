@@ -19,6 +19,7 @@ import {
   validateTravelDestinationForm,
   validateTravelImageFile,
 } from '@/config/travellingOptions';
+import { resolveTravelDestinationImageStoragePath } from '@/utils/storagePathUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
 import { deleteDocument, getDocument } from '@/hooks/useFirestore';
@@ -27,6 +28,11 @@ import {
   assertCanViewTravelling,
   VIEW_DENIED_MESSAGE,
 } from '@/services/travellingGuards';
+import {
+  cleanupTravelDestinationImageStoragePath,
+  resolvePreviousTravelDestinationImagePath,
+  shouldCleanupPreviousTravelDestinationImage,
+} from '@/services/travellingStorageLifecycle';
 import {
   deleteTravelDestinationImage,
   uploadTravelDestinationImage,
@@ -46,13 +52,13 @@ function buildUpdatePayload(formData, { createdBy = '' } = {}) {
   };
 }
 
-async function cleanupUploadedImage(imageStoragePath) {
+async function rollbackNewUpload(imageStoragePath) {
   if (!imageStoragePath) return;
 
   try {
     await deleteTravelDestinationImage(imageStoragePath);
-  } catch (error) {
-    console.warn('Failed to clean up unused travel destination image:', error);
+  } catch {
+    // Non-blocking rollback failure.
   }
 }
 
@@ -139,9 +145,12 @@ export async function createTravelDestination(formData, { role, createdBy = '', 
       updatedAt: serverTimestamp(),
     });
 
-    return { id: destinationId, ...payload };
+    return {
+      destination: { id: destinationId, ...payload },
+      storageWarnings: [],
+    };
   } catch (error) {
-    await cleanupUploadedImage(uploadedImage?.imageStoragePath);
+    await rollbackNewUpload(uploadedImage?.imageStoragePath);
     throw error;
   }
 }
@@ -174,7 +183,7 @@ export async function updateTravelDestination(
     throw new Error('Travel destination not found.');
   }
 
-  const previousImagePath = existing.imageStoragePath || '';
+  const previousImagePath = resolvePreviousTravelDestinationImagePath(formData, existing);
   let replacementImage = null;
 
   let nextImageUrl = isPermanentImageUrl(formData.imageUrl)
@@ -204,18 +213,22 @@ export async function updateTravelDestination(
   try {
     await updateDoc(doc(db, COLLECTIONS.TRAVEL_DESTINATIONS, destinationId), payload);
 
-    const shouldDeletePrevious =
-      previousImagePath &&
-      previousImagePath !== nextImagePath &&
-      (removeImage || Boolean(imageFile));
+    const storageWarnings = [];
 
-    if (shouldDeletePrevious) {
-      await cleanupUploadedImage(previousImagePath);
+    if (shouldCleanupPreviousTravelDestinationImage(previousImagePath, nextImagePath)) {
+      const warning = await cleanupTravelDestinationImageStoragePath(
+        previousImagePath,
+        deleteTravelDestinationImage,
+      );
+      if (warning) storageWarnings.push(warning);
     }
 
-    return { id: destinationId, ...payload };
+    return {
+      destination: { id: destinationId, ...payload },
+      storageWarnings,
+    };
   } catch (error) {
-    await cleanupUploadedImage(replacementImage?.imageStoragePath);
+    await rollbackNewUpload(replacementImage?.imageStoragePath);
     throw error;
   }
 }
@@ -232,13 +245,18 @@ export async function deleteTravelDestination(destinationId, { role, initialData
     throw new Error('Travel destination not found.');
   }
 
+  const imageStoragePath = resolveTravelDestinationImageStoragePath(existing);
+
   await deleteDocument(COLLECTIONS.TRAVEL_DESTINATIONS, destinationId);
 
-  if (existing.imageStoragePath) {
-    await cleanupUploadedImage(existing.imageStoragePath);
-  }
+  const storageWarnings = [];
+  const warning = await cleanupTravelDestinationImageStoragePath(
+    imageStoragePath,
+    deleteTravelDestinationImage,
+  );
+  if (warning) storageWarnings.push(warning);
 
-  return destinationId;
+  return { destinationId, storageWarnings };
 }
 
 export async function replaceTravelDestinationImage(
@@ -262,7 +280,7 @@ export async function replaceTravelDestinationImage(
     throw new Error('Travel destination not found.');
   }
 
-  const previousImagePath = existing.imageStoragePath || '';
+  const previousImagePath = resolveTravelDestinationImageStoragePath(existing);
   const replacementImage = await uploadTravelDestinationImage(imageFile, destinationId);
 
   try {
@@ -272,13 +290,22 @@ export async function replaceTravelDestinationImage(
       updatedAt: serverTimestamp(),
     });
 
-    if (previousImagePath && previousImagePath !== replacementImage.imageStoragePath) {
-      await cleanupUploadedImage(previousImagePath);
+    const storageWarnings = [];
+
+    if (shouldCleanupPreviousTravelDestinationImage(previousImagePath, replacementImage.imageStoragePath)) {
+      const warning = await cleanupTravelDestinationImageStoragePath(
+        previousImagePath,
+        deleteTravelDestinationImage,
+      );
+      if (warning) storageWarnings.push(warning);
     }
 
-    return replacementImage;
+    return {
+      ...replacementImage,
+      storageWarnings,
+    };
   } catch (error) {
-    await cleanupUploadedImage(replacementImage.imageStoragePath);
+    await rollbackNewUpload(replacementImage.imageStoragePath);
     throw error;
   }
 }

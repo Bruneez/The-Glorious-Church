@@ -83,18 +83,38 @@ export default function CreativeArtsPage() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingDepartment) {
-        await updateCreativeArtsTeam(editingDepartment.id, formData, editingDepartment);
-        setFeedback({ type: 'success', message: 'Department updated successfully.' });
+        const { storageWarnings = [] } = await updateCreativeArtsTeam(
+          editingDepartment.id,
+          formData,
+          editingDepartment,
+        );
+
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `Department updated successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'Department updated successfully.' });
+        }
       } else {
-        await createCreativeArtsTeam(formData);
-        setFeedback({ type: 'success', message: 'Department added successfully.' });
+        const { storageWarnings = [] } = await createCreativeArtsTeam(formData);
+
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `Department added successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'Department added successfully.' });
+        }
       }
 
       setIsFormOpen(false);
       setEditingDepartment(null);
-    } catch (error) {
+    } catch {
       setFeedback({ type: 'error', message: 'Failed to save department. Please try again.' });
-      throw error;
+      throw new Error('Failed to save department.');
     }
   };
 
@@ -107,9 +127,17 @@ export default function CreativeArtsPage() {
     }
 
     try {
-      await deleteCreativeArtsTeam(departmentId);
-      setFeedback({ type: 'success', message: 'Department deleted successfully.' });
-    } catch (error) {
+      const { storageWarnings = [] } = await deleteCreativeArtsTeam(departmentId);
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Department deleted successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Department deleted successfully.' });
+      }
+    } catch {
       setFeedback({ type: 'error', message: 'Failed to delete department. Please try again.' });
     }
   };
@@ -133,7 +161,9 @@ export default function CreativeArtsPage() {
           className={`p-3 rounded-lg text-xs font-medium ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-              : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+              : feedback.type === 'warning'
+                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300'
+                : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
           }`}
         >
           {feedback.message}

@@ -63,3 +63,38 @@ export function resolveSchoolBadgeStoragePath(school = {}) {
 
   return '';
 }
+
+export function resolveCreativeArtsLogoStoragePath(department = {}) {
+  const directPath = normalizeStorageObjectPath(department.logoPath);
+  if (directPath) return directPath;
+
+  const fromLogoUrl = extractStoragePathFromDownloadUrl(department.logoUrl || '');
+  if (fromLogoUrl) return fromLogoUrl;
+
+  const photo = String(department.photo || '').trim();
+  if (!isNonFirebaseStorageReference(photo)) {
+    return extractStoragePathFromDownloadUrl(photo);
+  }
+
+  return '';
+}
+
+export function resolveMinistryAvatarStoragePath(ministry = {}) {
+  const directPath = normalizeStorageObjectPath(ministry.avatarPath);
+  if (directPath) return directPath;
+
+  const fromAvatarUrl = extractStoragePathFromDownloadUrl(ministry.avatarUrl || '');
+  if (fromAvatarUrl) return fromAvatarUrl;
+
+  return '';
+}
+
+export function resolveTravelDestinationImageStoragePath(destination = {}) {
+  const directPath = normalizeStorageObjectPath(destination.imageStoragePath);
+  if (directPath) return directPath;
+
+  const fromImageUrl = extractStoragePathFromDownloadUrl(destination.imageUrl || '');
+  if (fromImageUrl) return fromImageUrl;
+
+  return '';
+}

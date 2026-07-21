@@ -35,15 +35,16 @@ const TRAVEL_TABS = [
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
-  const isSuccess = feedback.type === 'success';
+  const toneClass =
+    feedback.type === 'success'
+      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+      : feedback.type === 'warning'
+        ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300'
+        : 'bg-rose-500/10 border border-rose-500/20 text-rose-400';
 
   return (
     <div
-      className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${
-        isSuccess
-          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-          : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-      }`}
+      className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${toneClass}`}
     >
       <span>{feedback.message}</span>
       <button type="button" onClick={onDismiss} className="text-current hover:opacity-80 shrink-0">
@@ -142,21 +143,37 @@ export default function TravellingPage() {
     }
 
     if (editingDestination) {
-      await updateTravelDestination(editingDestination.id, formData, {
+      const { storageWarnings = [] } = await updateTravelDestination(editingDestination.id, formData, {
         role,
         createdBy,
         initialData: editingDestination,
         imageFile,
         removeImage,
       });
-      setFeedback({ type: 'success', message: 'Travel location updated successfully.' });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Travel location updated successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Travel location updated successfully.' });
+      }
     } else {
-      await createTravelDestination(formData, {
+      const { storageWarnings = [] } = await createTravelDestination(formData, {
         role,
         createdBy,
         imageFile,
       });
-      setFeedback({ type: 'success', message: 'Travel location added successfully.' });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Travel location added successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Travel location added successfully.' });
+      }
     }
 
     setIsFormOpen(false);
@@ -167,11 +184,20 @@ export default function TravellingPage() {
     setIsDeleting(true);
 
     try {
-      await deleteTravelDestination(destination.id, {
+      const { storageWarnings = [] } = await deleteTravelDestination(destination.id, {
         role,
         initialData: destination,
       });
-      setFeedback({ type: 'success', message: 'Travel location deleted successfully.' });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Travel location deleted successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Travel location deleted successfully.' });
+      }
+
       setDeletingDestination(null);
     } catch (deleteError) {
       console.error('Error deleting travel destination:', deleteError);
