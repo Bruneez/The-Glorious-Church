@@ -2,6 +2,7 @@ import {
   filterPlottableMarkers,
   mapMemberRecordsToHomeMarkers,
   mapMemberRecordsToLocationMarkers,
+  mapSchoolRecordsToLocationMarkers,
 } from '@/config/mapMarkerModels';
 import {
   GEOAPIFY_AUTOCOMPLETE_URL,
@@ -196,6 +197,14 @@ export function buildMemberHomeLocationMarkers(members = [], layerId = 'members'
 }
 
 /**
+ * Reads stored school coordinates and returns map-ready school markers.
+ * Does not geocode missing addresses.
+ */
+export function buildSchoolLocationMarkers(schools = [], memberCounts = {}) {
+  return mapSchoolRecordsToLocationMarkers(schools, memberCounts);
+}
+
+/**
  * Reads stored member home and work coordinates and returns map-ready markers.
  * Does not geocode missing addresses.
  */
@@ -212,13 +221,6 @@ export function attachMemberCoordinates(members = []) {
     homeCoords: getMemberHomeCoords(member),
     workCoords: getMemberWorkCoords(member),
   }));
-}
-
-/**
- * Future: batch geocode and attach coordinates to school records.
- */
-export async function attachSchoolCoordinates(_schools = []) {
-  return [];
 }
 
 /**

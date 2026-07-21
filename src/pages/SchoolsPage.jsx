@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import SchoolsForm from '@/components/features/schools/SchoolsForm';
@@ -20,6 +21,12 @@ import {
   schoolBelongsToCategory,
   SCHOOL_TYPE,
 } from '@/config/schoolsOptions';
+import {
+  findSchoolById,
+  removeSchoolIdSearchParam,
+  shouldOpenSchoolFromDeepLink,
+  shouldShowSchoolNotFoundFeedback,
+} from '@/utils/schoolNavigation';
 
 const SCHOOL_CATEGORIES = [
   {
@@ -89,6 +96,7 @@ function FeedbackBanner({ feedback }) {
 export default function SchoolsPage() {
   const { data: schools = [], loading: schoolsLoading } = useSchoolsDirectory();
   const { data: members = [], loading: membersLoading } = useMembers();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { canPerformAction } = useRoleAccess();
   const { staffProfile, firebaseUser } = useAuth();
   const [activeCategory, setActiveCategory] = useState(SCHOOL_TYPE.PRIMARY);
@@ -99,6 +107,29 @@ export default function SchoolsPage() {
 
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
   const canEditDeleteSchools = canPerformAction('EDIT_DELETE_SCHOOLS');
+
+  useEffect(() => {
+    const schoolId = searchParams.get('schoolId');
+
+    if (shouldOpenSchoolFromDeepLink({
+      schoolId,
+      loading: schoolsLoading,
+      schools,
+      viewingSchoolId: viewingSchool?.id || null,
+    })) {
+      setViewingSchool(findSchoolById(schools, schoolId));
+      return;
+    }
+
+    if (shouldShowSchoolNotFoundFeedback({
+      schoolId,
+      loading: schoolsLoading,
+      schools,
+    })) {
+      setFeedback({ type: 'error', message: 'School could not be found.' });
+      setSearchParams(removeSchoolIdSearchParam(searchParams), { replace: true });
+    }
+  }, [schools, schoolsLoading, searchParams, setSearchParams, viewingSchool?.id]);
 
   const memberCounts = useMemo(
     () => computeMemberCountsBySchool(members, schools),
@@ -178,6 +209,14 @@ export default function SchoolsPage() {
 
   const handleViewSchool = (tableSchool) => {
     setViewingSchool(tableSchool?.raw || null);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewingSchool(null);
+
+    if (searchParams.get('schoolId')) {
+      setSearchParams(removeSchoolIdSearchParam(searchParams), { replace: true });
+    }
   };
 
   const handleEditSchool = (tableSchool) => {
@@ -325,7 +364,7 @@ export default function SchoolsPage() {
         school={viewingSchool}
         members={members}
         isOpen={Boolean(viewingSchool)}
-        onClose={() => setViewingSchool(null)}
+        onClose={handleCloseViewModal}
       />
     </div>
   );

@@ -5,6 +5,8 @@ import {
   MAX_SCHOOL_BADGE_SIZE_BYTES,
   validateSchoolBadgeFile,
 } from '@/config/schoolsBadgeValidation';
+import { buildSchoolFirestoreLocationFields, mapSchoolRecordToFormLocationFields } from '@/utils/schoolLocations';
+import { getSchoolTotalMembers } from '@/utils/schoolMemberCountLookup';
 
 export const SCHOOL_TYPE = {
   PRIMARY: 'Primary School',
@@ -150,7 +152,7 @@ export function buildSchoolPayload(formData, createdBy) {
   return {
     schoolName: formData.name.trim(),
     schoolType: normalizeSchoolType(formData.type),
-    address: formData.address?.trim() || '',
+    ...buildSchoolFirestoreLocationFields(formData),
     status: formData.status,
     ...buildSchoolBadgeFields(formData),
     createdBy,
@@ -162,7 +164,7 @@ export function buildSchoolUpdatePayload(formData, initialData = null) {
   return {
     schoolName: formData.name.trim(),
     schoolType: normalizeSchoolType(formData.type),
-    address: formData.address?.trim() || '',
+    ...buildSchoolFirestoreLocationFields(formData),
     status: formData.status,
     ...buildSchoolBadgeFields(formData, initialData),
   };
@@ -174,6 +176,8 @@ export function mapSchoolToFormData(school) {
       name: '',
       type: '',
       address: '',
+      latitude: null,
+      longitude: null,
       status: SCHOOL_STATUS.ACTIVE,
       badgeUrl: '',
       badgePath: '',
@@ -183,7 +187,7 @@ export function mapSchoolToFormData(school) {
   return {
     name: school.schoolName || '',
     type: normalizeSchoolType(school.schoolType) || '',
-    address: school.address || '',
+    ...mapSchoolRecordToFormLocationFields(school),
     status: school.status || SCHOOL_STATUS.ACTIVE,
     badgeUrl: getSchoolBadge(school),
     badgePath: school.badgePath || '',
@@ -332,7 +336,7 @@ export function mapSchoolForTable(school, memberCounts = {}) {
     id: school.id,
     schoolName: school.schoolName || '—',
     schoolType: getSchoolTypeLabel(school.schoolType),
-    totalMembers: memberCounts[school.id] ?? 0,
+    totalMembers: getSchoolTotalMembers(school.id, memberCounts),
     status: school.status || '—',
     raw: school,
   };

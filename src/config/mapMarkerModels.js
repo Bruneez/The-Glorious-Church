@@ -1,10 +1,19 @@
 import { getMemberFullName, getMemberProfileImageUrl } from '@/config/memberOptions';
+import { getSchoolBadge, getSchoolTypeLabel } from '@/config/schoolsOptions';
 import {
   getMemberHomeAddress,
   getMemberHomeCoords,
   getMemberWorkAddress,
   getMemberWorkCoords,
 } from '@/utils/memberLocations';
+import {
+  buildSchoolMapMarkerDescriptors,
+  getSchoolAddress,
+  getSchoolCoords,
+  resolveSchoolMapLayerId,
+} from '@/utils/schoolLocations';
+import { buildSchoolDetailUrl } from '@/utils/schoolNavigation';
+import { getSchoolTotalMembers } from '@/utils/schoolMemberCountLookup';
 export const MAP_SOURCE_COLLECTIONS = {
   MEMBERS: 'members',
   SCHOOLS: 'schools',
@@ -107,6 +116,7 @@ export function buildSchoolMarkerData({
   name,
   logo = '',
   schoolType = '',
+  address = '',
   memberCount = 0,
   schoolPath = '/schools',
 } = {}) {
@@ -114,6 +124,7 @@ export function buildSchoolMarkerData({
     name,
     logo,
     schoolType,
+    address,
     memberCount,
     schoolPath,
   };
@@ -252,26 +263,38 @@ export function mapMemberRecordsToLocationMarkers(members = [], layerId = 'membe
 }
 
 /** Maps a raw Firestore school document to a map marker. */
-export function mapSchoolRecordToMarker(school, layerId, coords = null) {
+export function mapSchoolRecordToMarker(school, layerId, coords = null, memberCounts = {}) {
   const name = school?.schoolName || school?.name || 'Unknown School';
   const schoolType = school?.schoolType || school?.type || '';
+  const resolvedLayerId = layerId || resolveSchoolMapLayerId(school);
+  const resolvedCoords = coords ?? getSchoolCoords(school);
 
   return createMapMarker({
     id: `school-${school?.id}`,
-    layerId,
+    layerId: resolvedLayerId,
     type: 'school',
-    coords,
+    coords: resolvedCoords,
     label: getSchoolMarkerLabel(schoolType),
     sourceId: school?.id || '',
     sourceCollection: MAP_SOURCE_COLLECTIONS.SCHOOLS,
     data: buildSchoolMarkerData({
       name,
-      logo: school?.logo || school?.photo || '',
-      schoolType,
-      memberCount: Number(school?.memberCount) || 0,
-      schoolPath: '/schools',
+      logo: getSchoolBadge(school),
+      schoolType: getSchoolTypeLabel(schoolType),
+      address: getSchoolAddress(school),
+      memberCount: getSchoolTotalMembers(school?.id, memberCounts),
+      schoolPath: buildSchoolDetailUrl(school?.id),
     }),
   });
+}
+
+/** Builds map markers for schools with stored coordinates and known school types. */
+export function mapSchoolRecordsToLocationMarkers(schools = [], memberCounts = {}) {
+  return filterPlottableMarkers(
+    buildSchoolMapMarkerDescriptors(schools).map(({ school, layerId, coords }) =>
+      mapSchoolRecordToMarker(school, layerId, coords, memberCounts),
+    ),
+  );
 }
 
 /** Maps a raw Firestore branch document to a map marker. */
