@@ -22,9 +22,14 @@ service firebase.storage {
         ? 'Admin'
         : role == 'Pastor' || role == 'pastor'
           ? 'Pastor'
-          : role == 'Creative Arts Leader' || role == 'ca leader' || role == 'CA Leader'
-            ? 'Creative Arts Leader'
-            : role;
+          : role == 'Lead Pastor' || role == 'lead pastor'
+            ? 'Lead Pastor'
+            : role == 'Elder' || role == 'elder'
+              ? 'Elder'
+              : role == 'Leader' || role == 'leader'
+                || role == 'Creative Arts Leader' || role == 'ca leader' || role == 'CA Leader'
+                ? 'Leader'
+                : role;
     }
 
     function userRole() {
@@ -36,7 +41,7 @@ service firebase.storage {
     }
 
     function canViewTravelling() {
-      return userRole() in ['Admin', 'Pastor', 'Creative Arts Leader'];
+      return userRole() in ['Admin', 'Pastor', 'Leader'];
     }
 
     function isTravelDestinationPath(storagePath) {

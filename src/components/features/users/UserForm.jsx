@@ -4,20 +4,14 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { ROLES } from '@/config/roles';
+import { ROLES, ROLE_SELECT_OPTIONS, normalizeRole } from '@/config/roles';
 import { getCreateStaffUserErrorMessage } from '@/services/staffUserService';
-
-const ROLE_OPTIONS = [
-  { value: ROLES.ADMIN, label: 'Admin' },
-  { value: ROLES.PASTOR, label: 'Pastor' },
-  { value: ROLES.CA_LEADER, label: 'Leader' }
-];
 
 export default function UserForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: ROLES.CA_LEADER,
+    role: ROLES.LEADER,
     phone: '',
     photo: '',
     password: '',
@@ -32,7 +26,7 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
     setFormData({
       name: initialData?.name || '',
       email: initialData?.email || '',
-      role: initialData?.role || ROLES.CA_LEADER,
+      role: normalizeRole(initialData?.role) || ROLES.LEADER,
       phone: initialData?.phone || '',
       photo: initialData?.photo || '',
       password: '',
@@ -115,7 +109,7 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
           name="role"
           value={formData.role}
           onChange={handleChange}
-          options={ROLE_OPTIONS}
+          options={ROLE_SELECT_OPTIONS}
           required
         />
 
