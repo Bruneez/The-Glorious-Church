@@ -10,6 +10,7 @@
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "firebase:login": "npm exec --package firebase-tools -- firebase login --no-localhost",
     "firebase:deploy-rules": "npm exec --package firebase-tools -- firebase deploy --only firestore:rules,storage --project the-glorious-church",
+    "firebase:deploy-hosting": "npm run build && npm exec --package firebase-tools -- firebase deploy --only hosting --project the-glorious-church",
     "firebase:deploy-functions": "npm exec --package firebase-tools -- firebase deploy --only functions --project the-glorious-church",
     "firebase:emulators:start": "npm exec --package firebase-tools -- firebase emulators:start --only firestore,storage,functions",
     "test": "node --test src/config/memberOptions.test.js src/config/schoolsBadgeValidation.test.js src/config/creativeArtsLogoValidation.test.js src/config/ministriesAvatarValidation.test.js src/config/travellingImageValidation.test.js src/utils/storagePathUtils.test.js src/utils/schoolLocations.test.js src/utils/schoolNavigation.test.js src/utils/mapMarkerIconContent.test.js src/utils/schoolMemberCountLookup.test.js src/services/schoolsStorageLifecycle.test.js src/services/creativeArtsStorageLifecycle.test.js src/services/ministriesStorageLifecycle.test.js src/services/travellingStorageLifecycle.test.js src/config/travellingOptions.test.js src/services/travellingAccess.test.js src/services/staffAuthDocService.test.js",

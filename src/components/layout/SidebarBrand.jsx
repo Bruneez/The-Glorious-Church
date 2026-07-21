@@ -9,7 +9,7 @@ export default function SidebarBrand() {
         <img
           src={churchLogo}
           alt="Glorious Church Logo"
-          className="h-9 w-9 sm:h-10 sm:w-10 lg:h-11 lg:w-11 object-contain shrink-0"
+          className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9 object-contain shrink-0"
         />
         <h1 className="min-w-0 text-xs lg:text-[0.8125rem] font-bold tracking-wide uppercase text-indigo-300 truncate leading-tight">
           The Glorious Church
