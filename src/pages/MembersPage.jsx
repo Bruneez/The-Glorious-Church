@@ -81,7 +81,7 @@ export default function MembersPage() {
   const normalizedRole = normalizeRole(role);
   const isAdminOrPastor =
     normalizedRole === ROLES.ADMIN || normalizedRole === ROLES.PASTOR;
-  const isCALeader = normalizedRole === ROLES.CA_LEADER;
+  const isCALeader = normalizedRole === ROLES.LEADER;
   const creatorDepartment = getStaffDepartment(staffProfile);
   const canManageMembers =
     canPerformAction('MANAGE_MEMBERS') || isCALeader;

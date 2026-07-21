@@ -6,7 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import AccountSettingsModal from '@/pages/profile/AccountSettingsModal';
 import { useAuth } from '@/hooks/useAuth';
-import { getRoleLabel } from '@/config/roles';
+import RoleBadge from '@/components/ui/RoleBadge';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProfileSettingsPage() {
@@ -44,9 +44,7 @@ export default function ProfileSettingsPage() {
                 <h2 className="text-xl font-bold text-white">{staffProfile?.name || 'User'}</h2>
                 <p className="text-slate-400 text-sm">{firebaseUser?.email}</p>
                 {staffProfile?.role && (
-                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    {getRoleLabel(staffProfile.role)}
-                  </span>
+                  <RoleBadge role={staffProfile.role} className="mt-1" />
                 )}
               </div>
             </div>

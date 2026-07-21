@@ -7,23 +7,36 @@ const db = admin.firestore();
 const STAFF_COLLECTION = 'staff';
 
 const ROLES = {
-  ADMIN: 'Admin',
+  LEAD_PASTOR: 'Lead Pastor',
   PASTOR: 'Pastor',
-  CA_LEADER: 'Creative Arts Leader',
+  ELDER: 'Elder',
+  LEADER: 'Leader',
+  ADMIN: 'Admin',
 };
 
 const ALLOWED_ROLES = new Set(Object.values(ROLES));
 const MANAGE_STAFF_ROLES = new Set([ROLES.ADMIN, ROLES.PASTOR]);
 
+const ROLE_BY_LOWER = {
+  'lead pastor': ROLES.LEAD_PASTOR,
+  pastor: ROLES.PASTOR,
+  elder: ROLES.ELDER,
+  leader: ROLES.LEADER,
+  'ca leader': ROLES.LEADER,
+  'creative arts leader': ROLES.LEADER,
+  admin: ROLES.ADMIN,
+  administrator: ROLES.ADMIN,
+};
+
 function normalizeRole(role) {
   const value = String(role || '').trim();
   if (!value) return '';
 
-  const lower = value.toLowerCase();
-  if (lower === 'admin' || lower === 'administrator') return ROLES.ADMIN;
-  if (lower === 'pastor') return ROLES.PASTOR;
-  if (lower === 'ca leader' || lower === 'creative arts leader') return ROLES.CA_LEADER;
-  return value;
+  if (Object.values(ROLES).includes(value)) {
+    return value;
+  }
+
+  return ROLE_BY_LOWER[value.toLowerCase()] || value;
 }
 
 function normalizeEmail(email) {

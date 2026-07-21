@@ -11,7 +11,8 @@ import { COLLECTIONS } from '@/config/collections';
 import { updateDocument, deleteDocument } from '@/hooks/useFirestore';
 import { createStaffUser } from '@/services/staffUserService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import { ROLES, getRoleLabel } from '@/config/roles';
+import RoleBadge from '@/components/ui/RoleBadge';
+import { ROLE_LIST, normalizeRole } from '@/config/roles';
 import { formatLastSeen, isUserOnline } from '@/utils/lastSeen';
 
 function LastSeenCell({ value }) {
@@ -58,7 +59,7 @@ export default function UsersPage() {
     }
 
     if (filterRole !== 'all') {
-      filtered = filtered.filter((member) => member.role === filterRole);
+      filtered = filtered.filter((member) => normalizeRole(member.role) === filterRole);
     }
 
     filtered.sort((a, b) => {
@@ -91,7 +92,7 @@ export default function UsersPage() {
     const staffData = {
       name: formData.name.trim(),
       email: formData.email.trim(),
-      role: formData.role,
+      role: normalizeRole(formData.role),
       phone: formData.phone,
       photo: formData.photo || '',
     };
@@ -157,19 +158,7 @@ export default function UsersPage() {
       key: 'role',
       label: 'Assigned Portal Role',
       cellClassName: 'py-4',
-      render: (value) => (
-        <span
-          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-            value === ROLES.ADMIN
-              ? 'bg-rose-950/60 text-rose-400 border border-rose-500/20'
-              : value === ROLES.PASTOR
-              ? 'bg-amber-950/60 text-amber-400 border border-amber-500/20'
-              : 'bg-blue-950/60 text-blue-400 border border-blue-500/20'
-          }`}
-        >
-          {getRoleLabel(value)}
-        </span>
-      ),
+      render: (value) => <RoleBadge role={value} />,
     },
     {
       key: 'lastSeenAt',
@@ -277,10 +266,12 @@ export default function UsersPage() {
                 onChange={(e) => setFilterRole(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
               >
-                <option value="all">All Administrative Roles</option>
-                <option value={ROLES.ADMIN}>Admin Only</option>
-                <option value={ROLES.PASTOR}>Pastors Only</option>
-                <option value={ROLES.CA_LEADER}>Leaders Only</option>
+                <option value="all">All Roles</option>
+                {ROLE_LIST.map((role) => (
+                  <option key={role} value={role}>
+                    {role} Only
+                  </option>
+                ))}
               </select>
             </div>
 
