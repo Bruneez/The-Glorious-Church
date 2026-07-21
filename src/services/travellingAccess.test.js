@@ -27,10 +27,13 @@ test('admin can manage travelling', () => {
   assert.doesNotThrow(() => assertCanManageTravelling(ROLES.ADMIN));
 });
 
+test('Pastor can manage travelling destinations', () => {
+  assert.equal(canPerformAction(ROLES.PASTOR, 'MANAGE_TRAVELLING'), true);
+  assert.doesNotThrow(() => assertCanManageTravelling(ROLES.PASTOR));
+});
+
 test('non-admin users cannot manage travelling', () => {
-  assert.equal(canPerformAction(ROLES.PASTOR, 'MANAGE_TRAVELLING'), false);
   assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_TRAVELLING'), false);
-  assert.throws(() => assertCanManageTravelling(ROLES.PASTOR), /administrators can manage/i);
   assert.throws(() => assertCanManageTravelling(ROLES.LEADER), /administrators can manage/i);
 });
 

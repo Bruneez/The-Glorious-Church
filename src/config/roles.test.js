@@ -9,6 +9,7 @@ import {
   isCALeader,
   isFullAccessRole,
   isChurchWideStaff,
+  isPastorRole,
 } from './roles.js';
 
 test('normalizeRole maps legacy leader aliases to Leader', () => {
@@ -56,6 +57,13 @@ test('isChurchWideStaff includes Lead Pastor, Admin, and Pastor', () => {
   assert.equal(isChurchWideStaff(ROLES.ADMIN), true);
   assert.equal(isChurchWideStaff(ROLES.PASTOR), true);
   assert.equal(isChurchWideStaff(ROLES.ELDER), false);
+});
+
+test('isPastorRole recognises Pastor only', () => {
+  assert.equal(isPastorRole(ROLES.PASTOR), true);
+  assert.equal(isPastorRole('pastor'), true);
+  assert.equal(isPastorRole(ROLES.ADMIN), false);
+  assert.equal(isPastorRole(ROLES.LEAD_PASTOR), false);
 });
 
 test('getRoleBadgeClassName returns distinct classes per role', () => {

@@ -13,7 +13,7 @@ const ROLES = {
 };
 
 const ALLOWED_ROLES = new Set(Object.values(ROLES));
-const MANAGE_STAFF_ROLES = new Set([ROLES.ADMIN, ROLES.PASTOR]);
+const MANAGE_STAFF_ROLES = new Set([ROLES.ADMIN]);
 
 function normalizeRole(role) {
   const value = String(role || '').trim();

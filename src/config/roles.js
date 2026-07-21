@@ -99,6 +99,10 @@ export function isChurchWideStaff(role) {
   return isFullAccessRole(normalized) || normalized === ROLES.PASTOR;
 }
 
+export function isPastorRole(role) {
+  return normalizeRole(role) === ROLES.PASTOR;
+}
+
 export function isLeader(role) {
   return normalizeRole(role) === ROLES.LEADER;
 }
