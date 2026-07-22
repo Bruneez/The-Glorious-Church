@@ -5,22 +5,20 @@ import {
   canPerformAction,
   canCreateCalendarEvent,
   canManageCalendarEvent,
+  ACTIONS,
 } from './permissions.js';
 import { ROLES } from './roles.js';
 
-const ADMIN_ONLY_ACTIONS = [
-  'MANAGE_CREATIVE_ARTS',
-  'MANAGE_MINISTRIES',
-  'EDIT_DELETE_SCHOOLS',
+const LEAD_PASTOR_ONLY_ACTIONS = [
+  'MANAGE_STAFF',
   'MANAGE_DEVELOPMENT_BOARD',
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
-  'MANAGE_TRAVELLING',
 ];
 
-const ADMIN_ONLY_ROUTES = ['/users', '/system-users', '/development-board'];
+const LEAD_PASTOR_ONLY_ROUTES = ['/users', '/system-users', '/development-board'];
 
-const PASTOR_OPERATIONAL_ACTIONS = [
+const OPERATIONAL_ACTIONS = [
   'MANAGE_MEMBERS',
   'MANAGE_ATTENDANCE',
   'MANAGE_OFFERINGS',
@@ -34,6 +32,29 @@ const PASTOR_OPERATIONAL_ACTIONS = [
   'MANAGE_TRAVELLING',
   'UPDATE_OWN_TASK_STATUS',
   'VIEW_TRAVELLING',
+];
+
+const OPERATIONAL_DENIED_ACTIONS = [
+  'MANAGE_STAFF',
+  'MANAGE_DEVELOPMENT_BOARD',
+  'MANAGE_TASKS',
+  'VIEW_ALL_TASKS',
+];
+
+const OPERATIONAL_VISIBLE_ROUTES = [
+  '/dashboard',
+  '/blueprint',
+  '/members',
+  '/creative-arts',
+  '/ministries',
+  '/map',
+  '/attendance',
+  '/offerings',
+  '/transport',
+  '/travelling',
+  '/calendar',
+  '/service-program',
+  '/tasks',
 ];
 
 const ELDER_VISIBLE_ROUTES = [
@@ -87,78 +108,55 @@ const ELDER_DENIED_MANAGE_ACTIONS = [
   'MANAGE_TRAVELLING',
 ];
 
-const PASTOR_DENIED_ACTIONS = [
-  'MANAGE_STAFF',
-  'MANAGE_DEVELOPMENT_BOARD',
-  'MANAGE_TASKS',
-  'VIEW_ALL_TASKS',
-];
-
-const PASTOR_VISIBLE_ROUTES = [
-  '/dashboard',
-  '/blueprint',
-  '/members',
-  '/creative-arts',
-  '/ministries',
-  '/map',
-  '/attendance',
-  '/offerings',
-  '/transport',
-  '/travelling',
-  '/calendar',
-  '/service-program',
-  '/tasks',
-];
-
-test('Lead Pastor receives full access to admin-only routes', () => {
-  ADMIN_ONLY_ROUTES.forEach((route) => {
+test('Lead Pastor receives full access to system admin routes', () => {
+  LEAD_PASTOR_ONLY_ROUTES.forEach((route) => {
     assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, route), true);
   });
 });
 
-test('Lead Pastor receives full access to admin-only actions', () => {
-  ADMIN_ONLY_ACTIONS.forEach((action) => {
+test('Lead Pastor receives full access to system admin actions', () => {
+  LEAD_PASTOR_ONLY_ACTIONS.forEach((action) => {
     assert.equal(canPerformAction(ROLES.LEAD_PASTOR, action), true);
   });
 });
 
-test('Lead Pastor receives pastor-level actions through full access', () => {
-  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_STAFF'), true);
+test('Lead Pastor receives operational actions through full access', () => {
   assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_MEMBERS'), true);
   assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_ATTENDANCE'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_TRAVELLING'), true);
 });
 
-test('Admin permissions remain unchanged while Lead Pastor overlaps', () => {
-  ADMIN_ONLY_ROUTES.forEach((route) => {
-    assert.equal(canAccessRoute(ROLES.ADMIN, route), true);
-  });
-
-  ADMIN_ONLY_ACTIONS.forEach((action) => {
-    assert.equal(canPerformAction(ROLES.ADMIN, action), true);
-  });
-
-  assert.equal(canPerformAction(ROLES.ADMIN, 'MANAGE_STAFF'), true);
-});
-
-test('Pastor can access operational ministry routes but not restricted admin routes', () => {
-  PASTOR_VISIBLE_ROUTES.forEach((route) => {
+test('Admin and Pastor share identical operational route access', () => {
+  OPERATIONAL_VISIBLE_ROUTES.forEach((route) => {
+    assert.equal(canAccessRoute(ROLES.ADMIN, route), true, route);
     assert.equal(canAccessRoute(ROLES.PASTOR, route), true, route);
   });
 
-  ADMIN_ONLY_ROUTES.forEach((route) => {
+  LEAD_PASTOR_ONLY_ROUTES.forEach((route) => {
+    assert.equal(canAccessRoute(ROLES.ADMIN, route), false, route);
     assert.equal(canAccessRoute(ROLES.PASTOR, route), false, route);
   });
 });
 
-test('Pastor receives operational management permissions across ministry modules', () => {
-  PASTOR_OPERATIONAL_ACTIONS.forEach((action) => {
+test('Admin and Pastor share identical operational action permissions', () => {
+  OPERATIONAL_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.ADMIN, action), true, action);
     assert.equal(canPerformAction(ROLES.PASTOR, action), true, action);
+  });
+
+  OPERATIONAL_DENIED_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.ADMIN, action), false, action);
+    assert.equal(canPerformAction(ROLES.PASTOR, action), false, action);
   });
 });
 
-test('Pastor is denied user management, development board, and task admin actions', () => {
-  PASTOR_DENIED_ACTIONS.forEach((action) => {
-    assert.equal(canPerformAction(ROLES.PASTOR, action), false, action);
+test('Admin and Pastor permissions stay aligned across every configured action', () => {
+  Object.keys(ACTIONS).forEach((action) => {
+    assert.equal(
+      canPerformAction(ROLES.ADMIN, action),
+      canPerformAction(ROLES.PASTOR, action),
+      action,
+    );
   });
 });
 
@@ -187,6 +185,7 @@ test('Elder is denied management actions across restricted modules', () => {
 test('Elder calendar permissions enforce event ownership', () => {
   assert.equal(canCreateCalendarEvent(ROLES.ELDER), true);
   assert.equal(canCreateCalendarEvent(ROLES.PASTOR), true);
+  assert.equal(canCreateCalendarEvent(ROLES.ADMIN), true);
   assert.equal(canCreateCalendarEvent(ROLES.LEADER), false);
 
   const ownEvent = { createdBy: 'elder-1' };
@@ -195,6 +194,7 @@ test('Elder calendar permissions enforce event ownership', () => {
   assert.equal(canManageCalendarEvent(ROLES.ELDER, ownEvent, 'elder-1'), true);
   assert.equal(canManageCalendarEvent(ROLES.ELDER, otherEvent, 'elder-1'), false);
   assert.equal(canManageCalendarEvent(ROLES.PASTOR, otherEvent, 'elder-1'), true);
+  assert.equal(canManageCalendarEvent(ROLES.ADMIN, otherEvent, 'elder-1'), true);
 });
 
 test('other roles still follow existing permission boundaries', () => {

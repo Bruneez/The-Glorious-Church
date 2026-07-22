@@ -9,8 +9,11 @@ export const ROLES = {
 /** @deprecated Use ROLES.LEADER */
 export const CA_LEADER = ROLES.LEADER;
 
-/** Roles with the application's highest access level (currently mirrors Admin). */
-export const FULL_ACCESS_ROLES = [ROLES.LEAD_PASTOR, ROLES.ADMIN];
+/** Roles with unrestricted application access. */
+export const FULL_ACCESS_ROLES = [ROLES.LEAD_PASTOR];
+
+/** Pastor and Admin share the same operational permissions for now. */
+export const OPERATIONAL_STAFF_ROLES = [ROLES.PASTOR, ROLES.ADMIN];
 
 export const ROLE_LIST = [
   ROLES.LEAD_PASTOR,
@@ -93,10 +96,14 @@ export function assertFullAccessRole(
   }
 }
 
-/** Church-wide staff visibility (Lead Pastor, Admin, and Pastor). */
+/** Church-wide staff visibility (Lead Pastor, Pastor, and Admin). */
 export function isChurchWideStaff(role) {
   const normalized = normalizeRole(role);
-  return isFullAccessRole(normalized) || normalized === ROLES.PASTOR;
+  return isFullAccessRole(normalized) || isOperationalStaffRole(normalized);
+}
+
+export function isOperationalStaffRole(role) {
+  return OPERATIONAL_STAFF_ROLES.includes(normalizeRole(role));
 }
 
 export function isPastorRole(role) {
@@ -116,6 +123,5 @@ export function isCALeader(role) {
 }
 
 export function isAdminOrPastor(role) {
-  const normalized = normalizeRole(role);
-  return normalized === ROLES.ADMIN || normalized === ROLES.PASTOR;
+  return isOperationalStaffRole(role);
 }

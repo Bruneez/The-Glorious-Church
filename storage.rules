@@ -36,12 +36,12 @@ service firebase.storage {
       return normalizedRole(staffRole());
     }
 
-    function isAdmin() {
-      return userRole() == 'Admin';
-    }
-
     function canViewTravelling() {
       return userRole() in ['Admin', 'Pastor', 'Leader', 'Elder'];
+    }
+
+    function canManageTravelling() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
     }
 
     function isTravelDestinationPath(storagePath) {
@@ -56,8 +56,8 @@ service firebase.storage {
 
     match /travel-destinations/{destinationId}/{fileName} {
       allow read: if canViewTravelling();
-      allow create, update: if isAdmin() && isAllowedTravelImage();
-      allow delete: if isAdmin();
+      allow create, update: if canManageTravelling() && isAllowedTravelImage();
+      allow delete: if canManageTravelling();
     }
 
     // Development: allow authenticated access on other storage paths.

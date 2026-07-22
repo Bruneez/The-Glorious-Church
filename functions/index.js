@@ -9,11 +9,12 @@ const STAFF_COLLECTION = 'staff';
 const ROLES = {
   ADMIN: 'Admin',
   PASTOR: 'Pastor',
+  LEAD_PASTOR: 'Lead Pastor',
   CA_LEADER: 'Creative Arts Leader',
 };
 
 const ALLOWED_ROLES = new Set(Object.values(ROLES));
-const MANAGE_STAFF_ROLES = new Set([ROLES.ADMIN]);
+const MANAGE_STAFF_ROLES = new Set([ROLES.LEAD_PASTOR]);
 
 function normalizeRole(role) {
   const value = String(role || '').trim();
@@ -22,6 +23,7 @@ function normalizeRole(role) {
   const lower = value.toLowerCase();
   if (lower === 'admin' || lower === 'administrator') return ROLES.ADMIN;
   if (lower === 'pastor') return ROLES.PASTOR;
+  if (lower === 'lead pastor') return ROLES.LEAD_PASTOR;
   if (lower === 'ca leader' || lower === 'creative arts leader') return ROLES.CA_LEADER;
   return value;
 }
