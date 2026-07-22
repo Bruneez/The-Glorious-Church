@@ -3,6 +3,7 @@ import {
   normalizeRole,
   isFullAccessRole,
   isOperationalStaffRole,
+  isPastorRole,
   isElderRole,
   isLeader,
 } from './roles.js';
@@ -12,16 +13,21 @@ const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.LEADER];
 /** Pastor and Admin share the same operational permission set for now. */
 const OPERATIONAL_STAFF = [ROLES.PASTOR, ROLES.ADMIN];
 
+/** Lead Pastor and Admin share Development Board access. */
+const DEVELOPMENT_BOARD_STAFF = [ROLES.LEAD_PASTOR, ROLES.ADMIN];
+
 /** Routes operational staff must never access, even via direct URL. */
-const OPERATIONAL_RESTRICTED_ROUTES = ['/users', '/system-users', '/development-board'];
+const OPERATIONAL_RESTRICTED_ROUTES = ['/users', '/system-users'];
 
 /** Actions withheld from operational staff (Pastor and Admin). */
 const OPERATIONAL_DENIED_ACTIONS = new Set([
   'MANAGE_STAFF',
-  'MANAGE_DEVELOPMENT_BOARD',
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
 ]);
+
+/** Actions withheld from Pastor only (Admin retains Development Board access). */
+const PASTOR_ONLY_DENIED_ACTIONS = new Set(['MANAGE_DEVELOPMENT_BOARD']);
 
 /** Routes Elder and Leader must never access, even via direct URL. */
 const MINISTRY_PARTICIPANT_RESTRICTED_ROUTES = [
@@ -82,7 +88,7 @@ export const ROUTE_ACCESS = {
   '/transport': ALL_STAFF,
   '/calendar': ALL_STAFF,
   '/service-program': ALL_STAFF,
-  '/development-board': [ROLES.LEAD_PASTOR],
+  '/development-board': DEVELOPMENT_BOARD_STAFF,
   '/tasks': ALL_STAFF,
   '/travelling': ALL_STAFF,
 };
@@ -99,6 +105,10 @@ export function canAccessRoute(role, pathname) {
     isOperationalStaffRole(normalizedRole) &&
     OPERATIONAL_RESTRICTED_ROUTES.includes(pathname)
   ) {
+    return false;
+  }
+
+  if (isPastorRole(normalizedRole) && pathname === '/development-board') {
     return false;
   }
 
@@ -123,7 +133,7 @@ export const ACTIONS = {
   MANAGE_TRANSPORT: OPERATIONAL_STAFF,
   MANAGE_SCHOOLS: OPERATIONAL_STAFF,
   EDIT_DELETE_SCHOOLS: OPERATIONAL_STAFF,
-  MANAGE_DEVELOPMENT_BOARD: [ROLES.LEAD_PASTOR],
+  MANAGE_DEVELOPMENT_BOARD: DEVELOPMENT_BOARD_STAFF,
   MANAGE_TASKS: [ROLES.LEAD_PASTOR],
   VIEW_ALL_TASKS: [ROLES.LEAD_PASTOR],
   UPDATE_OWN_TASK_STATUS: [...OPERATIONAL_STAFF, ROLES.ELDER, ROLES.LEADER],
@@ -137,6 +147,10 @@ export function canPerformAction(role, action) {
   if (isFullAccessRole(normalizedRole)) return true;
 
   if (isOperationalStaffRole(normalizedRole) && OPERATIONAL_DENIED_ACTIONS.has(action)) {
+    return false;
+  }
+
+  if (isPastorRole(normalizedRole) && PASTOR_ONLY_DENIED_ACTIONS.has(action)) {
     return false;
   }
 

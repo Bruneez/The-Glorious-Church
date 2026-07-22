@@ -9,14 +9,15 @@ import {
 } from './permissions.js';
 import { ROLES } from './roles.js';
 
-const LEAD_PASTOR_ONLY_ACTIONS = [
+const SYSTEM_ADMIN_ONLY_ACTIONS = [
   'MANAGE_STAFF',
-  'MANAGE_DEVELOPMENT_BOARD',
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
 ];
 
-const LEAD_PASTOR_ONLY_ROUTES = ['/users', '/system-users', '/development-board'];
+const DEVELOPMENT_BOARD_ACTIONS = ['MANAGE_DEVELOPMENT_BOARD'];
+
+const SYSTEM_ADMIN_ONLY_ROUTES = ['/users', '/system-users'];
 
 const OPERATIONAL_ACTIONS = [
   'MANAGE_MEMBERS',
@@ -36,10 +37,11 @@ const OPERATIONAL_ACTIONS = [
 
 const OPERATIONAL_DENIED_ACTIONS = [
   'MANAGE_STAFF',
-  'MANAGE_DEVELOPMENT_BOARD',
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
 ];
+
+const PASTOR_ONLY_DENIED_ACTIONS = ['MANAGE_DEVELOPMENT_BOARD'];
 
 const OPERATIONAL_VISIBLE_ROUTES = [
   '/dashboard',
@@ -142,13 +144,19 @@ const ELDER_DENIED_MANAGE_ACTIONS = [
 ];
 
 test('Lead Pastor receives full access to system admin routes', () => {
-  LEAD_PASTOR_ONLY_ROUTES.forEach((route) => {
+  SYSTEM_ADMIN_ONLY_ROUTES.forEach((route) => {
     assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, route), true);
   });
+
+  assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, '/development-board'), true);
 });
 
 test('Lead Pastor receives full access to system admin actions', () => {
-  LEAD_PASTOR_ONLY_ACTIONS.forEach((action) => {
+  SYSTEM_ADMIN_ONLY_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.LEAD_PASTOR, action), true);
+  });
+
+  DEVELOPMENT_BOARD_ACTIONS.forEach((action) => {
     assert.equal(canPerformAction(ROLES.LEAD_PASTOR, action), true);
   });
 });
@@ -165,10 +173,20 @@ test('Admin and Pastor share identical operational route access', () => {
     assert.equal(canAccessRoute(ROLES.PASTOR, route), true, route);
   });
 
-  LEAD_PASTOR_ONLY_ROUTES.forEach((route) => {
+  SYSTEM_ADMIN_ONLY_ROUTES.forEach((route) => {
     assert.equal(canAccessRoute(ROLES.ADMIN, route), false, route);
     assert.equal(canAccessRoute(ROLES.PASTOR, route), false, route);
   });
+
+  assert.equal(canAccessRoute(ROLES.ADMIN, '/development-board'), true);
+  assert.equal(canAccessRoute(ROLES.PASTOR, '/development-board'), false);
+});
+
+test('Admin receives the same Development Board access as Lead Pastor', () => {
+  assert.equal(canAccessRoute(ROLES.ADMIN, '/development-board'), true);
+  assert.equal(canPerformAction(ROLES.ADMIN, 'MANAGE_DEVELOPMENT_BOARD'), true);
+  assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, '/development-board'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_DEVELOPMENT_BOARD'), true);
 });
 
 test('Admin and Pastor share identical operational action permissions', () => {
@@ -181,10 +199,21 @@ test('Admin and Pastor share identical operational action permissions', () => {
     assert.equal(canPerformAction(ROLES.ADMIN, action), false, action);
     assert.equal(canPerformAction(ROLES.PASTOR, action), false, action);
   });
+
+  PASTOR_ONLY_DENIED_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.PASTOR, action), false, action);
+    assert.equal(canPerformAction(ROLES.ADMIN, action), true, action);
+  });
 });
 
-test('Admin and Pastor permissions stay aligned across every configured action', () => {
+test('Admin and Pastor stay aligned across actions except Development Board admin access', () => {
   Object.keys(ACTIONS).forEach((action) => {
+    if (action === 'MANAGE_DEVELOPMENT_BOARD') {
+      assert.equal(canPerformAction(ROLES.ADMIN, action), true);
+      assert.equal(canPerformAction(ROLES.PASTOR, action), false);
+      return;
+    }
+
     assert.equal(
       canPerformAction(ROLES.ADMIN, action),
       canPerformAction(ROLES.PASTOR, action),
