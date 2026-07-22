@@ -21,6 +21,7 @@ import {
   getMemberDepartment,
   getStaffDepartment,
   memberBelongsToDepartment,
+  inferMemberChurch,
 } from '@/config/memberOptions';
 
 function FeedbackBanner({ feedback, onDismiss }) {
@@ -58,6 +59,7 @@ export default function MembersPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterChurch, setFilterChurch] = useState('all');
   const [sortDirection, setSortDirection] = useState('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
@@ -111,6 +113,12 @@ export default function MembersPage() {
       );
     }
 
+    if (filterChurch !== 'all') {
+      filtered = filtered.filter(
+        (member) => inferMemberChurch(member) === filterChurch,
+      );
+    }
+
     filtered.sort((a, b) => {
       const nameA = `${a.name || ''} ${a.surname || ''}`.trim().toLowerCase();
       const nameB = `${b.name || ''} ${b.surname || ''}`.trim().toLowerCase();
@@ -121,7 +129,7 @@ export default function MembersPage() {
     });
 
     return filtered;
-  }, [scopedMembers, searchTerm, filterStatus, sortDirection]);
+  }, [scopedMembers, searchTerm, filterStatus, filterChurch, sortDirection]);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -155,10 +163,7 @@ export default function MembersPage() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingMember) {
-        const { storageWarnings = [] } = await updateMember(editingMember.id, {
-          ...formData,
-          department: getMemberDepartment(editingMember),
-        });
+        const { storageWarnings = [] } = await updateMember(editingMember.id, formData);
 
         if (storageWarnings.length) {
           showFeedback(
@@ -169,13 +174,7 @@ export default function MembersPage() {
           showFeedback('success', 'Member updated successfully.');
         }
       } else {
-        await createMember(
-          {
-            ...formData,
-            department: creatorDepartment,
-          },
-          createdBy,
-        );
+        await createMember(formData, createdBy);
         showFeedback('success', 'Member added successfully.');
       }
 
@@ -236,6 +235,8 @@ export default function MembersPage() {
             onSearchChange={setSearchTerm}
             filterStatus={filterStatus}
             onFilterStatusChange={setFilterStatus}
+            filterChurch={filterChurch}
+            onFilterChurchChange={setFilterChurch}
             onSortToggle={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
             sortDirection={sortDirection}
             onAddMember={canManageMembers ? handleAddMember : undefined}
@@ -296,6 +297,7 @@ export default function MembersPage() {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingMember}
+        lockCreativeArtsDepartmentName={isCALeader ? creatorDepartment : ''}
       />
 
       {viewingMember && (

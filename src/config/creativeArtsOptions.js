@@ -109,6 +109,31 @@ export function getMemberCount(department) {
   return department?.members?.length || 0;
 }
 
+export function memberMatchesCreativeArtsDepartment(member, department) {
+  if (!member || !department) return false;
+
+  const memberTeamId = String(member.creativeArtsId || member.departmentId || '').trim();
+  if (memberTeamId && department.id && memberTeamId === department.id) {
+    return true;
+  }
+
+  const memberDepartmentName = String(member.department || member.creativeArts || member.creativeArtsName || '')
+    .trim()
+    .toLowerCase();
+  const departmentName = String(department.name || '').trim().toLowerCase();
+
+  if (memberDepartmentName && departmentName && memberDepartmentName === departmentName) {
+    return true;
+  }
+
+  return Array.isArray(department.members) && department.members.includes(member.id);
+}
+
+export function getMembersLinkedToCreativeArtsDepartment(members = [], department) {
+  if (!department) return [];
+  return members.filter((member) => memberMatchesCreativeArtsDepartment(member, department));
+}
+
 export function computeCreativeArtsStats(departments = []) {
   return departments.reduce(
     (stats, department) => {

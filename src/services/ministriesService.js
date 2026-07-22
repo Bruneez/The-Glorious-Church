@@ -88,3 +88,34 @@ export async function deleteMinistry(ministryId) {
 
   return { ministryId, storageWarnings };
 }
+
+export async function addMemberToMinistry(ministryId, memberId) {
+  const ministry = await getMinistry(ministryId);
+  if (!ministry) return null;
+
+  const members = ministry.members || [];
+
+  if (!members.includes(memberId)) {
+    members.push(memberId);
+    return updateDocument(COLLECTIONS.MINISTRIES, ministryId, {
+      members,
+      totalMembers: members.length,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return ministry;
+}
+
+export async function removeMemberFromMinistry(ministryId, memberId) {
+  const ministry = await getMinistry(ministryId);
+  if (!ministry) return null;
+
+  const members = (ministry.members || []).filter((id) => id !== memberId);
+
+  return updateDocument(COLLECTIONS.MINISTRIES, ministryId, {
+    members,
+    totalMembers: members.length,
+    updatedAt: new Date().toISOString(),
+  });
+}

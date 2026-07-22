@@ -62,8 +62,35 @@ export function getMinistrySummaryCards(ministries = []) {
 }
 
 export function getMinistryMemberCount(ministry) {
+  if (Array.isArray(ministry?.members)) {
+    return ministry.members.length;
+  }
+
   const count = Number(ministry?.totalMembers);
   return Number.isFinite(count) && count >= 0 ? count : 0;
+}
+
+export function memberMatchesMinistry(member, ministry) {
+  if (!member || !ministry) return false;
+
+  const memberMinistryId = String(member.ministryId || '').trim();
+  if (memberMinistryId && ministry.id && memberMinistryId === ministry.id) {
+    return true;
+  }
+
+  const memberMinistryName = String(member.ministryName || '').trim().toLowerCase();
+  const ministryName = String(ministry.ministryName || '').trim().toLowerCase();
+
+  if (!memberMinistryName || !ministryName) {
+    return false;
+  }
+
+  return memberMinistryName === ministryName;
+}
+
+export function getMembersLinkedToMinistry(members = [], ministry) {
+  if (!ministry) return [];
+  return members.filter((member) => memberMatchesMinistry(member, ministry));
 }
 
 function sanitizeAvatarUrl(value) {
@@ -82,7 +109,8 @@ export function buildMinistryPayload(formData, { createdBy = '', initialData = n
       ministryLeader: String(formData.ministryLeader || '').trim(),
       description: String(formData.description || '').trim(),
       status: formData.status || MINISTRY_STATUS.ACTIVE,
-      totalMembers: initialData?.totalMembers ?? 0,
+      members: initialData?.members ?? [],
+      totalMembers: Array.isArray(initialData?.members) ? initialData.members.length : 0,
       avatarUrl: '',
       avatarPath: '',
     };
@@ -98,7 +126,10 @@ export function buildMinistryPayload(formData, { createdBy = '', initialData = n
     ministryLeader: String(formData.ministryLeader || '').trim(),
     description: String(formData.description || '').trim(),
     status: formData.status || MINISTRY_STATUS.ACTIVE,
-    totalMembers: initialData?.totalMembers ?? 0,
+    members: initialData?.members ?? formData.members ?? [],
+    totalMembers: Array.isArray(initialData?.members)
+      ? initialData.members.length
+      : Number(initialData?.totalMembers) || 0,
     avatarUrl,
     avatarPath,
   };

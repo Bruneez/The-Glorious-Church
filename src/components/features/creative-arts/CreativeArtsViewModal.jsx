@@ -1,8 +1,12 @@
+import { useMemo } from 'react';
 import { Palette, Edit2, Trash2, User, Users, Activity } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
-import { DEPARTMENT_STATUS, getMemberCount } from '@/config/creativeArtsOptions';
+import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinkedMembersTable';
+import { DEPARTMENT_STATUS, getMemberCount, getMembersLinkedToCreativeArtsDepartment } from '@/config/creativeArtsOptions';
+import { useMembers } from '@/services/membersService';
+import { mapLinkedMemberForDisplay } from '@/config/schoolsOptions';
 
 function DetailCard({ icon: Icon, label, children }) {
   return (
@@ -41,6 +45,12 @@ export default function CreativeArtsViewModal({
   onDelete,
   canManage = false,
 }) {
+  const { data: allMembers = [] } = useMembers();
+  const linkedMembers = useMemo(() => {
+    if (!department) return [];
+    return getMembersLinkedToCreativeArtsDepartment(allMembers, department).map(mapLinkedMemberForDisplay);
+  }, [allMembers, department]);
+
   if (!department) return null;
 
   const handleDelete = async () => {
@@ -96,6 +106,16 @@ export default function CreativeArtsViewModal({
           <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
             {description || 'No description provided'}
           </p>
+        </div>
+
+        <div className="rounded-xl bg-slate-900/60 border border-slate-700/70 p-4 space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Linked Members
+          </p>
+          <SchoolLinkedMembersTable
+            members={linkedMembers}
+            emptyMessage="No members linked to this department."
+          />
         </div>
       </div>
 
