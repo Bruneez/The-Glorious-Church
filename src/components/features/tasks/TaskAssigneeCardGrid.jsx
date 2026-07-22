@@ -34,7 +34,11 @@ function TaskAssigneeCard({ assignee, onClick, onRemoveFromTasks, canOpen, canRe
 
       <button
         type="button"
-        onClick={() => onClick?.(assignee)}
+        onClick={() => {
+          if (canOpen) {
+            onClick?.(assignee);
+          }
+        }}
         className={`w-full text-left p-4 flex flex-col gap-4 ${
           canOpen ? 'cursor-pointer' : 'cursor-not-allowed'
         } ${showRemoveControl ? 'pr-12' : ''}`}

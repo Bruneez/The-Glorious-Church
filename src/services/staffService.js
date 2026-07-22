@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { normalizeRole, ROLES } from '@/config/roles';
+import { normalizeRole, assertFullAccessRole } from '@/config/roles';
 import {
   getStaffAuthUid,
   getStaffDocByAuthUid,
@@ -82,9 +82,7 @@ export async function getStaffProfile(staffDocId) {
 }
 
 export async function excludeStaffFromTasksModule(staffDocId, { role } = {}) {
-  if (normalizeRole(role) !== ROLES.ADMIN) {
-    throw new Error('Only administrators can remove users from the Tasks module.');
-  }
+  assertFullAccessRole(role, 'Only administrators can remove users from the Tasks module.');
 
   const normalizedStaffDocId = String(staffDocId || '').trim();
   if (!normalizedStaffDocId) {
@@ -95,9 +93,7 @@ export async function excludeStaffFromTasksModule(staffDocId, { role } = {}) {
 }
 
 export async function restoreStaffToTasksModule(staffDocId, { role } = {}) {
-  if (normalizeRole(role) !== ROLES.ADMIN) {
-    throw new Error('Only administrators can restore users to the Tasks module.');
-  }
+  assertFullAccessRole(role, 'Only administrators can restore users to the Tasks module.');
 
   const normalizedStaffDocId = String(staffDocId || '').trim();
   if (!normalizedStaffDocId) {

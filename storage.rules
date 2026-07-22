@@ -41,7 +41,7 @@ service firebase.storage {
     }
 
     function canViewTravelling() {
-      return userRole() in ['Admin', 'Pastor', 'Leader'];
+      return userRole() in ['Admin', 'Pastor', 'Leader', 'Elder'];
     }
 
     function isTravelDestinationPath(storagePath) {

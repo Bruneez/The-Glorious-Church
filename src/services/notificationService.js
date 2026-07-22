@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, query, where, limit as firestoreLimit } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { isAdminOrPastor, isCALeader, normalizeRole, getRoleLabel } from '@/config/roles';
+import { isChurchWideStaff, isCALeader, normalizeRole, getRoleLabel } from '@/config/roles';
 import {
   NOTIFICATION_ENTITY_TYPE,
   NOTIFICATION_LIMIT,
@@ -51,11 +51,11 @@ function getActiveStaffRecipients(staffMembers = [], { scope, departmentId, depa
     const role = normalizeRole(staffMember.role);
 
     if (scope === NOTIFICATION_SCOPE.SYSTEM) {
-      return isAdminOrPastor(role);
+      return isChurchWideStaff(role);
     }
 
     if (scope === NOTIFICATION_SCOPE.DEPARTMENT) {
-      if (isAdminOrPastor(role)) return true;
+      if (isChurchWideStaff(role)) return true;
       if (isCALeader(role)) {
         return staffMatchesDepartment(staffMember, departmentId, departmentName);
       }

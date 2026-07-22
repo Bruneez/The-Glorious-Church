@@ -7,7 +7,7 @@ import { formatDate, formatTime } from '@/utils/formatters';
 
 function ScheduleEventCard({
   event,
-  canManageEvents,
+  canManageEvent,
   onEdit,
   onDelete,
 }) {
@@ -74,7 +74,7 @@ function ScheduleEventCard({
           </div>
         </div>
 
-        {canManageEvents && !isBirthday ? (
+        {canManageEvent?.(event) && !isBirthday ? (
           <div className="flex shrink-0 gap-1">
             <button
               type="button"
@@ -104,7 +104,7 @@ export default function UpcomingEventsPanel({
   loading = false,
   title = 'Upcoming Events',
   selectedDate = null,
-  canManageEvents = false,
+  canManageEvent,
   onEdit,
   onDelete,
   onClearSelection,
@@ -145,7 +145,7 @@ export default function UpcomingEventsPanel({
             <ScheduleEventCard
               key={event.id}
               event={event}
-              canManageEvents={canManageEvents}
+              canManageEvent={canManageEvent}
               onEdit={onEdit}
               onDelete={onDelete}
             />

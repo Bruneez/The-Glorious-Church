@@ -7,6 +7,10 @@ import {
   getRoleBadgeClassName,
   isLeader,
   isCALeader,
+  isFullAccessRole,
+  isChurchWideStaff,
+  isPastorRole,
+  isElderRole,
 } from './roles.js';
 
 test('normalizeRole maps legacy leader aliases to Leader', () => {
@@ -39,6 +43,35 @@ test('isLeader and isCALeader remain equivalent', () => {
   assert.equal(isLeader('Creative Arts Leader'), true);
   assert.equal(isCALeader(ROLES.LEADER), true);
   assert.equal(isLeader(ROLES.PASTOR), false);
+});
+
+test('isFullAccessRole recognises Lead Pastor and Admin only', () => {
+  assert.equal(isFullAccessRole(ROLES.LEAD_PASTOR), true);
+  assert.equal(isFullAccessRole(ROLES.ADMIN), true);
+  assert.equal(isFullAccessRole(ROLES.PASTOR), false);
+  assert.equal(isFullAccessRole(ROLES.ELDER), false);
+  assert.equal(isFullAccessRole('lead pastor'), true);
+});
+
+test('isChurchWideStaff includes Lead Pastor, Admin, and Pastor', () => {
+  assert.equal(isChurchWideStaff(ROLES.LEAD_PASTOR), true);
+  assert.equal(isChurchWideStaff(ROLES.ADMIN), true);
+  assert.equal(isChurchWideStaff(ROLES.PASTOR), true);
+  assert.equal(isChurchWideStaff(ROLES.ELDER), false);
+});
+
+test('isPastorRole recognises Pastor only', () => {
+  assert.equal(isPastorRole(ROLES.PASTOR), true);
+  assert.equal(isPastorRole('pastor'), true);
+  assert.equal(isPastorRole(ROLES.ADMIN), false);
+  assert.equal(isPastorRole(ROLES.LEAD_PASTOR), false);
+});
+
+test('isElderRole recognises Elder only', () => {
+  assert.equal(isElderRole(ROLES.ELDER), true);
+  assert.equal(isElderRole('elder'), true);
+  assert.equal(isElderRole(ROLES.PASTOR), false);
+  assert.equal(isElderRole(ROLES.LEADER), false);
 });
 
 test('getRoleBadgeClassName returns distinct classes per role', () => {

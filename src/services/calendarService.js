@@ -1,5 +1,6 @@
 import { COLLECTIONS } from '@/config/collections';
 import { createEventAddedNotification } from '@/services/notificationService';
+import { assertCanManageCalendarEvent } from '@/config/permissions';
 import { 
   getDocuments, 
   addDocument, 
@@ -60,10 +61,12 @@ export async function getEvent(eventId) {
   return getDocument(COLLECTIONS.EVENTS, eventId);
 }
 
-export async function createEvent(eventData) {
+export async function createEvent(eventData, { createdBy = '', createdByName = '' } = {}) {
   const timestamp = new Date().toISOString();
   const createdEvent = await addDocument(COLLECTIONS.EVENTS, {
     ...eventData,
+    createdBy: createdBy || eventData.createdBy || '',
+    createdByName: createdByName || eventData.createdByName || '',
     createdAt: timestamp,
     updatedAt: timestamp
   });
@@ -79,14 +82,24 @@ export async function createEvent(eventData) {
   return createdEvent;
 }
 
-export async function updateEvent(eventId, eventData) {
+export async function updateEvent(eventId, eventData, { role, userId } = {}) {
+  if (role) {
+    const existingEvent = await getEvent(eventId);
+    assertCanManageCalendarEvent(role, existingEvent, userId);
+  }
+
   return updateDocument(COLLECTIONS.EVENTS, eventId, {
     ...eventData,
     updatedAt: new Date().toISOString()
   });
 }
 
-export async function deleteEvent(eventId) {
+export async function deleteEvent(eventId, { role, userId } = {}) {
+  if (role) {
+    const existingEvent = await getEvent(eventId);
+    assertCanManageCalendarEvent(role, existingEvent, userId);
+  }
+
   return deleteDocument(COLLECTIONS.EVENTS, eventId);
 }
 
