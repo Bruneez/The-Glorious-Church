@@ -52,6 +52,7 @@ const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
   '/attendance',
   '/transport',
   '/travelling',
+  '/machaneh-movies',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -91,6 +92,7 @@ export const ROUTE_ACCESS = {
   '/development-board': DEVELOPMENT_BOARD_STAFF,
   '/tasks': ALL_STAFF,
   '/travelling': ALL_STAFF,
+  '/machaneh-movies': ALL_STAFF,
 };
 
 export function canAccessRoute(role, pathname) {
@@ -140,6 +142,8 @@ export const ACTIONS = {
   MANAGE_SERVICE_PROGRAM: [...OPERATIONAL_STAFF, ROLES.ELDER],
   VIEW_TRAVELLING: [...ALL_STAFF, ROLES.ELDER],
   MANAGE_TRAVELLING: OPERATIONAL_STAFF,
+  VIEW_MACHANEH_MOVIES: [...ALL_STAFF, ROLES.ELDER],
+  MANAGE_MACHANEH_MOVIES: OPERATIONAL_STAFF,
 };
 
 export function canPerformAction(role, action) {

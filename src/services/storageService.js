@@ -5,6 +5,7 @@ import {
   withUploadTimeout,
 } from '@/utils/storageErrors';
 import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/travellingOptions';
+import { MOVIE_POSTER_UPLOAD_TIMEOUT_MS } from '@/config/machanehMoviesOptions';
 
 function rethrowStorageError(error) {
   const message = getStorageErrorMessage(error);
@@ -150,5 +151,26 @@ export async function uploadTravelDestinationImage(file, destinationId) {
 }
 
 export async function deleteTravelDestinationImage(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadMachanehMoviePoster(file, movieId) {
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'poster').replace(/[^\w.-]/g, '_');
+  const posterStoragePath = `machaneh-movies/${movieId}/${timestamp}_${safeName}`;
+
+  try {
+    const posterUrl = await withUploadTimeout(
+      uploadFile(file, posterStoragePath),
+      MOVIE_POSTER_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { posterUrl, posterStoragePath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteMachanehMoviePoster(path) {
   return deleteFileSafe(path);
 }

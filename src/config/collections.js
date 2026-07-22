@@ -15,4 +15,5 @@ export const COLLECTIONS = {
   MINISTRIES: 'ministries',
   SERVICE_PROGRAMS: 'servicePrograms',
   TRAVEL_DESTINATIONS: 'travelDestinations',
+  MACHANEH_MOVIES: 'machanehMovies',
 };

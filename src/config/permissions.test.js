@@ -31,8 +31,10 @@ const OPERATIONAL_ACTIONS = [
   'EDIT_DELETE_SCHOOLS',
   'MANAGE_SERVICE_PROGRAM',
   'MANAGE_TRAVELLING',
+  'MANAGE_MACHANEH_MOVIES',
   'UPDATE_OWN_TASK_STATUS',
   'VIEW_TRAVELLING',
+  'VIEW_MACHANEH_MOVIES',
 ];
 
 const OPERATIONAL_DENIED_ACTIONS = [
@@ -54,6 +56,7 @@ const OPERATIONAL_VISIBLE_ROUTES = [
   '/offerings',
   '/transport',
   '/travelling',
+  '/machaneh-movies',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -71,6 +74,7 @@ const ELDER_VISIBLE_ROUTES = [
   '/attendance',
   '/transport',
   '/travelling',
+  '/machaneh-movies',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -87,6 +91,7 @@ const ELDER_RESTRICTED_ROUTES = [
 
 const ELDER_ALLOWED_ACTIONS = [
   'VIEW_TRAVELLING',
+  'VIEW_MACHANEH_MOVIES',
   'UPDATE_OWN_TASK_STATUS',
   'MANAGE_SERVICE_PROGRAM',
   'CREATE_CALENDAR_EVENTS',
@@ -100,6 +105,7 @@ const LEADER_RESTRICTED_ROUTES = ELDER_RESTRICTED_ROUTES;
 
 const LEADER_ALLOWED_ACTIONS = [
   'VIEW_TRAVELLING',
+  'VIEW_MACHANEH_MOVIES',
   'UPDATE_OWN_TASK_STATUS',
   'CREATE_CALENDAR_EVENTS',
   'MANAGE_OWN_CALENDAR_EVENTS',
@@ -121,6 +127,7 @@ const LEADER_DENIED_ACTIONS = [
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
   'MANAGE_TRAVELLING',
+  'MANAGE_MACHANEH_MOVIES',
   'MANAGE_SERVICE_PROGRAM',
   'OPEN_CREATIVE_ARTS_DEPARTMENT',
   'OPEN_SCHOOL_RECORD',
@@ -141,6 +148,7 @@ const ELDER_DENIED_MANAGE_ACTIONS = [
   'MANAGE_TASKS',
   'VIEW_ALL_TASKS',
   'MANAGE_TRAVELLING',
+  'MANAGE_MACHANEH_MOVIES',
 ];
 
 test('Lead Pastor receives full access to system admin routes', () => {
@@ -165,6 +173,7 @@ test('Lead Pastor receives operational actions through full access', () => {
   assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_MEMBERS'), true);
   assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_ATTENDANCE'), true);
   assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_TRAVELLING'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_MACHANEH_MOVIES'), true);
 });
 
 test('Admin and Pastor share identical operational route access', () => {
