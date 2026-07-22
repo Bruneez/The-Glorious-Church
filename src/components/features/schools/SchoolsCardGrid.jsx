@@ -2,11 +2,20 @@ import { Eye, Edit2, Trash2, School, Users, MapPin } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { getSchoolBadge } from '@/config/schoolsOptions';
 
-function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false, canDelete = false }) {
+function SchoolOverviewCard({
+  school,
+  onView,
+  onEdit,
+  onDelete,
+  canEdit = false,
+  canDelete = false,
+  canOpenDetails = true,
+}) {
   const badge = getSchoolBadge(school.raw);
   const address = school.raw?.address?.trim() || '';
 
   const handleCardClick = () => {
+    if (!canOpenDetails) return;
     onView?.(school);
   };
 
@@ -17,7 +26,10 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false,
       <button
         type="button"
         onClick={handleCardClick}
-        className="flex items-start gap-3 text-left w-full cursor-pointer group"
+        disabled={!canOpenDetails}
+        className={`flex items-start gap-3 text-left w-full group ${
+          canOpenDetails ? 'cursor-pointer' : 'cursor-default'
+        }`}
       >
         <UserAvatar name={school.schoolName} photo={badge} size="lg" />
 
@@ -53,14 +65,16 @@ function SchoolOverviewCard({ school, onView, onEdit, onDelete, canEdit = false,
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/60">
-        <button
-          type="button"
-          onClick={() => onView?.(school)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View
-        </button>
+        {canOpenDetails && onView ? (
+          <button
+            type="button"
+            onClick={() => onView(school)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+        ) : null}
         {canEdit && onEdit && (
           <button
             type="button"
@@ -93,6 +107,7 @@ export default function SchoolsCardGrid({
   onDelete,
   canEdit = false,
   canDelete = false,
+  canOpenDetails = true,
   emptyMessage = 'No schools found.',
 }) {
   if (!schools.length) {
@@ -115,6 +130,7 @@ export default function SchoolsCardGrid({
           onDelete={onDelete}
           canEdit={canEdit}
           canDelete={canDelete}
+          canOpenDetails={canOpenDetails}
         />
       ))}
     </div>

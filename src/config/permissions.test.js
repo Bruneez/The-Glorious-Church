@@ -89,6 +89,39 @@ const ELDER_ALLOWED_ACTIONS = [
   'MANAGE_SERVICE_PROGRAM',
   'CREATE_CALENDAR_EVENTS',
   'MANAGE_OWN_CALENDAR_EVENTS',
+  'OPEN_CREATIVE_ARTS_DEPARTMENT',
+  'OPEN_SCHOOL_RECORD',
+];
+
+const LEADER_VISIBLE_ROUTES = ELDER_VISIBLE_ROUTES;
+const LEADER_RESTRICTED_ROUTES = ELDER_RESTRICTED_ROUTES;
+
+const LEADER_ALLOWED_ACTIONS = [
+  'VIEW_TRAVELLING',
+  'UPDATE_OWN_TASK_STATUS',
+  'CREATE_CALENDAR_EVENTS',
+  'MANAGE_OWN_CALENDAR_EVENTS',
+];
+
+const LEADER_DENIED_ACTIONS = [
+  'MANAGE_STAFF',
+  'MANAGE_MEMBERS',
+  'MANAGE_ATTENDANCE',
+  'RECORD_DEPARTMENT_ATTENDANCE',
+  'MANAGE_OFFERINGS',
+  'MANAGE_EVENTS',
+  'MANAGE_CREATIVE_ARTS',
+  'MANAGE_MINISTRIES',
+  'MANAGE_TRANSPORT',
+  'MANAGE_SCHOOLS',
+  'EDIT_DELETE_SCHOOLS',
+  'MANAGE_DEVELOPMENT_BOARD',
+  'MANAGE_TASKS',
+  'VIEW_ALL_TASKS',
+  'MANAGE_TRAVELLING',
+  'MANAGE_SERVICE_PROGRAM',
+  'OPEN_CREATIVE_ARTS_DEPARTMENT',
+  'OPEN_SCHOOL_RECORD',
 ];
 
 const ELDER_DENIED_MANAGE_ACTIONS = [
@@ -184,21 +217,52 @@ test('Elder is denied management actions across restricted modules', () => {
 
 test('Elder calendar permissions enforce event ownership', () => {
   assert.equal(canCreateCalendarEvent(ROLES.ELDER), true);
+  assert.equal(canCreateCalendarEvent(ROLES.LEADER), true);
   assert.equal(canCreateCalendarEvent(ROLES.PASTOR), true);
   assert.equal(canCreateCalendarEvent(ROLES.ADMIN), true);
-  assert.equal(canCreateCalendarEvent(ROLES.LEADER), false);
 
-  const ownEvent = { createdBy: 'elder-1' };
+  const elderOwnEvent = { createdBy: 'elder-1' };
+  const leaderOwnEvent = { createdBy: 'leader-1' };
   const otherEvent = { createdBy: 'pastor-1' };
 
-  assert.equal(canManageCalendarEvent(ROLES.ELDER, ownEvent, 'elder-1'), true);
+  assert.equal(canManageCalendarEvent(ROLES.ELDER, elderOwnEvent, 'elder-1'), true);
   assert.equal(canManageCalendarEvent(ROLES.ELDER, otherEvent, 'elder-1'), false);
+  assert.equal(canManageCalendarEvent(ROLES.LEADER, leaderOwnEvent, 'leader-1'), true);
+  assert.equal(canManageCalendarEvent(ROLES.LEADER, otherEvent, 'leader-1'), false);
   assert.equal(canManageCalendarEvent(ROLES.PASTOR, otherEvent, 'elder-1'), true);
   assert.equal(canManageCalendarEvent(ROLES.ADMIN, otherEvent, 'elder-1'), true);
+});
+
+test('Leader can access ministry participant routes but not restricted admin routes', () => {
+  LEADER_VISIBLE_ROUTES.forEach((route) => {
+    assert.equal(canAccessRoute(ROLES.LEADER, route), true, route);
+  });
+
+  LEADER_RESTRICTED_ROUTES.forEach((route) => {
+    assert.equal(canAccessRoute(ROLES.LEADER, route), false, route);
+  });
+});
+
+test('Leader receives task, travelling, and calendar ownership actions only', () => {
+  LEADER_ALLOWED_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.LEADER, action), true, action);
+  });
+
+  LEADER_DENIED_ACTIONS.forEach((action) => {
+    assert.equal(canPerformAction(ROLES.LEADER, action), false, action);
+  });
+});
+
+test('Leader can view Creative Arts and school tiles but not open detailed records', () => {
+  assert.equal(canPerformAction(ROLES.ELDER, 'OPEN_CREATIVE_ARTS_DEPARTMENT'), true);
+  assert.equal(canPerformAction(ROLES.ELDER, 'OPEN_SCHOOL_RECORD'), true);
+  assert.equal(canPerformAction(ROLES.LEADER, 'OPEN_CREATIVE_ARTS_DEPARTMENT'), false);
+  assert.equal(canPerformAction(ROLES.LEADER, 'OPEN_SCHOOL_RECORD'), false);
 });
 
 test('other roles still follow existing permission boundaries', () => {
   assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_TASKS'), false);
   assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_CREATIVE_ARTS'), false);
   assert.equal(canAccessRoute(ROLES.LEADER, '/development-board'), false);
+  assert.equal(canAccessRoute(ROLES.LEADER, '/members'), false);
 });

@@ -66,3 +66,10 @@ test('Elder can view travelling but not manage destinations', () => {
   assert.equal(canPerformAction(ROLES.ELDER, 'MANAGE_TRAVELLING'), false);
   assert.equal(canAccessRoute(ROLES.ELDER, '/travelling'), true);
 });
+
+test('Leader can view travelling but not manage destinations', () => {
+  assert.equal(canPerformAction(ROLES.LEADER, 'VIEW_TRAVELLING'), true);
+  assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_TRAVELLING'), false);
+  assert.equal(canAccessRoute(ROLES.LEADER, '/travelling'), true);
+  assert.equal(canAccessRoute(ROLES.LEADER, '/members'), false);
+});

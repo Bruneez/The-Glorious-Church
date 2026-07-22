@@ -4,6 +4,7 @@ import {
   isFullAccessRole,
   isOperationalStaffRole,
   isElderRole,
+  isLeader,
 } from './roles.js';
 
 const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.LEADER];
@@ -22,8 +23,8 @@ const OPERATIONAL_DENIED_ACTIONS = new Set([
   'VIEW_ALL_TASKS',
 ]);
 
-/** Routes elders must never access, even via direct URL. */
-const ELDER_RESTRICTED_ROUTES = [
+/** Routes Elder and Leader must never access, even via direct URL. */
+const MINISTRY_PARTICIPANT_RESTRICTED_ROUTES = [
   '/users',
   '/system-users',
   '/members',
@@ -32,8 +33,8 @@ const ELDER_RESTRICTED_ROUTES = [
   '/development-board',
 ];
 
-/** Routes elders may access (sidebar + direct URL). */
-const ELDER_ALLOWED_ROUTES = [
+/** Routes Elder and Leader may access (sidebar + direct URL). */
+const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
   '/dashboard',
   '/blueprint',
   '/creative-arts',
@@ -49,6 +50,20 @@ const ELDER_ALLOWED_ROUTES = [
   '/service-program',
   '/tasks',
 ];
+
+/** Roles that can open Creative Arts department details (Leaders see tile summaries only). */
+const CREATIVE_ARTS_DETAIL_ROLES = [...OPERATIONAL_STAFF, ROLES.ELDER];
+
+/** Roles that can open individual school records (Leaders see tile summaries only). */
+const SCHOOL_DETAIL_ROLES = [...OPERATIONAL_STAFF, ROLES.ELDER];
+
+function canMinistryParticipantAccessRoute(pathname) {
+  if (MINISTRY_PARTICIPANT_RESTRICTED_ROUTES.includes(pathname)) return false;
+  if (MINISTRY_PARTICIPANT_ALLOWED_ROUTES.includes(pathname)) return true;
+  if (pathname.startsWith('/schools/')) return true;
+  if (pathname === '/profile') return true;
+  return false;
+}
 
 export const ROUTE_ACCESS = {
   '/dashboard': ALL_STAFF,
@@ -72,20 +87,12 @@ export const ROUTE_ACCESS = {
   '/travelling': ALL_STAFF,
 };
 
-function canElderAccessRoute(pathname) {
-  if (ELDER_RESTRICTED_ROUTES.includes(pathname)) return false;
-  if (ELDER_ALLOWED_ROUTES.includes(pathname)) return true;
-  if (pathname.startsWith('/schools/')) return true;
-  if (pathname === '/profile') return true;
-  return false;
-}
-
 export function canAccessRoute(role, pathname) {
   const normalizedRole = normalizeRole(role);
   if (isFullAccessRole(normalizedRole)) return true;
 
-  if (isElderRole(normalizedRole)) {
-    return canElderAccessRoute(pathname);
+  if (isElderRole(normalizedRole) || isLeader(normalizedRole)) {
+    return canMinistryParticipantAccessRoute(pathname);
   }
 
   if (
@@ -104,11 +111,13 @@ export const ACTIONS = {
   MANAGE_STAFF: [ROLES.LEAD_PASTOR],
   MANAGE_MEMBERS: OPERATIONAL_STAFF,
   MANAGE_ATTENDANCE: OPERATIONAL_STAFF,
-  RECORD_DEPARTMENT_ATTENDANCE: [ROLES.LEADER],
+  RECORD_DEPARTMENT_ATTENDANCE: [],
   MANAGE_OFFERINGS: OPERATIONAL_STAFF,
   MANAGE_EVENTS: OPERATIONAL_STAFF,
-  CREATE_CALENDAR_EVENTS: [ROLES.ELDER],
-  MANAGE_OWN_CALENDAR_EVENTS: [ROLES.ELDER],
+  CREATE_CALENDAR_EVENTS: [ROLES.ELDER, ROLES.LEADER],
+  MANAGE_OWN_CALENDAR_EVENTS: [ROLES.ELDER, ROLES.LEADER],
+  OPEN_CREATIVE_ARTS_DEPARTMENT: CREATIVE_ARTS_DETAIL_ROLES,
+  OPEN_SCHOOL_RECORD: SCHOOL_DETAIL_ROLES,
   MANAGE_CREATIVE_ARTS: OPERATIONAL_STAFF,
   MANAGE_MINISTRIES: OPERATIONAL_STAFF,
   MANAGE_TRANSPORT: OPERATIONAL_STAFF,

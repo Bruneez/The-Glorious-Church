@@ -107,9 +107,17 @@ export default function SchoolsPage() {
 
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
   const canEditDeleteSchools = canPerformAction('EDIT_DELETE_SCHOOLS');
+  const canOpenSchoolRecord = canPerformAction('OPEN_SCHOOL_RECORD');
 
   useEffect(() => {
     const schoolId = searchParams.get('schoolId');
+
+    if (!canOpenSchoolRecord) {
+      if (schoolId) {
+        setSearchParams(removeSchoolIdSearchParam(searchParams), { replace: true });
+      }
+      return;
+    }
 
     if (shouldOpenSchoolFromDeepLink({
       schoolId,
@@ -129,7 +137,7 @@ export default function SchoolsPage() {
       setFeedback({ type: 'error', message: 'School could not be found.' });
       setSearchParams(removeSchoolIdSearchParam(searchParams), { replace: true });
     }
-  }, [schools, schoolsLoading, searchParams, setSearchParams, viewingSchool?.id]);
+  }, [schools, schoolsLoading, searchParams, setSearchParams, viewingSchool?.id, canOpenSchoolRecord]);
 
   const memberCounts = useMemo(
     () => computeMemberCountsBySchool(members, schools),
@@ -208,6 +216,7 @@ export default function SchoolsPage() {
   };
 
   const handleViewSchool = (tableSchool) => {
+    if (!canOpenSchoolRecord) return;
     setViewingSchool(tableSchool?.raw || null);
   };
 
@@ -336,11 +345,12 @@ export default function SchoolsPage() {
                 ) : (
                   <SchoolsCardGrid
                     schools={categorySchools}
-                    onView={handleViewSchool}
+                    onView={canOpenSchoolRecord ? handleViewSchool : undefined}
                     onEdit={canManageSchools ? handleEditSchool : undefined}
                     onDelete={canEditDeleteSchools ? handleDeleteSchool : undefined}
                     canEdit={canManageSchools}
                     canDelete={canEditDeleteSchools}
+                    canOpenDetails={canOpenSchoolRecord}
                     emptyMessage={category.emptyMessage}
                   />
                 )}
@@ -360,12 +370,14 @@ export default function SchoolsPage() {
         />
       )}
 
-      <SchoolsViewModal
-        school={viewingSchool}
-        members={members}
-        isOpen={Boolean(viewingSchool)}
-        onClose={handleCloseViewModal}
-      />
+      {canOpenSchoolRecord && (
+        <SchoolsViewModal
+          school={viewingSchool}
+          members={members}
+          isOpen={Boolean(viewingSchool)}
+          onClose={handleCloseViewModal}
+        />
+      )}
     </div>
   );
 }
