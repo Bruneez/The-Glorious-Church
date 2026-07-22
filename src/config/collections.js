@@ -16,4 +16,8 @@ export const COLLECTIONS = {
   SERVICE_PROGRAMS: 'servicePrograms',
   TRAVEL_DESTINATIONS: 'travelDestinations',
   MACHANEH_MOVIES: 'machanehMovies',
+  MERCHANDISE: 'merchandise',
+  MERCHANDISE_SALES: 'merchandiseSales',
+  MERCHANDISE_STOCK_MOVEMENTS: 'merchandiseStockMovements',
+  MERCHANDISE_REQUESTS: 'merchandiseRequests',
 };

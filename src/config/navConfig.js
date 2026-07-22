@@ -16,6 +16,7 @@ import {
   ListTodo,
   Plane,
   Clapperboard,
+  ShoppingBag,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -32,6 +33,7 @@ export const NAV_ITEMS = [
   { path: '/transport', label: 'Saturday Transport', icon: Bus, roles: null },
   { path: '/travelling', label: 'Travelling', icon: Plane, roles: null },
   { path: '/machaneh-movies', label: 'Machaneh Movies', icon: Clapperboard, roles: null },
+  { path: '/merchandise', label: 'Merchandise', icon: ShoppingBag, roles: null },
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
   { path: '/service-program', label: 'Service Program', icon: ClipboardList, roles: null },
   { path: '/tasks', label: 'Tasks', icon: ListTodo, roles: null },
@@ -58,6 +60,7 @@ export const PAGE_TITLES = {
   '/transport': 'Saturday Transport',
   '/travelling': 'Travelling',
   '/machaneh-movies': 'Machaneh Movies',
+  '/merchandise': 'Merchandise',
   '/calendar': 'Calendar',
   '/service-program': 'Service Program',
   '/development-board': 'Development Board',

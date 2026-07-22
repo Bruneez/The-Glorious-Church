@@ -24,6 +24,7 @@ import BlueprintPage from '@/pages/BlueprintPage';
 import ServiceProgramPage from '@/pages/ServiceProgramPage';
 import TravellingPage from '@/pages/TravellingPage';
 import MachanehMoviesPage from '@/pages/MachanehMoviesPage';
+import MerchandisePage from '@/pages/MerchandisePage';
 
 export default function AppRoutes() {
   return (
@@ -57,6 +58,7 @@ export default function AppRoutes() {
           <Route path="transport" element={<TransportPage />} />
           <Route path="travelling" element={<TravellingPage />} />
           <Route path="machaneh-movies" element={<MachanehMoviesPage />} />
+          <Route path="merchandise" element={<MerchandisePage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="service-program" element={<ServiceProgramPage />} />
           <Route path="development-board" element={<DevelopmentBoardPage />} />
