@@ -10,7 +10,7 @@ import AttendanceTable from '@/components/features/attendance/AttendanceTable';
 import AttendanceMobileList from '@/components/features/attendance/AttendanceMobileList';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { isChurchWideStaff, isCALeader, normalizeRole } from '@/config/roles';
+import { isChurchWideStaff, isCALeader, isElderRole, normalizeRole } from '@/config/roles';
 import {
   useAttendance,
   createAttendanceRecord,
@@ -53,6 +53,8 @@ export default function AttendancePage() {
 
   const effectiveRole = normalizeRole(role || staffProfile?.role || '');
   const isChurchWideUser = isChurchWideStaff(effectiveRole);
+  const isElderViewer = isElderRole(effectiveRole);
+  const canViewChurchAttendance = isChurchWideUser || isElderViewer;
   const isDepartmentLeader = isCALeader(effectiveRole);
 
   const canRecordChurchAttendance = isChurchWideUser && canPerformAction('MANAGE_ATTENDANCE');
@@ -92,13 +94,13 @@ export default function AttendancePage() {
   const visibleRecords = useMemo(
     () =>
       filterRecordsForRole(attendanceRecords, {
-        isChurchWideUser,
+        isChurchWideUser: canViewChurchAttendance,
         staffProfile,
       }),
-    [attendanceRecords, isChurchWideUser, staffProfile],
+    [attendanceRecords, canViewChurchAttendance, staffProfile],
   );
 
-  const tableViewMode = isChurchWideUser ? 'service' : 'department';
+  const tableViewMode = canViewChurchAttendance ? 'service' : 'department';
 
   const records = useMemo(
     () =>
@@ -118,11 +120,11 @@ export default function AttendancePage() {
     : 'No attendance records found.';
 
   const stats = useMemo(() => {
-    if (isChurchWideUser) {
+    if (canViewChurchAttendance) {
       return computeAttendanceStats(visibleRecords, { summaryOnly: true });
     }
     return computeDepartmentAttendanceStats(visibleRecords);
-  }, [visibleRecords, isChurchWideUser]);
+  }, [visibleRecords, canViewChurchAttendance]);
 
   const getRecordedByName = () =>
     staffProfile?.name ||

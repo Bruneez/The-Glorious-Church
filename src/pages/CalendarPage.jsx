@@ -5,7 +5,12 @@ import UpcomingEventsPanel from '@/components/features/calendar/UpcomingEventsPa
 import { useEvents, createEvent, updateEvent, deleteEvent } from '@/services/calendarService';
 import { useMembers } from '@/services/membersService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/utils/formatters';
+import {
+  canCreateCalendarEvent,
+  canManageCalendarEvent,
+} from '@/config/permissions';
 import {
   getBirthdayEventsForDate,
   getUpcomingBirthdayEvents,
@@ -22,13 +27,25 @@ const UPCOMING_EVENT_LIMIT = 9;
 export default function CalendarPage() {
   const { data: events = [], loading: eventsLoading } = useEvents();
   const { data: members = [], loading: membersLoading } = useMembers();
-  const { canPerformAction } = useRoleAccess();
+  const { canPerformAction, role } = useRoleAccess();
+  const { staffDocId, staffProfile, firebaseUser } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
   const loading = eventsLoading || membersLoading;
+
+  const currentUserId = staffDocId || firebaseUser?.uid || '';
+  const currentUserName =
+    staffProfile?.fullName ||
+    staffProfile?.name ||
+    firebaseUser?.displayName ||
+    firebaseUser?.email ||
+    'Staff Member';
+
+  const canCreateEvents = canCreateCalendarEvent(role);
+  const canManageEvent = (event) => canManageCalendarEvent(role, event, currentUserId);
 
   const scheduleEvents = useMemo(() => {
     if (selectedDate) {
@@ -53,6 +70,8 @@ export default function CalendarPage() {
   const scheduleTitle = selectedDate ? formatDate(selectedDate) : 'Upcoming Events';
 
   const handleAddEvent = () => {
+    if (!canCreateEvents) return;
+
     setEditingEvent(null);
     if (selectedDate) {
       setEditingEvent({ date: selectedDate });
@@ -62,6 +81,8 @@ export default function CalendarPage() {
 
   const handleEditEvent = (event) => {
     if (event?.isBirthday || event?.isReadOnly) return;
+    if (!canManageEvent(event)) return;
+
     setEditingEvent(event);
     setIsFormOpen(true);
   };
@@ -69,30 +90,36 @@ export default function CalendarPage() {
   const handleFormSubmit = async (formData) => {
     try {
       if (editingEvent?.id) {
-        await updateEvent(editingEvent.id, formData);
+        await updateEvent(editingEvent.id, formData, { role, userId: currentUserId });
       } else {
-        await createEvent(formData);
+        await createEvent(formData, {
+          createdBy: currentUserId,
+          createdByName: currentUserName,
+        });
       }
       setIsFormOpen(false);
       setEditingEvent(null);
     } catch (error) {
       console.error('Error saving event:', error);
-      alert('Failed to save event. Please try again.');
+      alert(error.message || 'Failed to save event. Please try again.');
     }
   };
 
   const handleDeleteEvent = async (eventId) => {
     if (String(eventId).startsWith('birthday-')) return;
 
+    const event = events.find((item) => item.id === eventId);
+    if (!canManageEvent(event)) return;
+
     try {
-      await deleteEvent(eventId);
+      await deleteEvent(eventId, { role, userId: currentUserId });
     } catch (error) {
       console.error('Error deleting event:', error);
-      alert('Failed to delete event. Please try again.');
+      alert(error.message || 'Failed to delete event. Please try again.');
     }
   };
 
-  const canManageEvents = canPerformAction('MANAGE_EVENTS');
+  const canManageAllEvents = canPerformAction('MANAGE_EVENTS');
 
   return (
     <div className="page-root">
@@ -108,8 +135,8 @@ export default function CalendarPage() {
         members={members}
         onDateClick={setSelectedDate}
         selectedDate={selectedDate}
-        onAddEvent={canManageEvents ? handleAddEvent : undefined}
-        canAddEvent={canManageEvents}
+        onAddEvent={canCreateEvents ? handleAddEvent : undefined}
+        canAddEvent={canCreateEvents}
       />
 
       <UpcomingEventsPanel
@@ -117,7 +144,7 @@ export default function CalendarPage() {
           loading={loading}
           title={scheduleTitle}
           selectedDate={selectedDate}
-          canManageEvents={canManageEvents}
+          canManageEvent={canManageAllEvents ? () => true : canManageEvent}
           onEdit={handleEditEvent}
           onDelete={handleDeleteEvent}
           onClearSelection={() => setSelectedDate(null)}

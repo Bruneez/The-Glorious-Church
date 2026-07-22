@@ -61,7 +61,8 @@ test('Lead Pastor receives full travelling permissions', () => {
   assert.equal(canAccessRoute(ROLES.LEAD_PASTOR, '/users'), true);
 });
 
-test('Elder still does not inherit travelling permissions until configured', () => {
-  assert.equal(canPerformAction(ROLES.ELDER, 'VIEW_TRAVELLING'), false);
+test('Elder can view travelling but not manage destinations', () => {
+  assert.equal(canPerformAction(ROLES.ELDER, 'VIEW_TRAVELLING'), true);
   assert.equal(canPerformAction(ROLES.ELDER, 'MANAGE_TRAVELLING'), false);
+  assert.equal(canAccessRoute(ROLES.ELDER, '/travelling'), true);
 });

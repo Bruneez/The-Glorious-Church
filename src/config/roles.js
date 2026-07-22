@@ -103,6 +103,10 @@ export function isPastorRole(role) {
   return normalizeRole(role) === ROLES.PASTOR;
 }
 
+export function isElderRole(role) {
+  return normalizeRole(role) === ROLES.ELDER;
+}
+
 export function isLeader(role) {
   return normalizeRole(role) === ROLES.LEADER;
 }
