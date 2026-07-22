@@ -12,18 +12,28 @@ import {
   COUNTRY_OPTIONS,
   ETHNICITY_OPTIONS,
   BRANCH_OPTIONS,
+  CHURCH_OPTIONS,
+  MEMBERSHIP_NA,
   MEMBER_FORM_OCCUPATION_OPTIONS,
   MEMBER_FORM_STATUS_OPTIONS,
+  buildCreativeArtsSelectOptions,
+  buildMinistrySelectOptions,
   createEmptyMemberSubjects,
   getOccupationFieldReset,
+  isCapeTownChurch,
   isSeniorSchoolGrade,
   mapMemberToFormData,
   MAX_MEMBER_SUBJECTS,
   ACCEPTED_MEMBER_PHOTO_ACCEPT,
   validateMemberPhotoFile,
+  validateMemberFormData,
+  resolveCreativeArtsFormSelection,
+  resolveMinistryFormSelection,
 } from '@/config/memberOptions';
-import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE } from '@/config/schoolsOptions';
+import { SCHOOL_TYPE, LEGACY_SCHOOL_TYPE, SCHOOL_STATUS } from '@/config/schoolsOptions';
 import { useSchoolsByType } from '@/services/schoolsService';
+import { useCreativeArts } from '@/services/creativeArtsService';
+import { useMinistries } from '@/services/ministriesService';
 import { uploadMemberPhoto, uploadMemberReportCard, deleteMemberPhoto, deleteMemberReportCard } from '@/services/storageService';
 import { geocodeAddress } from '@/services/mapService';
 import { getStorageErrorMessage } from '@/utils/storageErrors';
@@ -70,12 +80,26 @@ function getSchoolsForOccupation(occupation, schoolLists) {
   return [];
 }
 
-export default function MemberForm({ isOpen, onClose, onSubmit, initialData = null }) {
+function filterActiveSchools(schools = []) {
+  return schools.filter(
+    (school) => (school.status || SCHOOL_STATUS.ACTIVE) === SCHOOL_STATUS.ACTIVE,
+  );
+}
+
+export default function MemberForm({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData = null,
+  lockCreativeArtsDepartmentName = '',
+}) {
   const { data: primarySchools = [] } = useSchoolsByType(SCHOOL_TYPE.PRIMARY);
   const { data: highSchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGH);
   const { data: universitySchools = [] } = useSchoolsByType(SCHOOL_TYPE.UNIVERSITY);
   const { data: collegeSchools = [] } = useSchoolsByType(SCHOOL_TYPE.COLLEGE);
   const { data: legacyHigherEducationSchools = [] } = useSchoolsByType(LEGACY_SCHOOL_TYPE.SLUG_HIGHER_ED);
+  const { data: creativeArtsTeams = [] } = useCreativeArts();
+  const { data: ministries = [] } = useMinistries();
 
   const [formData, setFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
@@ -88,14 +112,41 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
   const schoolLists = useMemo(
     () => ({
-      primarySchools,
-      highSchools,
-      universitySchools,
-      collegeSchools,
-      legacyHigherEducationSchools,
+      primarySchools: filterActiveSchools(primarySchools),
+      highSchools: filterActiveSchools(highSchools),
+      universitySchools: filterActiveSchools(universitySchools),
+      collegeSchools: filterActiveSchools(collegeSchools),
+      legacyHigherEducationSchools: filterActiveSchools(legacyHigherEducationSchools),
     }),
     [primarySchools, highSchools, universitySchools, collegeSchools, legacyHigherEducationSchools],
   );
+
+  const activeCreativeArtsTeams = useMemo(
+    () => creativeArtsTeams.filter((team) => (team.status || 'Active') === 'Active'),
+    [creativeArtsTeams],
+  );
+
+  const activeMinistries = useMemo(
+    () => ministries.filter((ministry) => (ministry.status || 'Active') === 'Active'),
+    [ministries],
+  );
+
+  const creativeArtsOptions = useMemo(
+    () => buildCreativeArtsSelectOptions(creativeArtsTeams),
+    [creativeArtsTeams],
+  );
+
+  const ministryOptions = useMemo(
+    () => buildMinistrySelectOptions(ministries),
+    [ministries],
+  );
+
+  const lockedCreativeArtsTeam = useMemo(() => {
+    if (!lockCreativeArtsDepartmentName) return null;
+    return activeCreativeArtsTeams.find((team) => team.name === lockCreativeArtsDepartmentName) || null;
+  }, [activeCreativeArtsTeams, lockCreativeArtsDepartmentName]);
+
+  const showCapeTownFields = isCapeTownChurch(formData.church);
 
   const activeSchoolOptions = useMemo(
     () => getSchoolsForOccupation(formData.occupation, schoolLists),
@@ -143,6 +194,38 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
     }));
   }, [activeSchoolOptions, formData.schoolId, initialData, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !initialData) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      creativeArtsId: resolveCreativeArtsFormSelection(initialData, creativeArtsTeams),
+      creativeArtsName:
+        activeCreativeArtsTeams.find(
+          (team) => team.id === resolveCreativeArtsFormSelection(initialData, creativeArtsTeams),
+        )?.name
+        || initialData.department
+        || '',
+      ministryId: resolveMinistryFormSelection(initialData, ministries),
+      ministryName:
+        activeMinistries.find(
+          (ministry) => ministry.id === resolveMinistryFormSelection(initialData, ministries),
+        )?.ministryName
+        || initialData.ministryName
+        || '',
+    }));
+  }, [activeCreativeArtsTeams, activeMinistries, creativeArtsTeams, initialData, isOpen, ministries]);
+
+  useEffect(() => {
+    if (!isOpen || !lockCreativeArtsDepartmentName || !lockedCreativeArtsTeam) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      creativeArtsId: lockedCreativeArtsTeam.id,
+      creativeArtsName: lockedCreativeArtsTeam.name,
+    }));
+  }, [isOpen, lockCreativeArtsDepartmentName, lockedCreativeArtsTeam]);
+
   const applySchoolSelection = (schoolId, schools) => {
     const selectedSchool = schools.find((school) => school.id === schoolId);
 
@@ -162,6 +245,40 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === 'church') {
+      setFormData((prev) => {
+        const next = { ...prev, church: value };
+
+        if (!isCapeTownChurch(value)) {
+          next.branch = '';
+          next.zoneSupervisor = '';
+        }
+
+        return next;
+      });
+      return;
+    }
+
+    if (name === 'creativeArtsId') {
+      const selectedTeam = activeCreativeArtsTeams.find((team) => team.id === value);
+      setFormData((prev) => ({
+        ...prev,
+        creativeArtsId: value,
+        creativeArtsName: selectedTeam?.name || '',
+      }));
+      return;
+    }
+
+    if (name === 'ministryId') {
+      const selectedMinistry = activeMinistries.find((ministry) => ministry.id === value);
+      setFormData((prev) => ({
+        ...prev,
+        ministryId: value,
+        ministryName: selectedMinistry?.ministryName || '',
+      }));
+      return;
+    }
 
     if (name === 'occupation') {
       setFormData((prev) => ({
@@ -312,6 +429,17 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
 
     if (!formData.dob) {
       setError('Date of birth is required.');
+      return;
+    }
+
+    const validationMessage = validateMemberFormData(formData, {
+      activeCreativeArtsTeams,
+      activeMinistries,
+      activeSchools: activeSchoolOptions,
+    });
+
+    if (validationMessage) {
+      setError(validationMessage);
       return;
     }
 
@@ -546,23 +674,37 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
               onChange={handleChange}
             />
             <Select
-              label="Branch"
-              name="branch"
-              value={formData.branch}
+              label="Church"
+              name="church"
+              value={formData.church}
               onChange={handleChange}
-              options={BRANCH_OPTIONS}
-              placeholder="Select Branch"
+              options={CHURCH_OPTIONS}
+              placeholder="Select Church"
+              required
             />
           </div>
 
+          {showCapeTownFields ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Select
+                label="Branch"
+                name="branch"
+                value={formData.branch}
+                onChange={handleChange}
+                options={BRANCH_OPTIONS}
+                placeholder="Select Branch"
+              />
+              <Input
+                label="Zone Supervisor"
+                name="zoneSupervisor"
+                value={formData.zoneSupervisor}
+                onChange={handleChange}
+                placeholder="Zone supervisor name"
+              />
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Zone Supervisor"
-              name="zoneSupervisor"
-              value={formData.zoneSupervisor}
-              onChange={handleChange}
-              placeholder="Zone supervisor name"
-            />
             <Input
               label="Cell Leader"
               name="cellLeader"
@@ -570,9 +712,37 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
               onChange={handleChange}
               placeholder="Cell leader name"
             />
+            {!lockCreativeArtsDepartmentName ? (
+              <Select
+                label="Creative Arts"
+                name="creativeArtsId"
+                value={formData.creativeArtsId || MEMBERSHIP_NA}
+                onChange={handleChange}
+                options={creativeArtsOptions}
+                placeholder="Select Creative Arts Group"
+                required
+              />
+            ) : (
+              <Input
+                label="Creative Arts"
+                name="creativeArtsName"
+                value={formData.creativeArtsName || lockCreativeArtsDepartmentName}
+                readOnly
+                disabled
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select
+              label="Ministry"
+              name="ministryId"
+              value={formData.ministryId || MEMBERSHIP_NA}
+              onChange={handleChange}
+              options={ministryOptions}
+              placeholder="Select Ministry"
+              required
+            />
             <Select
               label="Occupation"
               name="occupation"
@@ -581,6 +751,28 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
               options={occupationOptions}
               placeholder="Select Occupation"
             />
+          </div>
+        </div>
+
+        <MemberOccupationFields
+          occupation={formData.occupation}
+          formData={formData}
+          primarySchools={schoolLists.primarySchools}
+          highSchools={schoolLists.highSchools}
+          universitySchools={schoolLists.universitySchools}
+          collegeSchools={schoolLists.collegeSchools}
+          legacyHigherEducationSchools={schoolLists.legacyHigherEducationSchools}
+          onFieldChange={handleChange}
+          onSchoolSelect={handleSchoolSelect}
+          onSubjectChange={handleSubjectChange}
+          onAddSubject={handleAddSubject}
+          onRemoveSubject={handleRemoveSubject}
+          onReportCardChange={handleReportCardChange}
+        />
+
+        <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4">
+          <CoreSectionHeading title="Membership Status" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label="Status"
               name="status"
@@ -591,22 +783,6 @@ export default function MemberForm({ isOpen, onClose, onSubmit, initialData = nu
             />
           </div>
         </div>
-
-        <MemberOccupationFields
-          occupation={formData.occupation}
-          formData={formData}
-          primarySchools={primarySchools}
-          highSchools={highSchools}
-          universitySchools={universitySchools}
-          collegeSchools={collegeSchools}
-          legacyHigherEducationSchools={legacyHigherEducationSchools}
-          onFieldChange={handleChange}
-          onSchoolSelect={handleSchoolSelect}
-          onSubjectChange={handleSubjectChange}
-          onAddSubject={handleAddSubject}
-          onRemoveSubject={handleRemoveSubject}
-          onReportCardChange={handleReportCardChange}
-        />
 
         {error && <p className="text-rose-400 text-[11px]">{error}</p>}
 

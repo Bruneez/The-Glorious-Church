@@ -10,6 +10,7 @@ import {
   isFullAccessRole,
   isChurchWideStaff,
   isPastorRole,
+  isOperationalStaffRole,
   isElderRole,
 } from './roles.js';
 
@@ -45,12 +46,20 @@ test('isLeader and isCALeader remain equivalent', () => {
   assert.equal(isLeader(ROLES.PASTOR), false);
 });
 
-test('isFullAccessRole recognises Lead Pastor and Admin only', () => {
+test('isFullAccessRole recognises Lead Pastor only', () => {
   assert.equal(isFullAccessRole(ROLES.LEAD_PASTOR), true);
-  assert.equal(isFullAccessRole(ROLES.ADMIN), true);
+  assert.equal(isFullAccessRole(ROLES.ADMIN), false);
   assert.equal(isFullAccessRole(ROLES.PASTOR), false);
   assert.equal(isFullAccessRole(ROLES.ELDER), false);
   assert.equal(isFullAccessRole('lead pastor'), true);
+});
+
+test('isOperationalStaffRole recognises Pastor and Admin only', () => {
+  assert.equal(isOperationalStaffRole(ROLES.PASTOR), true);
+  assert.equal(isOperationalStaffRole(ROLES.ADMIN), true);
+  assert.equal(isOperationalStaffRole('administrator'), true);
+  assert.equal(isOperationalStaffRole(ROLES.LEAD_PASTOR), false);
+  assert.equal(isOperationalStaffRole(ROLES.ELDER), false);
 });
 
 test('isChurchWideStaff includes Lead Pastor, Admin, and Pastor', () => {

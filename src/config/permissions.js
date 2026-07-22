@@ -1,159 +1,191 @@
-import {
-  ROLES,
-  normalizeRole,
-  isFullAccessRole,
-  isPastorRole,
-  isElderRole,
-} from './roles.js';
-
-const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.LEADER];
-
-/** Routes pastors must never access, even via direct URL. */
-const PASTOR_RESTRICTED_ROUTES = ['/users', '/system-users', '/development-board'];
-
-/** Routes elders must never access, even via direct URL. */
-const ELDER_RESTRICTED_ROUTES = [
-  '/users',
-  '/system-users',
-  '/members',
-  '/map',
-  '/offerings',
-  '/development-board',
-];
-
-/** Routes elders may access (sidebar + direct URL). */
-const ELDER_ALLOWED_ROUTES = [
-  '/dashboard',
-  '/blueprint',
-  '/creative-arts',
-  '/ministries',
-  '/schools',
-  '/schools/primary',
-  '/schools/high',
-  '/schools/higher-education',
-  '/attendance',
-  '/transport',
-  '/travelling',
-  '/calendar',
-  '/service-program',
-  '/tasks',
-];
-
-/** Task and user-management actions withheld from pastors. */
-const PASTOR_DENIED_ACTIONS = new Set([
-  'MANAGE_STAFF',
-  'MANAGE_DEVELOPMENT_BOARD',
-  'MANAGE_TASKS',
-  'VIEW_ALL_TASKS',
-]);
-
-export const ROUTE_ACCESS = {
-  '/dashboard': ALL_STAFF,
-  '/blueprint': ALL_STAFF,
-  '/users': [ROLES.ADMIN],
-  '/system-users': [ROLES.ADMIN],
-  '/members': ALL_STAFF,
-  '/creative-arts': ALL_STAFF,
-  '/ministries': ALL_STAFF,
-  '/schools/primary': ALL_STAFF,
-  '/schools/high': ALL_STAFF,
-  '/schools/higher-education': ALL_STAFF,
-  '/map': ALL_STAFF,
-  '/attendance': ALL_STAFF,
-  '/offerings': ALL_STAFF,
-  '/transport': ALL_STAFF,
-  '/calendar': ALL_STAFF,
-  '/service-program': ALL_STAFF,
-  '/development-board': [ROLES.ADMIN],
-  '/tasks': ALL_STAFF,
-  '/travelling': ALL_STAFF,
-};
-
-function canElderAccessRoute(pathname) {
-  if (ELDER_RESTRICTED_ROUTES.includes(pathname)) return false;
-  if (ELDER_ALLOWED_ROUTES.includes(pathname)) return true;
-  if (pathname.startsWith('/schools/')) return true;
-  if (pathname === '/profile') return true;
-  return false;
-}
-
-export function canAccessRoute(role, pathname) {
-  const normalizedRole = normalizeRole(role);
-  if (isFullAccessRole(normalizedRole)) return true;
-
-  if (isElderRole(normalizedRole)) {
-    return canElderAccessRoute(pathname);
-  }
-
-  if (isPastorRole(normalizedRole) && PASTOR_RESTRICTED_ROUTES.includes(pathname)) {
-    return false;
-  }
-
-  const allowedRoles = ROUTE_ACCESS[pathname];
-  if (!allowedRoles) return true;
-  return allowedRoles.includes(normalizedRole) || !normalizedRole;
-}
-
-export const ACTIONS = {
-  MANAGE_STAFF: [ROLES.ADMIN],
-  MANAGE_MEMBERS: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_ATTENDANCE: [ROLES.ADMIN, ROLES.PASTOR],
-  RECORD_DEPARTMENT_ATTENDANCE: [ROLES.LEADER],
-  MANAGE_OFFERINGS: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_EVENTS: [ROLES.ADMIN, ROLES.PASTOR],
-  CREATE_CALENDAR_EVENTS: [ROLES.ELDER],
-  MANAGE_OWN_CALENDAR_EVENTS: [ROLES.ELDER],
-  MANAGE_CREATIVE_ARTS: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_MINISTRIES: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_TRANSPORT: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_SCHOOLS: [ROLES.ADMIN, ROLES.PASTOR],
-  EDIT_DELETE_SCHOOLS: [ROLES.ADMIN, ROLES.PASTOR],
-  MANAGE_DEVELOPMENT_BOARD: [ROLES.ADMIN],
-  MANAGE_TASKS: [ROLES.ADMIN],
-  VIEW_ALL_TASKS: [ROLES.ADMIN],
-  UPDATE_OWN_TASK_STATUS: [ROLES.PASTOR, ROLES.ELDER, ROLES.LEADER],
-  MANAGE_SERVICE_PROGRAM: [ROLES.ADMIN, ROLES.PASTOR, ROLES.ELDER],
-  VIEW_TRAVELLING: [...ALL_STAFF, ROLES.ELDER],
-  MANAGE_TRAVELLING: [ROLES.ADMIN, ROLES.PASTOR],
-};
-
-export function canPerformAction(role, action) {
-  const normalizedRole = normalizeRole(role);
-  if (isFullAccessRole(normalizedRole)) return true;
-
-  if (isPastorRole(normalizedRole) && PASTOR_DENIED_ACTIONS.has(action)) {
-    return false;
-  }
-
-  const allowedRoles = ACTIONS[action];
-  if (!allowedRoles) return false;
-  return allowedRoles.includes(normalizedRole);
-}
-
-export function canCreateCalendarEvent(role) {
-  if (canPerformAction(role, 'MANAGE_EVENTS')) return true;
-  return canPerformAction(role, 'CREATE_CALENDAR_EVENTS');
-}
-
-export function canManageCalendarEvent(role, event, userId) {
-  if (canPerformAction(role, 'MANAGE_EVENTS')) return true;
-  if (!canPerformAction(role, 'MANAGE_OWN_CALENDAR_EVENTS')) return false;
-
-  const ownerId = String(event?.createdBy || '').trim();
-  const currentUserId = String(userId || '').trim();
-  if (!ownerId || !currentUserId) return false;
-
-  return ownerId === currentUserId;
-}
-
-export function assertCanManageCalendarEvent(
-  role,
-  event,
-  userId,
-  message = 'You can only edit or delete calendar events that you created.',
-) {
-  if (!canManageCalendarEvent(role, event, userId)) {
-    throw new Error(message);
-  }
-}
-
+import {
+  ROLES,
+  normalizeRole,
+  isFullAccessRole,
+  isOperationalStaffRole,
+  isPastorRole,
+  isElderRole,
+  isLeader,
+} from './roles.js';
+
+const ALL_STAFF = [ROLES.ADMIN, ROLES.PASTOR, ROLES.LEADER];
+
+/** Pastor and Admin share the same operational permission set for now. */
+const OPERATIONAL_STAFF = [ROLES.PASTOR, ROLES.ADMIN];
+
+/** Lead Pastor and Admin share Development Board access. */
+const DEVELOPMENT_BOARD_STAFF = [ROLES.LEAD_PASTOR, ROLES.ADMIN];
+
+/** Routes operational staff must never access, even via direct URL. */
+const OPERATIONAL_RESTRICTED_ROUTES = ['/users', '/system-users'];
+
+/** Actions withheld from operational staff (Pastor and Admin). */
+const OPERATIONAL_DENIED_ACTIONS = new Set([
+  'MANAGE_STAFF',
+  'MANAGE_TASKS',
+  'VIEW_ALL_TASKS',
+]);
+
+/** Actions withheld from Pastor only (Admin retains Development Board access). */
+const PASTOR_ONLY_DENIED_ACTIONS = new Set(['MANAGE_DEVELOPMENT_BOARD']);
+
+/** Routes Elder and Leader must never access, even via direct URL. */
+const MINISTRY_PARTICIPANT_RESTRICTED_ROUTES = [
+  '/users',
+  '/system-users',
+  '/members',
+  '/map',
+  '/offerings',
+  '/development-board',
+];
+
+/** Routes Elder and Leader may access (sidebar + direct URL). */
+const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
+  '/dashboard',
+  '/blueprint',
+  '/creative-arts',
+  '/ministries',
+  '/schools',
+  '/schools/primary',
+  '/schools/high',
+  '/schools/higher-education',
+  '/attendance',
+  '/transport',
+  '/travelling',
+  '/machaneh-movies',
+  '/calendar',
+  '/service-program',
+  '/tasks',
+];
+
+/** Roles that can open Creative Arts department details (Leaders see tile summaries only). */
+const CREATIVE_ARTS_DETAIL_ROLES = [...OPERATIONAL_STAFF, ROLES.ELDER];
+
+/** Roles that can open individual school records (Leaders see tile summaries only). */
+const SCHOOL_DETAIL_ROLES = [...OPERATIONAL_STAFF, ROLES.ELDER];
+
+function canMinistryParticipantAccessRoute(pathname) {
+  if (MINISTRY_PARTICIPANT_RESTRICTED_ROUTES.includes(pathname)) return false;
+  if (MINISTRY_PARTICIPANT_ALLOWED_ROUTES.includes(pathname)) return true;
+  if (pathname.startsWith('/schools/')) return true;
+  if (pathname === '/profile') return true;
+  return false;
+}
+
+export const ROUTE_ACCESS = {
+  '/dashboard': ALL_STAFF,
+  '/blueprint': ALL_STAFF,
+  '/users': [ROLES.LEAD_PASTOR],
+  '/system-users': [ROLES.LEAD_PASTOR],
+  '/members': ALL_STAFF,
+  '/creative-arts': ALL_STAFF,
+  '/ministries': ALL_STAFF,
+  '/schools/primary': ALL_STAFF,
+  '/schools/high': ALL_STAFF,
+  '/schools/higher-education': ALL_STAFF,
+  '/map': ALL_STAFF,
+  '/attendance': ALL_STAFF,
+  '/offerings': ALL_STAFF,
+  '/transport': ALL_STAFF,
+  '/calendar': ALL_STAFF,
+  '/service-program': ALL_STAFF,
+  '/development-board': DEVELOPMENT_BOARD_STAFF,
+  '/tasks': ALL_STAFF,
+  '/travelling': ALL_STAFF,
+  '/machaneh-movies': ALL_STAFF,
+};
+
+export function canAccessRoute(role, pathname) {
+  const normalizedRole = normalizeRole(role);
+  if (isFullAccessRole(normalizedRole)) return true;
+
+  if (isElderRole(normalizedRole) || isLeader(normalizedRole)) {
+    return canMinistryParticipantAccessRoute(pathname);
+  }
+
+  if (
+    isOperationalStaffRole(normalizedRole) &&
+    OPERATIONAL_RESTRICTED_ROUTES.includes(pathname)
+  ) {
+    return false;
+  }
+
+  if (isPastorRole(normalizedRole) && pathname === '/development-board') {
+    return false;
+  }
+
+  const allowedRoles = ROUTE_ACCESS[pathname];
+  if (!allowedRoles) return true;
+  return allowedRoles.includes(normalizedRole) || !normalizedRole;
+}
+
+export const ACTIONS = {
+  MANAGE_STAFF: [ROLES.LEAD_PASTOR],
+  MANAGE_MEMBERS: OPERATIONAL_STAFF,
+  MANAGE_ATTENDANCE: OPERATIONAL_STAFF,
+  RECORD_DEPARTMENT_ATTENDANCE: [],
+  MANAGE_OFFERINGS: OPERATIONAL_STAFF,
+  MANAGE_EVENTS: OPERATIONAL_STAFF,
+  CREATE_CALENDAR_EVENTS: [ROLES.ELDER, ROLES.LEADER],
+  MANAGE_OWN_CALENDAR_EVENTS: [ROLES.ELDER, ROLES.LEADER],
+  OPEN_CREATIVE_ARTS_DEPARTMENT: CREATIVE_ARTS_DETAIL_ROLES,
+  OPEN_SCHOOL_RECORD: SCHOOL_DETAIL_ROLES,
+  MANAGE_CREATIVE_ARTS: OPERATIONAL_STAFF,
+  MANAGE_MINISTRIES: OPERATIONAL_STAFF,
+  MANAGE_TRANSPORT: OPERATIONAL_STAFF,
+  MANAGE_SCHOOLS: OPERATIONAL_STAFF,
+  EDIT_DELETE_SCHOOLS: OPERATIONAL_STAFF,
+  MANAGE_DEVELOPMENT_BOARD: DEVELOPMENT_BOARD_STAFF,
+  MANAGE_TASKS: [ROLES.LEAD_PASTOR],
+  VIEW_ALL_TASKS: [ROLES.LEAD_PASTOR],
+  UPDATE_OWN_TASK_STATUS: [...OPERATIONAL_STAFF, ROLES.ELDER, ROLES.LEADER],
+  MANAGE_SERVICE_PROGRAM: [...OPERATIONAL_STAFF, ROLES.ELDER],
+  VIEW_TRAVELLING: [...ALL_STAFF, ROLES.ELDER],
+  MANAGE_TRAVELLING: OPERATIONAL_STAFF,
+  VIEW_MACHANEH_MOVIES: [...ALL_STAFF, ROLES.ELDER],
+  MANAGE_MACHANEH_MOVIES: OPERATIONAL_STAFF,
+};
+
+export function canPerformAction(role, action) {
+  const normalizedRole = normalizeRole(role);
+  if (isFullAccessRole(normalizedRole)) return true;
+
+  if (isOperationalStaffRole(normalizedRole) && OPERATIONAL_DENIED_ACTIONS.has(action)) {
+    return false;
+  }
+
+  if (isPastorRole(normalizedRole) && PASTOR_ONLY_DENIED_ACTIONS.has(action)) {
+    return false;
+  }
+
+  const allowedRoles = ACTIONS[action];
+  if (!allowedRoles) return false;
+  return allowedRoles.includes(normalizedRole);
+}
+
+export function canCreateCalendarEvent(role) {
+  if (canPerformAction(role, 'MANAGE_EVENTS')) return true;
+  return canPerformAction(role, 'CREATE_CALENDAR_EVENTS');
+}
+
+export function canManageCalendarEvent(role, event, userId) {
+  if (canPerformAction(role, 'MANAGE_EVENTS')) return true;
+  if (!canPerformAction(role, 'MANAGE_OWN_CALENDAR_EVENTS')) return false;
+
+  const ownerId = String(event?.createdBy || '').trim();
+  const currentUserId = String(userId || '').trim();
+  if (!ownerId || !currentUserId) return false;
+
+  return ownerId === currentUserId;
+}
+
+export function assertCanManageCalendarEvent(
+  role,
+  event,
+  userId,
+  message = 'You can only edit or delete calendar events that you created.',
+) {
+  if (!canManageCalendarEvent(role, event, userId)) {
+    throw new Error(message);
+  }
+}

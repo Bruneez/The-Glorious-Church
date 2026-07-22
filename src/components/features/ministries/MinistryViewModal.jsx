@@ -1,12 +1,17 @@
+import { useMemo } from 'react';
 import { Church, Edit2, Users } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import MinistryAvatar from '@/components/features/ministries/MinistryAvatar';
+import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinkedMembersTable';
 import {
   MINISTRY_STATUS,
   MINISTRY_FUTURE_SECTIONS,
   getMinistryMemberCount,
+  getMembersLinkedToMinistry,
 } from '@/config/ministriesOptions';
+import { useMembers } from '@/services/membersService';
+import { mapLinkedMemberForDisplay } from '@/config/schoolsOptions';
 
 function DetailField({ label, value, children }) {
   return (
@@ -50,6 +55,12 @@ export default function MinistryViewModal({
   onEdit,
   canManage = false,
 }) {
+  const { data: allMembers = [] } = useMembers();
+  const linkedMembers = useMemo(() => {
+    if (!ministry) return [];
+    return getMembersLinkedToMinistry(allMembers, ministry).map(mapLinkedMemberForDisplay);
+  }, [allMembers, ministry]);
+
   if (!ministry) return null;
 
   const memberCount = getMinistryMemberCount(ministry);
@@ -92,12 +103,27 @@ export default function MinistryViewModal({
 
         <DetailField label="Description" value={ministry.description || 'No description provided.'} />
 
+        <div className="rounded-xl border border-slate-700/70 overflow-hidden">
+          <div className="p-4 border-b border-slate-700/70 bg-slate-900/40">
+            <h4 className="text-sm font-bold text-white tracking-wide">Linked Members</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Members from the directory linked to this ministry.
+            </p>
+          </div>
+          <div className="p-4 overflow-x-auto">
+            <SchoolLinkedMembersTable
+              members={linkedMembers}
+              emptyMessage="No members linked to this ministry."
+            />
+          </div>
+        </div>
+
         <div className="space-y-3">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Upcoming Sections
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {MINISTRY_FUTURE_SECTIONS.map((section) => (
+            {MINISTRY_FUTURE_SECTIONS.filter((section) => section !== 'Ministry Members').map((section) => (
               <FutureSectionPlaceholder key={section} title={section} />
             ))}
           </div>

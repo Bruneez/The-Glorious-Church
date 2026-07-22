@@ -1,6 +1,10 @@
 import { COLLECTIONS } from '@/config/collections';
 import { MEMBER_STATUS, buildMemberPayload, getMemberFullName } from '@/config/memberOptions';
 import {
+  syncMemberModuleMemberships,
+  cleanupMemberModuleMemberships,
+} from '@/services/memberMembershipService';
+import {
   createMemberAddedNotification,
   createMemberStatusChangedNotification,
 } from '@/services/notificationService';
@@ -161,6 +165,8 @@ export async function createMember(memberData, createdBy = '') {
     updatedAt: timestamp,
   });
 
+  await syncMemberModuleMemberships(createdMember.id, null, payload);
+
   await createMemberAddedNotification({
     memberId: createdMember.id,
     memberName: getMemberFullName(createdMember),
@@ -188,6 +194,8 @@ export async function updateMember(memberId, memberData) {
     ...payload,
     updatedAt: new Date().toISOString(),
   });
+
+  await syncMemberModuleMemberships(memberId, existingMember, payload);
 
   const storageWarnings = await cleanupReplacedMemberFiles(
     existingMember,
@@ -231,6 +239,8 @@ export async function deleteMember(memberId) {
 
   await deleteDocument(COLLECTIONS.MEMBERS, memberId);
 
+  await cleanupMemberModuleMemberships(memberId, existingMember);
+
   const storageWarnings = [];
 
   const photoWarning = await cleanupMemberStoragePath(
@@ -262,6 +272,12 @@ export function filterMembers(members, searchTerm) {
     member.surname?.toLowerCase().includes(term) ||
     getMemberFullName(member).toLowerCase().includes(term) ||
     member.phone?.toLowerCase().includes(term) ||
+    member.church?.toLowerCase().includes(term) ||
+    member.branch?.toLowerCase().includes(term) ||
+    member.zoneSupervisor?.toLowerCase().includes(term) ||
+    member.cellLeader?.toLowerCase().includes(term) ||
+    member.creativeArtsName?.toLowerCase().includes(term) ||
+    member.ministryName?.toLowerCase().includes(term) ||
     member.department?.toLowerCase().includes(term) ||
     member.creativeArts?.toLowerCase().includes(term) ||
     member.occupation?.toLowerCase().includes(term) ||

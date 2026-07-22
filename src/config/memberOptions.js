@@ -51,6 +51,99 @@ export const BRANCH_OPTIONS = [
   { value: 'University', label: 'University' },
 ];
 
+import {
+  CHURCH_CAPE_TOWN,
+  CHURCH_OPTIONS,
+  CHURCH_FILTER_OPTIONS,
+  MEMBERSHIP_NA,
+  isCapeTownChurch,
+  isMembershipSelection,
+  inferMemberChurch,
+  buildCreativeArtsSelectOptions,
+  buildMinistrySelectOptions,
+  occupationRequiresSchool,
+  validateMemberFormData,
+  applyChurchLocationFields,
+} from './memberFormValidation.js';
+
+export {
+  CHURCH_CAPE_TOWN,
+  CHURCH_OPTIONS,
+  CHURCH_FILTER_OPTIONS,
+  MEMBERSHIP_NA,
+  isCapeTownChurch,
+  isMembershipSelection,
+  inferMemberChurch,
+  buildCreativeArtsSelectOptions,
+  buildMinistrySelectOptions,
+  occupationRequiresSchool,
+  validateMemberFormData,
+  applyChurchLocationFields,
+};
+
+export function resolveCreativeArtsFormSelection(member, departments = []) {
+  if (!member) return MEMBERSHIP_NA;
+
+  const directId = String(member.creativeArtsId || member.departmentId || '').trim();
+  if (directId) {
+    const matchedById = departments.find((department) => department.id === directId);
+    if (matchedById && (matchedById.status || 'Active') === 'Active') {
+      return matchedById.id;
+    }
+  }
+
+  const departmentName = getMemberDepartment(member);
+  if (!departmentName) return MEMBERSHIP_NA;
+
+  const matchedByName = departments.find(
+    (department) => department.name === departmentName && (department.status || 'Active') === 'Active',
+  );
+
+  return matchedByName?.id || MEMBERSHIP_NA;
+}
+
+export function resolveMinistryFormSelection(member, ministries = []) {
+  if (!member) return MEMBERSHIP_NA;
+
+  const directId = String(member.ministryId || '').trim();
+  if (directId) {
+    const matchedById = ministries.find((ministry) => ministry.id === directId);
+    if (matchedById && (matchedById.status || 'Active') === 'Active') {
+      return matchedById.id;
+    }
+  }
+
+  const ministryName = String(member.ministryName || '').trim();
+  if (!ministryName) return MEMBERSHIP_NA;
+
+  const matchedByName = ministries.find(
+    (ministry) => ministry.ministryName === ministryName && (ministry.status || 'Active') === 'Active',
+  );
+
+  return matchedByName?.id || MEMBERSHIP_NA;
+}
+
+export function getMemberCreativeArtsName(member, departments = []) {
+  if (member?.creativeArtsName) return member.creativeArtsName;
+  if (member?.department) return member.department;
+
+  const teamId = String(member?.creativeArtsId || member?.departmentId || '').trim();
+  if (!teamId) return '';
+
+  const matched = departments.find((department) => department.id === teamId);
+  return matched?.name || '';
+}
+
+export function getMemberMinistryName(member, ministries = []) {
+  if (member?.ministryName) return member.ministryName;
+
+  const ministryId = String(member?.ministryId || '').trim();
+  if (!ministryId) return '';
+
+  const matched = ministries.find((ministry) => ministry.id === ministryId);
+  return matched?.ministryName || '';
+}
+
 export const MEMBER_FORM_OCCUPATION_OPTIONS = [
   { value: 'Primary School', label: 'Primary School' },
   { value: 'High School', label: 'High School' },
@@ -292,6 +385,19 @@ function buildMemberCorePayload(formData, existingStatus) {
   const dateOfBirth = formData.dob || formData.dateOfBirth || '';
   const homeLocationFields = buildMemberHomeLocationFields(formData);
   const profileImageUrl = formData.photo || formData.profileImageUrl || '';
+  const churchLocationFields = applyChurchLocationFields(formData);
+  const creativeArtsId = isMembershipSelection(formData.creativeArtsId)
+    ? String(formData.creativeArtsId).trim()
+    : '';
+  const creativeArtsName = creativeArtsId
+    ? String(formData.creativeArtsName || formData.department || '').trim()
+    : '';
+  const ministryId = isMembershipSelection(formData.ministryId)
+    ? String(formData.ministryId).trim()
+    : '';
+  const ministryName = ministryId
+    ? String(formData.ministryName || '').trim()
+    : '';
 
   return {
     firstName,
@@ -308,15 +414,19 @@ function buildMemberCorePayload(formData, existingStatus) {
     countryOfOrigin: formData.countryOfOrigin || '',
     ethnicity: formData.ethnicity || '',
     dateOfSalvation: formData.dateOfSalvation || '',
-    branch: formData.branch || '',
-    zoneSupervisor: formData.zoneSupervisor?.trim() || '',
+    ...churchLocationFields,
     cellLeader: formData.cellLeader?.trim() || '',
+    creativeArtsId,
+    creativeArtsName,
+    ministryId,
+    ministryName,
     occupation: formData.occupation || '',
     status: formData.status || existingStatus || MEMBER_STATUS.ACTIVE,
     profileImageUrl,
     profileImagePath: formData.profileImagePath || '',
     photo: profileImageUrl,
-    department: formData.department || '',
+    department: creativeArtsName,
+    departmentId: creativeArtsId,
   };
 }
 
@@ -391,9 +501,14 @@ export function mapMemberToFormData(member) {
       language: '',
       countryOfOrigin: '',
       ethnicity: '',
+      church: '',
       branch: '',
       zoneSupervisor: '',
       cellLeader: '',
+      creativeArtsId: MEMBERSHIP_NA,
+      creativeArtsName: '',
+      ministryId: MEMBERSHIP_NA,
+      ministryName: '',
       occupation: '',
       status: MEMBER_STATUS.ACTIVE,
       dob: '',
@@ -454,9 +569,14 @@ export function mapMemberToFormData(member) {
     language: member.language || '',
     countryOfOrigin: member.countryOfOrigin || member.country || '',
     ethnicity: member.ethnicity || '',
+    church: inferMemberChurch(member),
     branch: member.branch || '',
     zoneSupervisor: member.zoneSupervisor || '',
     cellLeader: member.cellLeader || '',
+    creativeArtsId: resolveCreativeArtsFormSelection(member, []),
+    creativeArtsName: getMemberCreativeArtsName(member, []),
+    ministryId: resolveMinistryFormSelection(member, []),
+    ministryName: getMemberMinistryName(member, []),
     occupation,
     status: member.status || MEMBER_STATUS.ACTIVE,
     dob: dateOfBirth,

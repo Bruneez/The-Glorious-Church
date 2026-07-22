@@ -104,6 +104,8 @@ export async function seedDefaultDepartmentsIfEmpty() {
 
 export async function addMemberToTeam(teamId, memberId) {
   const team = await getCreativeArtsTeam(teamId);
+  if (!team) return null;
+
   const members = team.members || [];
   if (!members.includes(memberId)) {
     members.push(memberId);
@@ -117,6 +119,8 @@ export async function addMemberToTeam(teamId, memberId) {
 
 export async function removeMemberFromTeam(teamId, memberId) {
   const team = await getCreativeArtsTeam(teamId);
+  if (!team) return null;
+
   const members = (team.members || []).filter((id) => id !== memberId);
   return updateDocument(COLLECTIONS.CREATIVE_ARTS, teamId, {
     members,

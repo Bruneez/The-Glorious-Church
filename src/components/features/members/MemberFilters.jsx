@@ -1,12 +1,14 @@
 import { Search, UserPlus } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { STATUS_OPTIONS } from '@/config/memberOptions';
+import { CHURCH_FILTER_OPTIONS, STATUS_OPTIONS } from '@/config/memberOptions';
 
 export default function MemberFilters({
   searchTerm,
   onSearchChange,
   filterStatus,
   onFilterStatusChange,
+  filterChurch,
+  onFilterChurchChange,
   onSortToggle,
   sortDirection,
   onAddMember,
@@ -29,12 +31,24 @@ export default function MemberFilters({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
           <input
             type="text"
-            placeholder="Search name, phone, occupation, school..."
+            placeholder="Search name, phone, church, occupation, school..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
           />
         </div>
+
+        <select
+          value={filterChurch}
+          onChange={(e) => onFilterChurchChange(e.target.value)}
+          className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] text-slate-300 focus:outline-none cursor-pointer"
+        >
+          {CHURCH_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
 
         <select
           value={filterStatus}

@@ -8,6 +8,7 @@ function DepartmentOverviewCard({
   onEdit,
   onDelete,
   canManage = false,
+  canOpenDetails = true,
 }) {
   const memberCount = getMemberCount(department);
   const leaderName = department.leader?.trim() || '';
@@ -59,14 +60,16 @@ function DepartmentOverviewCard({
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/60">
-        <button
-          type="button"
-          onClick={() => onView?.(department)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View
-        </button>
+        {canOpenDetails && onView ? (
+          <button
+            type="button"
+            onClick={() => onView(department)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+        ) : null}
         {canManage && onEdit && (
           <button
             type="button"
@@ -98,6 +101,7 @@ export default function CreativeArtsCardGrid({
   onEdit,
   onDelete,
   canManageRow = () => false,
+  canOpenDetails = true,
   emptyMessage = 'No departments found.',
 }) {
   if (!departments.length) {
@@ -119,6 +123,7 @@ export default function CreativeArtsCardGrid({
           onEdit={onEdit}
           onDelete={onDelete}
           canManage={canManageRow(department)}
+          canOpenDetails={canOpenDetails}
         />
       ))}
     </div>

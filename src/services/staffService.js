@@ -1,7 +1,8 @@
 import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { COLLECTIONS } from '@/config/collections';
-import { normalizeRole, assertFullAccessRole } from '@/config/roles';
+import { normalizeRole } from '@/config/roles';
+import { canPerformAction } from '@/config/permissions';
 import {
   getStaffAuthUid,
   getStaffDocByAuthUid,
@@ -82,7 +83,9 @@ export async function getStaffProfile(staffDocId) {
 }
 
 export async function excludeStaffFromTasksModule(staffDocId, { role } = {}) {
-  assertFullAccessRole(role, 'Only administrators can remove users from the Tasks module.');
+  if (!canPerformAction(role, 'MANAGE_TASKS')) {
+    throw new Error('Only task administrators can remove users from the Tasks module.');
+  }
 
   const normalizedStaffDocId = String(staffDocId || '').trim();
   if (!normalizedStaffDocId) {
@@ -93,7 +96,9 @@ export async function excludeStaffFromTasksModule(staffDocId, { role } = {}) {
 }
 
 export async function restoreStaffToTasksModule(staffDocId, { role } = {}) {
-  assertFullAccessRole(role, 'Only administrators can restore users to the Tasks module.');
+  if (!canPerformAction(role, 'MANAGE_TASKS')) {
+    throw new Error('Only task administrators can restore users to the Tasks module.');
+  }
 
   const normalizedStaffDocId = String(staffDocId || '').trim();
   if (!normalizedStaffDocId) {

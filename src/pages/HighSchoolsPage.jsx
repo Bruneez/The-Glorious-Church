@@ -50,6 +50,7 @@ export default function HighSchoolsPage() {
   };
 
   const canManageSchools = canPerformAction('MANAGE_SCHOOLS');
+  const canOpenSchoolRecord = canPerformAction('OPEN_SCHOOL_RECORD');
 
   return (
     <div className="page-root">
@@ -85,6 +86,7 @@ export default function HighSchoolsPage() {
               school={school}
               onEdit={canManageSchools ? handleEditSchool : undefined}
               onDelete={canManageSchools ? handleDeleteSchool : undefined}
+              canOpenDetails={canOpenSchoolRecord}
             />
           ))}
         </div>

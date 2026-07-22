@@ -21,7 +21,12 @@ import {
   getMemberLastName,
   getMemberDateOfBirthValue,
   getMemberProfileImageUrl,
+  getMemberCreativeArtsName,
+  getMemberMinistryName,
+  inferMemberChurch,
+  isCapeTownChurch,
   MEMBER_STATUS,
+  MEMBERSHIP_NA,
 } from '@/config/memberOptions';
 import { getMemberHomeAddress } from '@/utils/memberLocations';
 
@@ -149,6 +154,9 @@ export default function MemberCard({
   const fullName = getMemberFullName(member);
   const status = member.status || MEMBER_STATUS.ACTIVE;
   const occupationFields = getOccupationFields(member);
+  const church = inferMemberChurch(member);
+  const creativeArtsName = getMemberCreativeArtsName(member) || MEMBERSHIP_NA;
+  const ministryName = getMemberMinistryName(member) || MEMBERSHIP_NA;
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${fullName}? This cannot be undone.`)) {
@@ -235,6 +243,16 @@ export default function MemberCard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <DetailItem icon={Phone} label="Phone Number" value={member.phone} />
               <DetailItem icon={User} label="Gender" value={member.gender} />
+              <DetailItem icon={MapPin} label="Church" value={church} />
+              {isCapeTownChurch(church) ? (
+                <>
+                  <DetailItem icon={MapPin} label="Branch" value={member.branch} />
+                  <DetailItem icon={User} label="Zone Supervisor" value={member.zoneSupervisor} />
+                </>
+              ) : null}
+              <DetailItem icon={User} label="Cell Leader" value={member.cellLeader} />
+              <DetailItem icon={Briefcase} label="Creative Arts" value={creativeArtsName} />
+              <DetailItem icon={Briefcase} label="Ministry" value={ministryName} />
               <DetailItem icon={Briefcase} label="Occupation" value={member.occupation} />
 
               {occupationFields.map((field) => (

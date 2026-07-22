@@ -36,16 +36,28 @@ service firebase.storage {
       return normalizedRole(staffRole());
     }
 
-    function isAdmin() {
-      return userRole() == 'Admin';
-    }
-
     function canViewTravelling() {
       return userRole() in ['Admin', 'Pastor', 'Leader', 'Elder'];
     }
 
+    function canManageTravelling() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
+    }
+
+    function canViewMachanehMovies() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    }
+
+    function canManageMachanehMovies() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
+    }
+
     function isTravelDestinationPath(storagePath) {
       return storagePath.matches('travel-destinations/.*');
+    }
+
+    function isMachanehMoviePosterPath(storagePath) {
+      return storagePath.matches('machaneh-movies/.*');
     }
 
     function isAllowedTravelImage() {
@@ -56,13 +68,27 @@ service firebase.storage {
 
     match /travel-destinations/{destinationId}/{fileName} {
       allow read: if canViewTravelling();
-      allow create, update: if isAdmin() && isAllowedTravelImage();
-      allow delete: if isAdmin();
+      allow create, update: if canManageTravelling() && isAllowedTravelImage();
+      allow delete: if canManageTravelling();
+    }
+
+    function isAllowedMoviePoster() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    match /machaneh-movies/{movieId}/{fileName} {
+      allow read: if canViewMachanehMovies();
+      allow create, update: if canManageMachanehMovies() && isAllowedMoviePoster();
+      allow delete: if canManageMachanehMovies();
     }
 
     // Development: allow authenticated access on other storage paths.
     match /{allPaths=**} {
-      allow read, write: if isAuthenticated() && !isTravelDestinationPath(allPaths);
+      allow read, write: if isAuthenticated()
+        && !isTravelDestinationPath(allPaths)
+        && !isMachanehMoviePosterPath(allPaths);
     }
   }
 }

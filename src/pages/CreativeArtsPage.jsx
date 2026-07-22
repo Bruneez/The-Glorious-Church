@@ -40,6 +40,7 @@ export default function CreativeArtsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const canManage = canPerformAction('MANAGE_CREATIVE_ARTS');
+  const canOpenDepartment = canPerformAction('OPEN_CREATIVE_ARTS_DEPARTMENT');
 
   const stats = useMemo(
     () => computeCreativeArtsStats(departments),
@@ -77,6 +78,7 @@ export default function CreativeArtsPage() {
   };
 
   const handleViewDepartment = (department) => {
+    if (!canOpenDepartment) return;
     setViewingDepartment(department);
   };
 
@@ -207,10 +209,11 @@ export default function CreativeArtsPage() {
         ) : (
           <CreativeArtsCardGrid
             departments={filteredDepartments}
-            onView={handleViewDepartment}
+            onView={canOpenDepartment ? handleViewDepartment : undefined}
             onEdit={canManage ? handleEditDepartment : undefined}
             onDelete={canManage ? handleDeleteDepartment : undefined}
             canManageRow={() => canManage}
+            canOpenDetails={canOpenDepartment}
             emptyMessage={departmentsEmptyMessage}
           />
         )}
@@ -243,7 +246,7 @@ export default function CreativeArtsPage() {
         />
       )}
 
-      {viewingDepartment && (
+      {canOpenDepartment && viewingDepartment && (
         <CreativeArtsViewModal
           department={viewingDepartment}
           isOpen={!!viewingDepartment}

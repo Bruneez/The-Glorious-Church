@@ -98,3 +98,13 @@ export function resolveTravelDestinationImageStoragePath(destination = {}) {
 
   return '';
 }
+
+export function resolveMachanehMoviePosterStoragePath(movie = {}) {
+  const directPath = normalizeStorageObjectPath(movie.posterStoragePath);
+  if (directPath) return directPath;
+
+  const fromPosterUrl = extractStoragePathFromDownloadUrl(movie.posterUrl || '');
+  if (fromPosterUrl) return fromPosterUrl;
+
+  return '';
+}
