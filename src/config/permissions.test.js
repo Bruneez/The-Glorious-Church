@@ -32,9 +32,11 @@ const OPERATIONAL_ACTIONS = [
   'MANAGE_SERVICE_PROGRAM',
   'MANAGE_TRAVELLING',
   'MANAGE_MACHANEH_MOVIES',
+  'MANAGE_MERCHANDISE',
   'UPDATE_OWN_TASK_STATUS',
   'VIEW_TRAVELLING',
   'VIEW_MACHANEH_MOVIES',
+  'VIEW_MERCHANDISE',
 ];
 
 const OPERATIONAL_DENIED_ACTIONS = [
@@ -57,6 +59,7 @@ const OPERATIONAL_VISIBLE_ROUTES = [
   '/transport',
   '/travelling',
   '/machaneh-movies',
+  '/merchandise',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -75,6 +78,7 @@ const ELDER_VISIBLE_ROUTES = [
   '/transport',
   '/travelling',
   '/machaneh-movies',
+  '/merchandise',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -92,6 +96,7 @@ const ELDER_RESTRICTED_ROUTES = [
 const ELDER_ALLOWED_ACTIONS = [
   'VIEW_TRAVELLING',
   'VIEW_MACHANEH_MOVIES',
+  'VIEW_MERCHANDISE',
   'UPDATE_OWN_TASK_STATUS',
   'MANAGE_SERVICE_PROGRAM',
   'CREATE_CALENDAR_EVENTS',
@@ -106,6 +111,7 @@ const LEADER_RESTRICTED_ROUTES = ELDER_RESTRICTED_ROUTES;
 const LEADER_ALLOWED_ACTIONS = [
   'VIEW_TRAVELLING',
   'VIEW_MACHANEH_MOVIES',
+  'VIEW_MERCHANDISE',
   'UPDATE_OWN_TASK_STATUS',
   'CREATE_CALENDAR_EVENTS',
   'MANAGE_OWN_CALENDAR_EVENTS',
@@ -128,6 +134,7 @@ const LEADER_DENIED_ACTIONS = [
   'VIEW_ALL_TASKS',
   'MANAGE_TRAVELLING',
   'MANAGE_MACHANEH_MOVIES',
+  'MANAGE_MERCHANDISE',
   'MANAGE_SERVICE_PROGRAM',
   'OPEN_CREATIVE_ARTS_DEPARTMENT',
   'OPEN_SCHOOL_RECORD',
@@ -149,6 +156,7 @@ const ELDER_DENIED_MANAGE_ACTIONS = [
   'VIEW_ALL_TASKS',
   'MANAGE_TRAVELLING',
   'MANAGE_MACHANEH_MOVIES',
+  'MANAGE_MERCHANDISE',
 ];
 
 test('Lead Pastor receives full access to system admin routes', () => {

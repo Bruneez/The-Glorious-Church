@@ -52,12 +52,24 @@ service firebase.storage {
       return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
     }
 
+    function canViewMerchandise() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    }
+
+    function canManageMerchandise() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
+    }
+
     function isTravelDestinationPath(storagePath) {
       return storagePath.matches('travel-destinations/.*');
     }
 
     function isMachanehMoviePosterPath(storagePath) {
       return storagePath.matches('machaneh-movies/.*');
+    }
+
+    function isMerchandiseImagePath(storagePath) {
+      return storagePath.matches('merchandise/.*');
     }
 
     function isAllowedTravelImage() {
@@ -84,11 +96,24 @@ service firebase.storage {
       allow delete: if canManageMachanehMovies();
     }
 
+    function isAllowedMerchandiseImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    match /merchandise/{itemId}/{fileName} {
+      allow read: if canViewMerchandise();
+      allow create, update: if canManageMerchandise() && isAllowedMerchandiseImage();
+      allow delete: if canManageMerchandise();
+    }
+
     // Development: allow authenticated access on other storage paths.
     match /{allPaths=**} {
       allow read, write: if isAuthenticated()
         && !isTravelDestinationPath(allPaths)
-        && !isMachanehMoviePosterPath(allPaths);
+        && !isMachanehMoviePosterPath(allPaths)
+        && !isMerchandiseImagePath(allPaths);
     }
   }
 }
