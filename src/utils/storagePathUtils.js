@@ -35,18 +35,20 @@ export function normalizeStorageObjectPath(path = '') {
   return value.replace(/^\/+/, '');
 }
 
-export function resolveMemberPhotoStoragePath(member = {}) {
-  const directPath = normalizeStorageObjectPath(member.profileImagePath);
+export function resolveMemberPhotoStoragePath(member) {
+  const record = member || {};
+  const directPath = normalizeStorageObjectPath(record.profileImagePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(member.profileImageUrl || member.photo || '');
+  return extractStoragePathFromDownloadUrl(record.profileImageUrl || record.photo || '');
 }
 
-export function resolveMemberReportCardStoragePath(member = {}) {
-  const directPath = normalizeStorageObjectPath(member.reportCardPath);
+export function resolveMemberReportCardStoragePath(member) {
+  const record = member || {};
+  const directPath = normalizeStorageObjectPath(record.reportCardPath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(member.reportCardUrl || '');
+  return extractStoragePathFromDownloadUrl(record.reportCardUrl || '');
 }
 
 export function resolveSchoolBadgeStoragePath(school = {}) {

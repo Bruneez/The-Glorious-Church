@@ -1,18 +1,23 @@
 import { useMemo } from 'react';
 import { Calendar, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useMembers } from '@/services/membersService';
 import { useOfferings } from '@/services/offeringsService';
 import { useAttendance } from '@/services/attendanceService';
 import { useSchoolsDirectory } from '@/services/schoolsService';
+import { useMinistries } from '@/services/ministriesService';
 import { useEvents } from '@/services/calendarService';
 import { computeOfferingStats } from '@/config/offeringsOptions';
 import { computeAttendanceStats } from '@/config/attendanceOptions';
 import {
+  buildDashboardSummaryCards,
+} from '@/config/dashboardSummaryCards';
+import {
   getUpcomingEventsAndBirthdays,
   computeCreativeArtsOverview,
 } from '@/config/dashboardOptions';
-import { formatCurrencySimple, formatDate, formatTime } from '@/utils/formatters';
+import { formatDate, formatTime } from '@/utils/formatters';
 
 function getFirstName(staffProfile, firebaseUser) {
   const fullName = (staffProfile?.name || firebaseUser?.displayName || '').trim();
@@ -83,10 +88,12 @@ function ItemTypeBadge({ type }) {
 
 export default function DashboardPage() {
   const { staffProfile, firebaseUser } = useAuth();
+  const { role } = useRoleAccess();
   const { data: members = [], loading: membersLoading } = useMembers();
   const { data: offerings = [], loading: offeringsLoading } = useOfferings();
   const { data: attendanceRecords = [], loading: attendanceLoading } = useAttendance();
   const { data: schools = [], loading: schoolsLoading } = useSchoolsDirectory();
+  const { data: ministries = [], loading: ministriesLoading } = useMinistries();
   const { data: events = [], loading: eventsLoading } = useEvents();
 
   const firstName = useMemo(
@@ -118,28 +125,34 @@ export default function DashboardPage() {
 
   const upcomingLoading = eventsLoading || membersLoading;
 
-  const summaryCards = [
-    {
-      label: 'Total Members',
-      value: members.length,
-      loading: membersLoading,
-    },
-    {
-      label: 'Total Offerings',
-      value: formatCurrencySimple(offeringStats.total),
-      loading: offeringsLoading,
-    },
-    {
-      label: 'Average Attendance',
-      value: attendanceStats.average,
-      loading: attendanceLoading,
-    },
-    {
-      label: 'Total Schools',
-      value: schools.length,
-      loading: schoolsLoading,
-    },
-  ];
+  const summaryCards = useMemo(
+    () => buildDashboardSummaryCards({
+      role,
+      membersCount: members.length,
+      membersLoading,
+      offeringsTotal: offeringStats.total,
+      offeringsLoading,
+      attendanceAverage: attendanceStats.average,
+      attendanceLoading,
+      schoolsCount: schools.length,
+      schoolsLoading,
+      ministriesCount: ministries.length,
+      ministriesLoading,
+    }),
+    [
+      role,
+      members.length,
+      membersLoading,
+      offeringStats.total,
+      offeringsLoading,
+      attendanceStats.average,
+      attendanceLoading,
+      schools.length,
+      schoolsLoading,
+      ministries.length,
+      ministriesLoading,
+    ],
+  );
 
   return (
     <div className="page-root">
@@ -160,7 +173,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
         {summaryCards.map((card) => (
           <SummaryCard
-            key={card.label}
+            key={card.id}
             label={card.label}
             value={card.value}
             loading={card.loading}
