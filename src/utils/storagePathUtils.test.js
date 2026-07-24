@@ -4,6 +4,7 @@ import {
   extractStoragePathFromDownloadUrl,
   resolveCreativeArtsLogoStoragePath,
   resolveMemberPhotoStoragePath,
+  resolveMemberReportCardStoragePath,
   resolveMinistryAvatarStoragePath,
   resolveSchoolBadgeStoragePath,
   resolveTravelDestinationImageStoragePath,
@@ -40,6 +41,16 @@ test('resolveMemberPhotoStoragePath falls back to photo URL when path missing', 
     }),
     'member-photos/999_photo.webp',
   );
+});
+
+test('resolveMemberPhotoStoragePath treats null and undefined members as empty', () => {
+  assert.equal(resolveMemberPhotoStoragePath(null), '');
+  assert.equal(resolveMemberPhotoStoragePath(undefined), '');
+});
+
+test('resolveMemberReportCardStoragePath treats null members as empty', () => {
+  assert.equal(resolveMemberReportCardStoragePath(null), '');
+  assert.equal(resolveMemberReportCardStoragePath(undefined), '');
 });
 
 test('resolveSchoolBadgeStoragePath prefers badgePath', () => {
