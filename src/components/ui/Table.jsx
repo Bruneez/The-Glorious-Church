@@ -22,9 +22,9 @@ export default function Table({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-4 py-3.5 text-left font-semibold text-slate-300 uppercase tracking-wider ${column.className || ''}`}
+                  className={`px-4 py-3.5 text-left font-semibold text-slate-300 uppercase tracking-wider align-middle ${column.className || ''}`}
                 >
-                  {column.label}
+                  {typeof column.headerRender === 'function' ? column.headerRender() : column.label}
                 </th>
               ))}
             </tr>

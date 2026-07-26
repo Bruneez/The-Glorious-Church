@@ -22,6 +22,7 @@ function StatusBadge({ status }) {
 
 export default function CreativeArtsTable({
   departments,
+  members = [],
   onView,
   onEdit,
   onDelete,
@@ -54,7 +55,7 @@ export default function CreativeArtsTable({
     {
       key: 'members',
       label: 'Total Members',
-      render: (_, row) => getMemberCount(row),
+      render: (_, row) => getMemberCount(row, members),
     },
     {
       key: 'status',

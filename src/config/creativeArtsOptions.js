@@ -12,6 +12,7 @@ export {
   ACCEPTED_CREATIVE_ARTS_LOGO_ACCEPT as ACCEPTED_DEPARTMENT_LOGO_ACCEPT,
   validateCreativeArtsLogoFile as validateDepartmentLogoFile,
 } from './creativeArtsLogoValidation.js';
+import { isMembershipSelection } from './memberFormValidation.js';
 
 export function getDepartmentLogo(department) {
   const logoUrl = String(department?.logoUrl || '').trim();
@@ -105,16 +106,28 @@ export function filterDepartments(departments, searchTerm) {
   );
 }
 
-export function getMemberCount(department) {
+export function getMemberCount(department, members = null) {
+  if (Array.isArray(members) && department) {
+    return getMembersLinkedToCreativeArtsDepartment(members, department).length;
+  }
+
   return department?.members?.length || 0;
+}
+
+export function computeMemberCountsForCreativeArtsDepartments(members = [], departments = []) {
+  return departments.reduce((counts, department) => {
+    if (!department?.id) return counts;
+    counts[department.id] = getMembersLinkedToCreativeArtsDepartment(members, department).length;
+    return counts;
+  }, {});
 }
 
 export function memberMatchesCreativeArtsDepartment(member, department) {
   if (!member || !department) return false;
 
   const memberTeamId = String(member.creativeArtsId || member.departmentId || '').trim();
-  if (memberTeamId && department.id && memberTeamId === department.id) {
-    return true;
+  if (isMembershipSelection(memberTeamId)) {
+    return Boolean(department.id) && memberTeamId === department.id;
   }
 
   const memberDepartmentName = String(member.department || member.creativeArts || member.creativeArtsName || '')
@@ -134,14 +147,15 @@ export function getMembersLinkedToCreativeArtsDepartment(members = [], departmen
   return members.filter((member) => memberMatchesCreativeArtsDepartment(member, department));
 }
 
-export function computeCreativeArtsStats(departments = []) {
+export function computeCreativeArtsStats(departments = [], members = []) {
   return departments.reduce(
     (stats, department) => {
       const status = department.status || DEPARTMENT_STATUS.ACTIVE;
+      const memberCount = getMemberCount(department, members);
 
       return {
         totalDepartments: stats.totalDepartments + 1,
-        totalMembers: stats.totalMembers + getMemberCount(department),
+        totalMembers: stats.totalMembers + memberCount,
         activeDepartments:
           stats.activeDepartments + (status === DEPARTMENT_STATUS.ACTIVE ? 1 : 0),
       };

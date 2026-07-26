@@ -5,12 +5,13 @@ import { MinistryStatusBadge } from '@/components/features/ministries/MinistryVi
 
 function MinistryOverviewCard({
   ministry,
+  members = [],
   onView,
   onEdit,
   onDelete,
   canManage = false,
 }) {
-  const memberCount = getMinistryMemberCount(ministry);
+  const memberCount = getMinistryMemberCount(ministry, members);
   const leader = ministry.ministryLeader?.trim() || 'Not assigned';
   const description = ministry.description?.trim() || 'No description provided.';
 
@@ -88,6 +89,7 @@ function MinistryOverviewCard({
 
 export default function MinistryCardGrid({
   ministries = [],
+  members = [],
   onView,
   onEdit,
   onDelete,
@@ -109,6 +111,7 @@ export default function MinistryCardGrid({
         <MinistryOverviewCard
           key={ministry.id}
           ministry={ministry}
+          members={members}
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}

@@ -21,6 +21,11 @@ export function useMinistries() {
   });
 }
 
+export async function getMinistries() {
+  const { getDocuments } = await import('@/hooks/useFirestore');
+  return getDocuments(COLLECTIONS.MINISTRIES, [orderBy('ministryName', 'asc')]);
+}
+
 export async function getMinistry(ministryId) {
   const { getDocument } = await import('@/hooks/useFirestore');
   return getDocument(COLLECTIONS.MINISTRIES, ministryId);

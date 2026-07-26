@@ -21,6 +21,7 @@ function StatusBadge({ status }) {
 
 export default function CreativeArtsMobileList({
   departments,
+  members = [],
   onView,
   onEdit,
   onDelete,
@@ -65,7 +66,7 @@ export default function CreativeArtsMobileList({
 
             <p className="text-[11px] text-slate-500">
               Total Members:{' '}
-              <span className="text-slate-200 font-semibold">{getMemberCount(department)}</span>
+              <span className="text-slate-200 font-semibold">{getMemberCount(department, members)}</span>
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-700/70">
