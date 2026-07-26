@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { UserPlus, Search, Eye, Edit2, Trash2 } from 'lucide-react';
 import UserForm from '@/components/features/users/UserForm';
 import UserViewModal from '@/components/features/users/UserViewModal';
 import StaffSummaryCards from '@/components/features/users/StaffSummaryCards';
 import Table from '@/components/ui/Table';
+import TableColumnSortControls from '@/components/ui/TableColumnSortControls';
 import Button from '@/components/ui/Button';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { useCollection } from '@/hooks/useFirestore';
@@ -13,6 +14,7 @@ import { createStaffUser } from '@/services/staffUserService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import RoleBadge from '@/components/ui/RoleBadge';
 import { ROLE_LIST, normalizeRole } from '@/config/roles';
+import { prepareStaffTableRows } from '@/config/staffOptions';
 import { formatLastSeen, isUserOnline } from '@/utils/lastSeen';
 
 function LastSeenCell({ value }) {
@@ -27,13 +29,31 @@ function LastSeenCell({ value }) {
   );
 }
 
+function SortableHeader({ label, columnKey, activeColumn, activeDirection, onSort, ascendingLabel, descendingLabel }) {
+  return (
+    <span className="inline-flex items-center gap-x-1.5 whitespace-nowrap">
+      <span className="leading-tight">{label}</span>
+      <TableColumnSortControls
+        columnKey={columnKey}
+        activeColumn={activeColumn}
+        activeDirection={activeDirection}
+        onSort={onSort}
+        ascendingLabel={ascendingLabel}
+        descendingLabel={descendingLabel}
+        className="ml-0.5"
+      />
+    </span>
+  );
+}
+
 export default function UsersPage() {
   const { data: staff = [], loading } = useCollection(COLLECTIONS.STAFF);
   const { role: currentUserRole, canPerformAction } = useRoleAccess();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
@@ -45,34 +65,21 @@ export default function UsersPage() {
     return () => clearTimeout(timer);
   }, [saveMessage]);
 
-  const filteredStaff = useMemo(() => {
-    let filtered = [...staff];
+  const handleSortChange = useCallback((column, direction) => {
+    setSortColumn(column);
+    setSortDirection(direction);
+  }, []);
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (member) =>
-          member.name?.toLowerCase().includes(term) ||
-          member.fullName?.toLowerCase().includes(term) ||
-          member.email?.toLowerCase().includes(term),
-      );
-    }
-
-    if (filterRole !== 'all') {
-      filtered = filtered.filter((member) => normalizeRole(member.role) === filterRole);
-    }
-
-    filtered.sort((a, b) => {
-      const nameA = (a.name || a.fullName || '').toLowerCase();
-      const nameB = (b.name || b.fullName || '').toLowerCase();
-      if (sortDirection === 'asc') {
-        return nameA.localeCompare(nameB);
-      }
-      return nameB.localeCompare(nameA);
-    });
-
-    return filtered;
-  }, [staff, searchTerm, filterRole, sortDirection]);
+  const filteredStaff = useMemo(
+    () =>
+      prepareStaffTableRows(staff, {
+        searchTerm,
+        filterRole,
+        sortColumn,
+        sortDirection,
+      }),
+    [staff, searchTerm, filterRole, sortColumn, sortDirection],
+  );
 
   const handleAddUser = () => {
     setEditingUser(null);
@@ -146,24 +153,72 @@ export default function UsersPage() {
     {
       key: 'name',
       label: 'Staff Member Name',
+      className: 'whitespace-nowrap min-w-[12rem]',
       cellClassName: 'py-4 font-medium text-slate-100',
+      headerRender: () => (
+        <SortableHeader
+          label="Staff Member Name"
+          columnKey="name"
+          activeColumn={sortColumn}
+          activeDirection={sortDirection}
+          onSort={handleSortChange}
+          ascendingLabel="Sort staff member name ascending"
+          descendingLabel="Sort staff member name descending"
+        />
+      ),
       render: (value, row) => row.fullName || row.name || '—',
     },
     {
       key: 'email',
       label: 'Secure Log Email',
+      className: 'whitespace-nowrap min-w-[11rem]',
       cellClassName: 'py-4',
+      headerRender: () => (
+        <SortableHeader
+          label="Secure Log Email"
+          columnKey="email"
+          activeColumn={sortColumn}
+          activeDirection={sortDirection}
+          onSort={handleSortChange}
+          ascendingLabel="Sort secure login email ascending"
+          descendingLabel="Sort secure login email descending"
+        />
+      ),
     },
     {
       key: 'role',
       label: 'Assigned Portal Role',
+      className: 'whitespace-nowrap min-w-[12rem]',
       cellClassName: 'py-4',
+      headerRender: () => (
+        <SortableHeader
+          label="Assigned Portal Role"
+          columnKey="role"
+          activeColumn={sortColumn}
+          activeDirection={sortDirection}
+          onSort={handleSortChange}
+          ascendingLabel="Sort role ascending"
+          descendingLabel="Sort role descending"
+        />
+      ),
       render: (value) => <RoleBadge role={value} />,
     },
     {
       key: 'lastSeenAt',
       label: 'Last Seen',
+      className: 'whitespace-nowrap min-w-[10rem]',
       cellClassName: 'py-4',
+      headerRender: () => (
+        <SortableHeader
+          label="Last Seen"
+          columnKey="lastSeenAt"
+          activeColumn={sortColumn}
+          activeDirection={sortDirection}
+          onSort={handleSortChange}
+          ascendingLabel="Sort last seen ascending"
+          descendingLabel="Sort last seen descending"
+        />
+      ),
       render: (value) => <LastSeenCell value={value} />,
     },
     {
@@ -228,14 +283,6 @@ export default function UsersPage() {
             <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
               Staff Controls
             </span>
-            <button
-              type="button"
-              onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-              className="bg-slate-900 text-[11px] text-slate-300 px-3 py-2 border border-slate-700 rounded-lg hover:text-white inline-flex items-center gap-1.5 cursor-pointer self-start"
-            >
-              <Search className="w-3.5 h-3.5" />
-              Sort Name: A-Z ({sortDirection === 'asc' ? 'Asc' : 'Desc'})
-            </button>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end gap-3">
