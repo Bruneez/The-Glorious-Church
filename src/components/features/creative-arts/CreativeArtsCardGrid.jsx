@@ -4,13 +4,14 @@ import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvat
 
 function DepartmentOverviewCard({
   department,
+  members = [],
   onView,
   onEdit,
   onDelete,
   canManage = false,
   canOpenDetails = true,
 }) {
-  const memberCount = getMemberCount(department);
+  const memberCount = getMemberCount(department, members);
   const leaderName = department.leader?.trim() || '';
   const description = department.description?.trim() || 'Not provided';
 
@@ -97,6 +98,7 @@ function DepartmentOverviewCard({
 
 export default function CreativeArtsCardGrid({
   departments = [],
+  members = [],
   onView,
   onEdit,
   onDelete,
@@ -119,6 +121,7 @@ export default function CreativeArtsCardGrid({
         <DepartmentOverviewCard
           key={department.id}
           department={department}
+          members={members}
           onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}

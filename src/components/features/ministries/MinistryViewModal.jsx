@@ -7,7 +7,6 @@ import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinked
 import {
   MINISTRY_STATUS,
   MINISTRY_FUTURE_SECTIONS,
-  getMinistryMemberCount,
   getMembersLinkedToMinistry,
 } from '@/config/ministriesOptions';
 import { useMembers } from '@/services/membersService';
@@ -63,7 +62,7 @@ export default function MinistryViewModal({
 
   if (!ministry) return null;
 
-  const memberCount = getMinistryMemberCount(ministry);
+  const memberCount = linkedMembers.length;
 
   return (
     <Modal

@@ -14,6 +14,7 @@ export {
   ACCEPTED_MINISTRY_AVATAR_ACCEPT,
   validateMinistryAvatarFile,
 } from './ministriesAvatarValidation.js';
+import { isMembershipSelection } from './memberFormValidation.js';
 
 export const MINISTRY_FUTURE_SECTIONS = [
   'Ministry Members',
@@ -61,7 +62,11 @@ export function getMinistrySummaryCards(ministries = []) {
   ];
 }
 
-export function getMinistryMemberCount(ministry) {
+export function getMinistryMemberCount(ministry, members = null) {
+  if (Array.isArray(members) && ministry) {
+    return getMembersLinkedToMinistry(members, ministry).length;
+  }
+
   if (Array.isArray(ministry?.members)) {
     return ministry.members.length;
   }
@@ -70,12 +75,20 @@ export function getMinistryMemberCount(ministry) {
   return Number.isFinite(count) && count >= 0 ? count : 0;
 }
 
+export function computeMemberCountsForMinistries(members = [], ministries = []) {
+  return ministries.reduce((counts, ministry) => {
+    if (!ministry?.id) return counts;
+    counts[ministry.id] = getMembersLinkedToMinistry(members, ministry).length;
+    return counts;
+  }, {});
+}
+
 export function memberMatchesMinistry(member, ministry) {
   if (!member || !ministry) return false;
 
   const memberMinistryId = String(member.ministryId || '').trim();
-  if (memberMinistryId && ministry.id && memberMinistryId === ministry.id) {
-    return true;
+  if (isMembershipSelection(memberMinistryId)) {
+    return Boolean(ministry.id) && memberMinistryId === ministry.id;
   }
 
   const memberMinistryName = String(member.ministryName || '').trim().toLowerCase();

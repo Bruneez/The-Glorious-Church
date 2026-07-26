@@ -12,6 +12,7 @@ import {
   updateMinistry,
   deleteMinistry,
 } from '@/services/ministriesService';
+import { useMembers } from '@/services/membersService';
 import { filterMinistries } from '@/config/ministriesOptions';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
@@ -40,6 +41,7 @@ function FeedbackBanner({ feedback, onDismiss }) {
 
 export default function MinistriesPage() {
   const { data: ministries = [], loading, error } = useMinistries();
+  const { data: members = [] } = useMembers();
   const { staffProfile, firebaseUser } = useAuth();
   const { canPerformAction } = useRoleAccess();
   const canManage = canPerformAction('MANAGE_MINISTRIES');
@@ -193,6 +195,7 @@ export default function MinistriesPage() {
       ) : (
         <MinistryCardGrid
           ministries={filteredMinistries}
+          members={members}
           onView={handleViewMinistry}
           onEdit={canManage ? handleEditMinistry : undefined}
           onDelete={canManage ? handleDeletePrompt : undefined}

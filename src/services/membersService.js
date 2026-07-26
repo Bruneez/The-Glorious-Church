@@ -1,5 +1,6 @@
 import { COLLECTIONS } from '@/config/collections';
 import { MEMBER_STATUS, buildMemberPayload, getMemberFullName } from '@/config/memberOptions';
+import { normalizeMemberResponse } from '@/services/memberResponseUtils';
 import {
   syncMemberModuleMemberships,
   cleanupMemberModuleMemberships,
@@ -28,6 +29,8 @@ import {
 import { where, orderBy } from 'firebase/firestore';
 
 const MEMBER_STORAGE_CLEANUP_LOG = '[Member Storage Cleanup]';
+
+export { normalizeMemberResponse } from '@/services/memberResponseUtils';
 
 async function cleanupMemberStoragePath(path, deleteFn, label) {
   const normalizedPath = String(path || '').trim();
@@ -157,13 +160,17 @@ export async function createMember(memberData, createdBy = '') {
   const timestamp = new Date().toISOString();
   const payload = buildMemberPayload(memberData);
 
-  const createdMember = await addDocument(COLLECTIONS.MEMBERS, {
+  const createdMember = normalizeMemberResponse(await addDocument(COLLECTIONS.MEMBERS, {
     ...payload,
     status: payload.status || MEMBER_STATUS.ACTIVE,
     createdBy: String(createdBy || memberData.createdBy || '').trim(),
     createdAt: timestamp,
     updatedAt: timestamp,
-  });
+  }));
+
+  if (!createdMember?.id) {
+    throw new Error('Member could not be created. Please try again.');
+  }
 
   await syncMemberModuleMemberships(createdMember.id, null, payload);
 

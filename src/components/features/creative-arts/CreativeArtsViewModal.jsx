@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
 import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinkedMembersTable';
-import { DEPARTMENT_STATUS, getMemberCount, getMembersLinkedToCreativeArtsDepartment } from '@/config/creativeArtsOptions';
+import { DEPARTMENT_STATUS, getMembersLinkedToCreativeArtsDepartment } from '@/config/creativeArtsOptions';
 import { useMembers } from '@/services/membersService';
 import { mapLinkedMemberForDisplay } from '@/config/schoolsOptions';
 
@@ -92,7 +92,7 @@ export default function CreativeArtsViewModal({
             {department.leader || 'Not assigned'}
           </DetailCard>
           <DetailCard icon={Users} label="Total Members">
-            {getMemberCount(department)}
+            {linkedMembers.length}
           </DetailCard>
           <DetailCard icon={Activity} label="Status">
             <StatusBadge status={department.status} />

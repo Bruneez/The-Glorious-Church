@@ -1,67 +1,60 @@
 import {
-  isMembershipSelection,
-  getMemberDepartment,
-} from '@/config/memberOptions';
+  planMemberCreativeArtsMembershipChange,
+  planMemberMinistryMembershipChange,
+  resolveCreativeArtsTeamIdFromMember,
+  resolveMinistryIdFromMember,
+} from '@/services/memberMembershipResolvers';
 import {
   addMemberToTeam,
+  getCreativeArts,
   removeMemberFromTeam,
 } from '@/services/creativeArtsService';
 import {
   addMemberToMinistry,
+  getMinistries,
   removeMemberFromMinistry,
 } from '@/services/ministriesService';
 
-function resolveCreativeArtsTeamId(member = {}) {
-  if (isMembershipSelection(member.creativeArtsId)) {
-    return String(member.creativeArtsId).trim();
-  }
-
-  if (isMembershipSelection(member.departmentId)) {
-    return String(member.departmentId).trim();
-  }
-
-  return '';
-}
-
-function resolveMinistryId(member = {}) {
-  if (isMembershipSelection(member.ministryId)) {
-    return String(member.ministryId).trim();
-  }
-
-  return '';
-}
+export {
+  resolveMemberCreativeArtsTeamId,
+  resolveMemberMinistryId,
+  resolveCreativeArtsTeamIdFromMember,
+  resolveMinistryIdFromMember,
+  planMemberCreativeArtsMembershipChange,
+  planMemberMinistryMembershipChange,
+} from '@/services/memberMembershipResolvers';
 
 export async function syncMemberCreativeArtsMembership(memberId, previousMember, nextPayload) {
-  const previousTeamId = resolveCreativeArtsTeamId(previousMember);
-  const nextTeamId = resolveCreativeArtsTeamId(nextPayload);
+  const teams = await getCreativeArts();
+  const plan = planMemberCreativeArtsMembershipChange(previousMember, nextPayload, teams);
 
-  if (previousTeamId === nextTeamId) {
+  if (!plan.changed) {
     return;
   }
 
-  if (previousTeamId) {
-    await removeMemberFromTeam(previousTeamId, memberId);
+  if (plan.removeFromTeamId) {
+    await removeMemberFromTeam(plan.removeFromTeamId, memberId);
   }
 
-  if (nextTeamId) {
-    await addMemberToTeam(nextTeamId, memberId);
+  if (plan.addToTeamId) {
+    await addMemberToTeam(plan.addToTeamId, memberId);
   }
 }
 
 export async function syncMemberMinistryMembership(memberId, previousMember, nextPayload) {
-  const previousMinistryId = resolveMinistryId(previousMember);
-  const nextMinistryId = resolveMinistryId(nextPayload);
+  const ministries = await getMinistries();
+  const plan = planMemberMinistryMembershipChange(previousMember, nextPayload, ministries);
 
-  if (previousMinistryId === nextMinistryId) {
+  if (!plan.changed) {
     return;
   }
 
-  if (previousMinistryId) {
-    await removeMemberFromMinistry(previousMinistryId, memberId);
+  if (plan.removeFromMinistryId) {
+    await removeMemberFromMinistry(plan.removeFromMinistryId, memberId);
   }
 
-  if (nextMinistryId) {
-    await addMemberToMinistry(nextMinistryId, memberId);
+  if (plan.addToMinistryId) {
+    await addMemberToMinistry(plan.addToMinistryId, memberId);
   }
 }
 
@@ -70,9 +63,12 @@ export async function syncMemberModuleMemberships(memberId, previousMember, next
   await syncMemberMinistryMembership(memberId, previousMember, nextPayload);
 }
 
-export async function cleanupMemberModuleMemberships(memberId, member = {}) {
-  const creativeArtsTeamId = resolveCreativeArtsTeamId(member);
-  const ministryId = resolveMinistryId(member);
+export async function cleanupMemberModuleMemberships(memberId, member) {
+  const record = member || {};
+  const teams = await getCreativeArts();
+  const ministries = await getMinistries();
+  const creativeArtsTeamId = resolveCreativeArtsTeamIdFromMember(record, teams);
+  const ministryId = resolveMinistryIdFromMember(record, ministries);
 
   if (creativeArtsTeamId) {
     await removeMemberFromTeam(creativeArtsTeamId, memberId);
@@ -80,11 +76,5 @@ export async function cleanupMemberModuleMemberships(memberId, member = {}) {
 
   if (ministryId) {
     await removeMemberFromMinistry(ministryId, memberId);
-  }
-
-  const legacyDepartmentName = getMemberDepartment(member);
-  if (!creativeArtsTeamId && legacyDepartmentName) {
-    // Legacy members may only have a department name without an ID-based team link.
-    // Department-side member arrays are cleaned up when the member document is deleted.
   }
 }

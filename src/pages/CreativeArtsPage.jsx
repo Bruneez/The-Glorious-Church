@@ -11,6 +11,7 @@ import {
   deleteCreativeArtsTeam,
   seedDefaultDepartmentsIfEmpty,
 } from '@/services/creativeArtsService';
+import { useMembers } from '@/services/membersService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import RoleGate from '@/components/auth/RoleGate';
 import { computeCreativeArtsStats, filterDepartments } from '@/config/creativeArtsOptions';
@@ -30,6 +31,7 @@ function SummaryCard({ label, value, loading }) {
 
 export default function CreativeArtsPage() {
   const { data: departments = [], loading } = useCreativeArts();
+  const { data: members = [], loading: membersLoading } = useMembers();
   const { canPerformAction } = useRoleAccess();
   const seedAttempted = useRef(false);
 
@@ -43,8 +45,8 @@ export default function CreativeArtsPage() {
   const canOpenDepartment = canPerformAction('OPEN_CREATIVE_ARTS_DEPARTMENT');
 
   const stats = useMemo(
-    () => computeCreativeArtsStats(departments),
-    [departments],
+    () => computeCreativeArtsStats(departments, members),
+    [departments, members],
   );
 
   const filteredDepartments = useMemo(
@@ -181,7 +183,7 @@ export default function CreativeArtsPage() {
         <SummaryCard
           label="Total Members"
           value={stats.totalMembers}
-          loading={loading}
+          loading={loading || membersLoading}
         />
         <SummaryCard
           label="Active Departments"
@@ -209,6 +211,7 @@ export default function CreativeArtsPage() {
         ) : (
           <CreativeArtsCardGrid
             departments={filteredDepartments}
+            members={members}
             onView={canOpenDepartment ? handleViewDepartment : undefined}
             onEdit={canManage ? handleEditDepartment : undefined}
             onDelete={canManage ? handleDeleteDepartment : undefined}
