@@ -8,6 +8,7 @@ import AttendanceViewModal from '@/components/features/attendance/AttendanceView
 import AttendanceDeleteModal from '@/components/features/attendance/AttendanceDeleteModal';
 import AttendanceTable from '@/components/features/attendance/AttendanceTable';
 import AttendanceMobileList from '@/components/features/attendance/AttendanceMobileList';
+import AttendanceAnalyticsSection from '@/components/features/attendance/analytics/AttendanceAnalyticsSection';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { isChurchWideStaff, isCALeader, isElderRole, normalizeRole } from '@/config/roles';
@@ -407,6 +408,12 @@ export default function AttendancePage() {
           </>
         )}
       </div>
+
+      <AttendanceAnalyticsSection
+        records={visibleRecords}
+        loading={recordsLoading}
+        viewMode={tableViewMode}
+      />
 
       <AttendanceForm
         isOpen={isFormOpen}
