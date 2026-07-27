@@ -13,15 +13,15 @@ export default function AppLayout() {
 
   return (
     <div className="bg-slate-900 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
-      <SidebarBrand />
+      <SidebarBrand
+        isMenuOpen={mobileMenu.isOpen}
+        onMenuToggle={mobileMenu.toggle}
+        menuButtonRef={mobileMenu.menuButtonRef}
+      />
       <SidebarBackdrop isOpen={mobileMenu.isOpen} onClose={mobileMenu.close} />
 
       <div className="flex flex-1 min-h-0 flex-col lg:grid lg:grid-cols-[17.5rem_1fr] lg:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
-        <PageHeader
-          isMenuOpen={mobileMenu.isOpen}
-          onMenuToggle={mobileMenu.toggle}
-          menuButtonRef={mobileMenu.menuButtonRef}
-        />
+        <PageHeader />
 
         <Sidebar
           isMobileOpen={mobileMenu.isOpen}
