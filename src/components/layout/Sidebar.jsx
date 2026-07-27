@@ -23,7 +23,7 @@ export default function Sidebar({
       ref={drawerRef}
       id={NAV_DRAWER_ID}
       aria-labelledby={labelId}
-      className={`fixed top-[9rem] bottom-0 left-0 z-50 flex w-[min(82vw,20rem)] max-w-[320px] flex-col border-r border-slate-800 bg-slate-950 transition-transform duration-300 ease-in-out sm:w-[min(40vw,21.25rem)] sm:max-w-[340px] lg:static lg:inset-auto lg:z-auto lg:top-auto lg:h-full lg:w-[17.5rem] lg:max-w-none lg:translate-x-0 lg:row-start-1 lg:row-span-2 lg:col-start-1 shrink-0 min-h-0 ${
+      className={`fixed top-[calc(4.5rem+env(safe-area-inset-top,0px))] bottom-0 left-0 z-50 flex w-[min(82vw,20rem)] max-w-[320px] flex-col border-r border-slate-800 bg-slate-950 transition-transform duration-300 ease-in-out sm:w-[min(40vw,21.25rem)] sm:max-w-[340px] lg:static lg:inset-auto lg:z-auto lg:top-auto lg:h-full lg:w-[17.5rem] lg:max-w-none lg:translate-x-0 lg:row-start-1 lg:row-span-2 lg:col-start-1 shrink-0 min-h-0 ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
