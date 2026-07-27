@@ -25,6 +25,7 @@ import ServiceProgramPage from '@/pages/ServiceProgramPage';
 import TravellingPage from '@/pages/TravellingPage';
 import MachanehMoviesPage from '@/pages/MachanehMoviesPage';
 import MerchandisePage from '@/pages/MerchandisePage';
+import TimeLogPage from '@/pages/TimeLogPage';
 
 export default function AppRoutes() {
   return (
@@ -63,6 +64,7 @@ export default function AppRoutes() {
           <Route path="service-program" element={<ServiceProgramPage />} />
           <Route path="development-board" element={<DevelopmentBoardPage />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="time-log" element={<TimeLogPage />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
         </Route>
       </Route>

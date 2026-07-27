@@ -37,6 +37,8 @@ const OPERATIONAL_ACTIONS = [
   'VIEW_TRAVELLING',
   'VIEW_MACHANEH_MOVIES',
   'VIEW_MERCHANDISE',
+  'MANAGE_TIME_LOGS',
+  'LOG_OWN_TIME',
 ];
 
 const OPERATIONAL_DENIED_ACTIONS = [
@@ -63,6 +65,7 @@ const OPERATIONAL_VISIBLE_ROUTES = [
   '/calendar',
   '/service-program',
   '/tasks',
+  '/time-log',
 ];
 
 const ELDER_VISIBLE_ROUTES = [
@@ -82,6 +85,7 @@ const ELDER_VISIBLE_ROUTES = [
   '/calendar',
   '/service-program',
   '/tasks',
+  '/time-log',
 ];
 
 const ELDER_RESTRICTED_ROUTES = [
@@ -112,6 +116,7 @@ const LEADER_ALLOWED_ACTIONS = [
   'VIEW_TRAVELLING',
   'VIEW_MACHANEH_MOVIES',
   'VIEW_MERCHANDISE',
+  'LOG_OWN_TIME',
   'UPDATE_OWN_TASK_STATUS',
   'CREATE_CALENDAR_EVENTS',
   'MANAGE_OWN_CALENDAR_EVENTS',
@@ -223,9 +228,15 @@ test('Admin and Pastor share identical operational action permissions', () => {
   });
 });
 
-test('Admin and Pastor stay aligned across actions except Development Board admin access', () => {
+test('Admin and Pastor stay aligned across actions except Development Board and Time Log admin access', () => {
   Object.keys(ACTIONS).forEach((action) => {
     if (action === 'MANAGE_DEVELOPMENT_BOARD') {
+      assert.equal(canPerformAction(ROLES.ADMIN, action), true);
+      assert.equal(canPerformAction(ROLES.PASTOR, action), false);
+      return;
+    }
+
+    if (action === 'VIEW_ALL_TIME_LOGS' || action === 'MANAGE_TIME_LOG_PARTICIPATION') {
       assert.equal(canPerformAction(ROLES.ADMIN, action), true);
       assert.equal(canPerformAction(ROLES.PASTOR, action), false);
       return;
@@ -311,4 +322,21 @@ test('other roles still follow existing permission boundaries', () => {
   assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_CREATIVE_ARTS'), false);
   assert.equal(canAccessRoute(ROLES.LEADER, '/development-board'), false);
   assert.equal(canAccessRoute(ROLES.LEADER, '/members'), false);
+});
+
+test('Time Log card opening permissions follow role boundaries', () => {
+  assert.equal(canPerformAction(ROLES.ADMIN, 'VIEW_ALL_TIME_LOGS'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'VIEW_ALL_TIME_LOGS'), true);
+  assert.equal(canPerformAction(ROLES.PASTOR, 'VIEW_ALL_TIME_LOGS'), false);
+  assert.equal(canPerformAction(ROLES.LEADER, 'VIEW_ALL_TIME_LOGS'), false);
+  assert.equal(canPerformAction(ROLES.ELDER, 'VIEW_ALL_TIME_LOGS'), false);
+  assert.equal(canPerformAction(ROLES.PASTOR, 'LOG_OWN_TIME'), true);
+  assert.equal(canPerformAction(ROLES.LEADER, 'LOG_OWN_TIME'), true);
+});
+
+test('Time Log participation management is limited to Admin and Lead Pastor', () => {
+  assert.equal(canPerformAction(ROLES.ADMIN, 'MANAGE_TIME_LOG_PARTICIPATION'), true);
+  assert.equal(canPerformAction(ROLES.LEAD_PASTOR, 'MANAGE_TIME_LOG_PARTICIPATION'), true);
+  assert.equal(canPerformAction(ROLES.PASTOR, 'MANAGE_TIME_LOG_PARTICIPATION'), false);
+  assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_TIME_LOG_PARTICIPATION'), false);
 });

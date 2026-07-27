@@ -107,3 +107,29 @@ export async function restoreStaffToTasksModule(staffDocId, { role } = {}) {
 
   await updateStaffProfile(normalizedStaffDocId, { taskModuleEnabled: true });
 }
+
+export async function excludeStaffFromTimeLogModule(staffDocId, { role } = {}) {
+  if (!canPerformAction(role, 'MANAGE_TIME_LOG_PARTICIPATION')) {
+    throw new Error('Only time log administrators can remove users from the Time Log module.');
+  }
+
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  if (!normalizedStaffDocId) {
+    throw new Error('Staff member ID is required.');
+  }
+
+  await updateStaffProfile(normalizedStaffDocId, { timeLogModuleEnabled: false });
+}
+
+export async function restoreStaffToTimeLogModule(staffDocId, { role } = {}) {
+  if (!canPerformAction(role, 'MANAGE_TIME_LOG_PARTICIPATION')) {
+    throw new Error('Only time log administrators can restore users to the Time Log module.');
+  }
+
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  if (!normalizedStaffDocId) {
+    throw new Error('Staff member ID is required.');
+  }
+
+  await updateStaffProfile(normalizedStaffDocId, { timeLogModuleEnabled: true });
+}

@@ -69,6 +69,7 @@ export async function createStaffUser(staffData) {
       phone,
       photo,
       taskModuleEnabled: true,
+      timeLogModuleEnabled: true,
       createdAt: serverTimestamp(),
       createdBy,
     });

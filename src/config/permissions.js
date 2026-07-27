@@ -57,6 +57,7 @@ const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
   '/calendar',
   '/service-program',
   '/tasks',
+  '/time-log',
 ];
 
 /** Roles that can open Creative Arts department details (Leaders see tile summaries only). */
@@ -95,6 +96,7 @@ export const ROUTE_ACCESS = {
   '/travelling': ALL_STAFF,
   '/machaneh-movies': ALL_STAFF,
   '/merchandise': ALL_STAFF,
+  '/time-log': ALL_STAFF,
 };
 
 export function canAccessRoute(role, pathname) {
@@ -148,6 +150,10 @@ export const ACTIONS = {
   MANAGE_MACHANEH_MOVIES: OPERATIONAL_STAFF,
   VIEW_MERCHANDISE: [...ALL_STAFF, ROLES.ELDER],
   MANAGE_MERCHANDISE: OPERATIONAL_STAFF,
+  VIEW_ALL_TIME_LOGS: [ROLES.LEAD_PASTOR, ROLES.ADMIN],
+  MANAGE_TIME_LOGS: OPERATIONAL_STAFF,
+  MANAGE_TIME_LOG_PARTICIPATION: [ROLES.LEAD_PASTOR, ROLES.ADMIN],
+  LOG_OWN_TIME: [...ALL_STAFF, ROLES.ELDER],
 };
 
 export function canPerformAction(role, action) {
