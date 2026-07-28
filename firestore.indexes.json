@@ -246,14 +246,6 @@
       ]
     },
     {
-      "collectionGroup": "timeLogs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "transportAssignments",
       "queryScope": "COLLECTION",
       "fields": [
