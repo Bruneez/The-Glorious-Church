@@ -47,6 +47,12 @@ body {
   *::-webkit-scrollbar-thumb:hover {
     background-color: var(--scrollbar-thumb-hover);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-drawer {
+      transition: none !important;
+    }
+  }
 }
 
 .leaflet-popup-content-wrapper {
