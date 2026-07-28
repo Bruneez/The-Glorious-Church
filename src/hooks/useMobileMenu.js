@@ -3,11 +3,43 @@ import { useLocation } from 'react-router-dom';
 
 export const NAV_DRAWER_ID = 'app-nav-drawer';
 
+/** Matches Tailwind `xl` — persistent sidebar begins at this width. */
+export const DESKTOP_SIDEBAR_MEDIA_QUERY = '(min-width: 1280px)';
+
+function getIsDesktopSidebar() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia(DESKTOP_SIDEBAR_MEDIA_QUERY).matches
+  );
+}
+
+export function useIsDesktopSidebar() {
+  const [isDesktopSidebar, setIsDesktopSidebar] = useState(getIsDesktopSidebar);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(DESKTOP_SIDEBAR_MEDIA_QUERY);
+
+    function handleChange(event) {
+      setIsDesktopSidebar(event.matches);
+    }
+
+    setIsDesktopSidebar(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  return isDesktopSidebar;
+}
+
 export function useMobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const drawerRef = useRef(null);
   const wasOpenRef = useRef(false);
+  const bodyOverflowRef = useRef('');
   const location = useLocation();
   const labelId = useId();
 
@@ -20,11 +52,25 @@ export function useMobileMenu() {
   }, [location.pathname, close]);
 
   useEffect(() => {
-    if (!isOpen) {
+    const mediaQuery = window.matchMedia(DESKTOP_SIDEBAR_MEDIA_QUERY);
+
+    function handleBreakpointChange() {
+      close();
+    }
+
+    mediaQuery.addEventListener('change', handleBreakpointChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleBreakpointChange);
+    };
+  }, [close]);
+
+  useEffect(() => {
+    if (!isOpen || getIsDesktopSidebar()) {
       return undefined;
     }
 
-    const previousOverflow = document.body.style.overflow;
+    bodyOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     function handleKeyDown(event) {
@@ -37,13 +83,13 @@ export function useMobileMenu() {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = bodyOverflowRef.current;
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, close]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || getIsDesktopSidebar()) {
       return undefined;
     }
 
@@ -90,11 +136,20 @@ export function useMobileMenu() {
 
   useEffect(() => {
     if (wasOpenRef.current && !isOpen) {
-      menuButtonRef.current?.focus();
+      menuButtonRef.current?.focus({ preventScroll: true });
     }
 
     wasOpenRef.current = isOpen;
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (bodyOverflowRef.current !== '') {
+        document.body.style.overflow = bodyOverflowRef.current;
+        bodyOverflowRef.current = '';
+      }
+    };
+  }, []);
 
   return {
     isOpen,

@@ -20,7 +20,7 @@ export default function AppLayout() {
       />
       <SidebarBackdrop isOpen={mobileMenu.isOpen} onClose={mobileMenu.close} />
 
-      <div className="flex flex-1 min-h-0 flex-col lg:grid lg:grid-cols-[17.5rem_1fr] lg:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col xl:grid xl:grid-cols-[17.5rem_1fr] xl:grid-rows-[4.5rem_minmax(0,1fr)] overflow-hidden">
         <PageHeader />
 
         <Sidebar
@@ -30,7 +30,7 @@ export default function AppLayout() {
           labelId={mobileMenu.labelId}
         />
 
-        <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex-1 lg:row-start-2 lg:col-start-2 px-4 py-4 sm:px-5 lg:px-7 lg:py-6 xl:px-8 w-full max-w-none">
+        <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex-1 xl:row-start-2 xl:col-start-2 px-4 py-4 sm:px-5 xl:px-7 xl:py-6 2xl:px-8 w-full max-w-none">
           <Outlet />
         </main>
       </div>

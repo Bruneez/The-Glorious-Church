@@ -11,7 +11,6 @@ export const COLLECTIONS = {
   TRANSPORT_ASSIGNMENTS: 'transportAssignments',
   DEVELOPMENT_TASKS: 'developmentTasks',
   TASKS: 'tasks',
-  TIME_LOGS: 'timeLogs',
   NOTIFICATIONS: 'notifications',
   MINISTRIES: 'ministries',
   SERVICE_PROGRAMS: 'servicePrograms',
