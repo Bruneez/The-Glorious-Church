@@ -8,6 +8,7 @@ import {
   resolveMinistryAvatarStoragePath,
   resolveSchoolBadgeStoragePath,
   resolveTravelDestinationImageStoragePath,
+  resolveShepherdingCoverStoragePath,
 } from './storagePathUtils.js';
 
 test('extractStoragePathFromDownloadUrl decodes Firebase download URLs', () => {
@@ -205,5 +206,28 @@ test('resolveTravelDestinationImageStoragePath ignores blob preview URLs', () =>
       imageUrl: 'blob:http://localhost/fake-preview',
     }),
     '',
+  );
+});
+
+test('resolveShepherdingCoverStoragePath prefers coverImageStoragePath', () => {
+  assert.equal(
+    resolveShepherdingCoverStoragePath({
+      coverImageStoragePath: 'shepherding-tools/abc123/123_cover.jpg',
+      coverImageUrl: 'https://example.com/other.jpg',
+    }),
+    'shepherding-tools/abc123/123_cover.jpg',
+  );
+});
+
+test('resolveShepherdingCoverStoragePath resolves Firebase Storage path from coverImageUrl', () => {
+  const url =
+    'https://firebasestorage.googleapis.com/v0/b/the-glorious-church.firebasestorage.app/o/shepherding-tools%2Fabc123%2F999_cover.webp?alt=media&token=abc';
+
+  assert.equal(
+    resolveShepherdingCoverStoragePath({
+      coverImageStoragePath: '',
+      coverImageUrl: url,
+    }),
+    'shepherding-tools/abc123/999_cover.webp',
   );
 });

@@ -1,5 +1,6 @@
 import {
   Banknote,
+  BookOpen,
   Bus,
   Calendar,
   ClipboardCheck,
@@ -18,6 +19,7 @@ export const NOTIFICATION_TYPE = {
   EVENT_ADDED: 'event_added',
   TRANSPORT_UPDATED: 'transport_updated',
   OFFERING_RECORDED: 'offering_recorded',
+  SHEPHERDING_RESOURCE_PUBLISHED: 'shepherding_resource_published',
 };
 
 export const NOTIFICATION_ENTITY_TYPE = {
@@ -28,6 +30,7 @@ export const NOTIFICATION_ENTITY_TYPE = {
   EVENT: 'event',
   TRANSPORT: 'transport',
   OFFERING: 'offering',
+  SHEPHERDING_RESOURCE: 'shepherding_resource',
 };
 
 export const NOTIFICATION_SCOPE = {
@@ -75,6 +78,11 @@ export const NOTIFICATION_TYPE_META = {
     icon: Banknote,
     accent: 'text-emerald-400',
     bg: 'bg-emerald-500/10',
+  },
+  [NOTIFICATION_TYPE.SHEPHERDING_RESOURCE_PUBLISHED]: {
+    icon: BookOpen,
+    accent: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
   },
 };
 

@@ -13,6 +13,14 @@ import {
 } from '@/config/machanehMoviesOptions';
 import { toMachanehMoviePosterUploadError } from '@/config/machanehMoviesPosterValidation';
 import { MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/merchandiseOptions';
+import {
+  SHEPHERDING_COVER_UPLOAD_TIMEOUT_MS,
+} from '@/config/shepherdingToolsResourceOptions';
+import {
+  generateStoragePath,
+  resolveCoverContentType,
+  validateImage,
+} from '@/services/shepherdingToolsStorage';
 
 function rethrowStorageError(error) {
   const message = getStorageErrorMessage(error);
@@ -215,5 +223,41 @@ export async function uploadMerchandiseImage(file, itemId) {
 }
 
 export async function deleteMerchandiseImage(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadShepherdingCoverImage(file, resourceId) {
+  const validationMessage = validateImage(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const contentType = resolveCoverContentType(file);
+  if (!contentType) {
+    throw new Error('Please upload a JPG, PNG, or WEBP cover image.');
+  }
+
+  const coverImageStoragePath = generateStoragePath(resourceId, file.name);
+
+  try {
+    const coverImageUrl = await withUploadTimeout(
+      uploadFile(file, coverImageStoragePath, {
+        contentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
+      SHEPHERDING_COVER_UPLOAD_TIMEOUT_MS,
+    );
+
+    if (!coverImageUrl) {
+      throw new Error('Failed to upload cover image. Please try again.');
+    }
+
+    return { coverImageUrl, coverImageStoragePath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteShepherdingCoverImage(path) {
   return deleteFileSafe(path);
 }

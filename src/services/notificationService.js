@@ -329,6 +329,26 @@ export async function createTransportUpdatedNotification({
   });
 }
 
+export async function createShepherdingResourcePublishedNotification({
+  resourceId,
+  resourceTitle,
+  resourceTypeLabel = 'resource',
+  excludeStaffId = '',
+}) {
+  const title = String(resourceTitle || 'New resource').trim();
+  const typeLabel = String(resourceTypeLabel || 'resource').trim();
+
+  return dispatchScopedNotification({
+    scope: NOTIFICATION_SCOPE.SYSTEM,
+    title: 'New Shepherding Resource',
+    description: `${title} was published in ${typeLabel}.`,
+    type: NOTIFICATION_TYPE.SHEPHERDING_RESOURCE_PUBLISHED,
+    relatedEntityId: resourceId,
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.SHEPHERDING_RESOURCE,
+    excludeStaffId,
+  });
+}
+
 export async function createOfferingRecordedNotification({
   offeringId,
   amountLabel,

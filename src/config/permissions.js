@@ -54,6 +54,7 @@ const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
   '/travelling',
   '/machaneh-movies',
   '/merchandise',
+  '/shepherding-tools',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -76,6 +77,7 @@ function canMinistryParticipantAccessRoute(pathname) {
 export const ROUTE_ACCESS = {
   '/dashboard': ALL_STAFF,
   '/blueprint': ALL_STAFF,
+  '/shepherding-tools': ALL_STAFF,
   '/users': [ROLES.LEAD_PASTOR],
   '/system-users': [ROLES.LEAD_PASTOR],
   '/members': ALL_STAFF,
@@ -148,6 +150,8 @@ export const ACTIONS = {
   MANAGE_MACHANEH_MOVIES: OPERATIONAL_STAFF,
   VIEW_MERCHANDISE: [...ALL_STAFF, ROLES.ELDER],
   MANAGE_MERCHANDISE: OPERATIONAL_STAFF,
+  VIEW_SHEPHERDING_TOOLS: [...ALL_STAFF, ROLES.ELDER],
+  MANAGE_SHEPHERDING_TOOLS: [ROLES.ADMIN],
 };
 
 export function canPerformAction(role, action) {

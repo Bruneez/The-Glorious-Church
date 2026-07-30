@@ -20,4 +20,5 @@ export const COLLECTIONS = {
   MERCHANDISE_SALES: 'merchandiseSales',
   MERCHANDISE_STOCK_MOVEMENTS: 'merchandiseStockMovements',
   MERCHANDISE_REQUESTS: 'merchandiseRequests',
+  SHEPHERDING_TOOLS: 'shepherdingTools',
 };

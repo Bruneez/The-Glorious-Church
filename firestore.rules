@@ -8,6 +8,26 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Production template for Shepherding Tools (shepherdingTools collection):
+    // match /shepherdingTools/{resourceId} {
+    //   function staffRole() {
+    //     return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role;
+    //   }
+    //   function canManageShepherdingTools() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Admin'];
+    //   }
+    //   function canViewShepherdingTools() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    //   }
+    //   function isPublishedResource() {
+    //     return resource.data.publishedStatus == 'published'
+    //       && resource.data.deletedAt == null;
+    //   }
+    //   allow read: if canViewShepherdingTools()
+    //     && (canManageShepherdingTools() || isPublishedResource());
+    //   allow create, update, delete: if canManageShepherdingTools();
+    // }
+
     // Example: stricter rules for the `members` collection
     // Uncomment and adjust ownership/role checks to use this.
     // match /members/{memberId} {

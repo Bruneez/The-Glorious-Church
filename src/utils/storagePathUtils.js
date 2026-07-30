@@ -117,3 +117,10 @@ export function resolveMerchandiseImageStoragePath(image = {}) {
 
   return extractStoragePathFromDownloadUrl(image.url || '');
 }
+
+export function resolveShepherdingCoverStoragePath(resource = {}) {
+  const directPath = normalizeStorageObjectPath(resource.coverImageStoragePath);
+  if (directPath) return directPath;
+
+  return extractStoragePathFromDownloadUrl(resource.coverImageUrl || '');
+}
