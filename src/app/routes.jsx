@@ -26,6 +26,7 @@ import TravellingPage from '@/pages/TravellingPage';
 import MachanehMoviesPage from '@/pages/MachanehMoviesPage';
 import ShepherdingToolsPage from '@/pages/ShepherdingToolsPage';
 import MerchandisePage from '@/pages/MerchandisePage';
+import AppFixesPage from '@/pages/AppFixesPage';
 export default function AppRoutes() {
   return (
     <Routes>
@@ -39,6 +40,7 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="blueprint" element={<BlueprintPage />} />
           <Route path="shepherding-tools" element={<ShepherdingToolsPage />} />
+          <Route path="app-fixes" element={<AppFixesPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="system-users" element={<Navigate to="/users" replace />} />
           <Route path="members" element={<MembersPage />} />

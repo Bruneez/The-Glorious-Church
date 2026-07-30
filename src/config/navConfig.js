@@ -18,6 +18,7 @@ import {
   Plane,
   Clapperboard,
   ShoppingBag,
+  Bug,
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -39,6 +40,7 @@ export const NAV_ITEMS = [
   { path: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
   { path: '/service-program', label: 'Service Program', icon: ClipboardList, roles: null },
   { path: '/tasks', label: 'Tasks', icon: ListTodo, roles: null },
+  { path: '/app-fixes', label: 'App Fixes', icon: Bug, roles: null },
   { path: '/development-board', label: 'Development Board', icon: KanbanSquare, roles: null },
 ];
 
@@ -52,6 +54,7 @@ export const PAGE_TITLES = {
   '/dashboard': 'Dashboard Overview',
   '/blueprint': 'Blueprint',
   '/shepherding-tools': 'Shepherding Tools',
+  '/app-fixes': 'App Fixes',
   '/users': 'System Users',
   '/members': 'Members Directory',
   '/creative-arts': 'Creative Arts',

@@ -28,6 +28,66 @@ service cloud.firestore {
     //   allow create, update, delete: if canManageShepherdingTools();
     // }
 
+    // Production template for App Fixes (appFixRequests collection):
+    // match /appFixRequests/{requestId} {
+    //   function staffRole() {
+    //     return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role;
+    //   }
+    //   function canManageAppFixes() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Admin'];
+    //   }
+    //   function canViewAppFixes() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    //   }
+    //   function isOwnRequest() {
+    //     return request.auth.uid == resource.data.createdByUserId;
+    //   }
+    //   function isActiveRequest() {
+    //     return resource.data.deletedAt == null;
+    //   }
+    //   allow read: if canViewAppFixes()
+    //     && isActiveRequest()
+    //     && (canManageAppFixes() || isOwnRequest());
+    //   allow create: if canViewAppFixes()
+    //     && request.resource.data.createdByUserId == request.auth.uid
+    //     && request.resource.data.deletedAt == null;
+    //   allow update: if isActiveRequest()
+    //     && (canManageAppFixes() || (canViewAppFixes() && isOwnRequest()));
+    //   allow delete: if canManageAppFixes();
+    // }
+
+    // Production template for App Fixes updates (appFixUpdates collection):
+    // match /appFixUpdates/{updateId} {
+    //   function parentRequest() {
+    //     return get(/databases/$(database)/documents/appFixRequests/$(resource.data.requestId));
+    //   }
+    //   allow read: if canViewAppFixes()
+    //     && resource.data.deletedAt == null
+    //     && (canManageAppFixes()
+    //       || parentRequest().data.createdByUserId == request.auth.uid);
+    //   allow create, update, delete: if canManageAppFixes()
+    //     || (canViewAppFixes()
+    //       && get(/databases/$(database)/documents/appFixRequests/$(request.resource.data.requestId)).data.createdByUserId == request.auth.uid);
+    // }
+
+    // Production template for App Fixes attachments (appFixAttachments collection):
+    // match /appFixAttachments/{attachmentId} {
+    //   function parentRequest() {
+    //     return get(/databases/$(database)/documents/appFixRequests/$(resource.data.requestId));
+    //   }
+    //   allow read: if canViewAppFixes()
+    //     && resource.data.deletedAt == null
+    //     && (canManageAppFixes()
+    //       || parentRequest().data.createdByUserId == request.auth.uid);
+    //   allow create: if canViewAppFixes()
+    //     && request.resource.data.deletedAt == null
+    //     && (canManageAppFixes()
+    //       || get(/databases/$(database)/documents/appFixRequests/$(request.resource.data.requestId)).data.createdByUserId == request.auth.uid);
+    //   allow update, delete: if canManageAppFixes()
+    //     || (canViewAppFixes()
+    //       && parentRequest().data.createdByUserId == request.auth.uid);
+    // }
+
     // Example: stricter rules for the `members` collection
     // Uncomment and adjust ownership/role checks to use this.
     // match /members/{memberId} {

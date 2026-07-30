@@ -369,6 +369,48 @@ export async function createOfferingRecordedNotification({
   });
 }
 
+export async function createAppFixManagerNotification({
+  title,
+  description,
+  type,
+  requestId,
+  excludeStaffId = '',
+}) {
+  return dispatchScopedNotification({
+    scope: NOTIFICATION_SCOPE.SYSTEM,
+    title: String(title || 'App Fix Update').trim(),
+    description: String(description || '').trim(),
+    type,
+    relatedEntityId: String(requestId || '').trim(),
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.APP_FIX_REQUEST,
+    excludeStaffId,
+  });
+}
+
+export async function createAppFixSubmitterNotification({
+  staffDocId,
+  title,
+  description,
+  type,
+  requestId,
+}) {
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  const normalizedRequestId = String(requestId || '').trim();
+
+  if (!normalizedStaffDocId || !normalizedRequestId) {
+    return null;
+  }
+
+  return createNotification({
+    userId: normalizedStaffDocId,
+    title: String(title || 'App Fix Update').trim(),
+    description: String(description || '').trim(),
+    type,
+    relatedEntityId: normalizedRequestId,
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.APP_FIX_REQUEST,
+  });
+}
+
 export async function markNotificationAsRead(notificationId) {
   if (!notificationId) return null;
   return updateDocument(COLLECTIONS.NOTIFICATIONS, notificationId, { isRead: true });

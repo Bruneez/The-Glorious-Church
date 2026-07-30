@@ -124,3 +124,10 @@ export function resolveShepherdingCoverStoragePath(resource = {}) {
 
   return extractStoragePathFromDownloadUrl(resource.coverImageUrl || '');
 }
+
+export function resolveAppFixAttachmentStoragePath(attachment = {}) {
+  const directPath = normalizeStorageObjectPath(attachment.fileStoragePath);
+  if (directPath) return directPath;
+
+  return extractStoragePathFromDownloadUrl(attachment.fileUrl || '');
+}

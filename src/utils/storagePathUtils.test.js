@@ -9,6 +9,7 @@ import {
   resolveSchoolBadgeStoragePath,
   resolveTravelDestinationImageStoragePath,
   resolveShepherdingCoverStoragePath,
+  resolveAppFixAttachmentStoragePath,
 } from './storagePathUtils.js';
 
 test('extractStoragePathFromDownloadUrl decodes Firebase download URLs', () => {
@@ -229,5 +230,15 @@ test('resolveShepherdingCoverStoragePath resolves Firebase Storage path from cov
       coverImageUrl: url,
     }),
     'shepherding-tools/abc123/999_cover.webp',
+  );
+});
+
+test('resolveAppFixAttachmentStoragePath prefers fileStoragePath over fileUrl', () => {
+  assert.equal(
+    resolveAppFixAttachmentStoragePath({
+      fileStoragePath: 'app-fixes/req-1/123_screen.png',
+      fileUrl: 'https://example.com/other.png',
+    }),
+    'app-fixes/req-1/123_screen.png',
   );
 });

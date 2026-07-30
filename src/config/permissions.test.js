@@ -38,6 +38,7 @@ const OPERATIONAL_ACTIONS = [
   'VIEW_MACHANEH_MOVIES',
   'VIEW_MERCHANDISE',
   'VIEW_SHEPHERDING_TOOLS',
+  'VIEW_APP_FIXES',
   'UPDATE_OWN_TASK_STATUS',
 ];
 
@@ -63,6 +64,7 @@ const OPERATIONAL_VISIBLE_ROUTES = [
   '/machaneh-movies',
   '/merchandise',
   '/shepherding-tools',
+  '/app-fixes',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -83,6 +85,7 @@ const ELDER_VISIBLE_ROUTES = [
   '/machaneh-movies',
   '/merchandise',
   '/shepherding-tools',
+  '/app-fixes',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -102,6 +105,7 @@ const ELDER_ALLOWED_ACTIONS = [
   'VIEW_MACHANEH_MOVIES',
   'VIEW_MERCHANDISE',
   'VIEW_SHEPHERDING_TOOLS',
+  'VIEW_APP_FIXES',
   'UPDATE_OWN_TASK_STATUS',
   'MANAGE_SERVICE_PROGRAM',
   'CREATE_CALENDAR_EVENTS',
@@ -118,6 +122,7 @@ const LEADER_ALLOWED_ACTIONS = [
   'VIEW_MACHANEH_MOVIES',
   'VIEW_MERCHANDISE',
   'VIEW_SHEPHERDING_TOOLS',
+  'VIEW_APP_FIXES',
   'UPDATE_OWN_TASK_STATUS',
   'CREATE_CALENDAR_EVENTS',
   'MANAGE_OWN_CALENDAR_EVENTS',
@@ -142,6 +147,7 @@ const LEADER_DENIED_ACTIONS = [
   'MANAGE_MACHANEH_MOVIES',
   'MANAGE_MERCHANDISE',
   'MANAGE_SHEPHERDING_TOOLS',
+  'MANAGE_APP_FIXES',
   'MANAGE_SERVICE_PROGRAM',
   'OPEN_CREATIVE_ARTS_DEPARTMENT',
   'OPEN_SCHOOL_RECORD',
@@ -165,6 +171,7 @@ const ELDER_DENIED_MANAGE_ACTIONS = [
   'MANAGE_MACHANEH_MOVIES',
   'MANAGE_MERCHANDISE',
   'MANAGE_SHEPHERDING_TOOLS',
+  'MANAGE_APP_FIXES',
 ];
 
 test('Lead Pastor receives full access to system admin routes', () => {
@@ -239,7 +246,7 @@ test('Admin and Pastor stay aligned across actions except Development Board acce
       return;
     }
 
-    if (action === 'MANAGE_SHEPHERDING_TOOLS') {
+    if (action === 'MANAGE_SHEPHERDING_TOOLS' || action === 'MANAGE_APP_FIXES') {
       assert.equal(canPerformAction(ROLES.ADMIN, action), true);
       assert.equal(canPerformAction(ROLES.PASTOR, action), false);
       return;

@@ -1,4 +1,6 @@
 import { uploadImage, uploadFile, deleteFile, deleteFileSafe } from '@/hooks/useStorage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/config/firebase';
 import {
   MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
   getStorageErrorMessage,
@@ -21,6 +23,12 @@ import {
   resolveCoverContentType,
   validateImage,
 } from '@/services/shepherdingToolsStorage';
+import { APP_FIX_ATTACHMENT_UPLOAD_TIMEOUT_MS } from '@/config/appFixesAttachmentOptions';
+import {
+  generateStoragePath as generateAppFixStoragePath,
+  resolveAttachmentContentType,
+  validateAttachment,
+} from '@/services/appFixesStorage';
 
 function rethrowStorageError(error) {
   const message = getStorageErrorMessage(error);
@@ -259,5 +267,69 @@ export async function uploadShepherdingCoverImage(file, resourceId) {
 }
 
 export async function deleteShepherdingCoverImage(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadAppFixAttachment(file, requestId, { onProgress } = {}) {
+  const validationMessage = validateAttachment(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const contentType = resolveAttachmentContentType(file);
+  if (!contentType) {
+    throw new Error('Please upload a JPG, PNG, WEBP, PDF, MP4, WEBM, or MOV file.');
+  }
+
+  const fileStoragePath = generateAppFixStoragePath(requestId, file.name);
+
+  try {
+    const storageRef = ref(storage, fileStoragePath);
+    const uploadTask = uploadBytesResumable(storageRef, file, {
+      contentType,
+      cacheControl: 'public,max-age=31536000',
+    });
+
+    const fileUrl = await new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          if (typeof onProgress === 'function' && snapshot.totalBytes > 0) {
+            onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
+          }
+        },
+        reject,
+        async () => {
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadUrl);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
+    });
+
+    if (!fileUrl) {
+      throw new Error('Failed to upload attachment. Please try again.');
+    }
+
+    if (typeof onProgress === 'function') {
+      onProgress(100);
+    }
+
+    return {
+      fileUrl,
+      fileStoragePath,
+      contentType,
+      fileName: String(file.name || '').trim(),
+      fileSizeBytes: Number.isFinite(Number(file.size)) ? Number(file.size) : null,
+    };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteAppFixAttachment(path) {
   return deleteFileSafe(path);
 }
