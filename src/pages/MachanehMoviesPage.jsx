@@ -42,7 +42,7 @@ function FeedbackBanner({ feedback, onDismiss }) {
 }
 
 export default function MachanehMoviesPage() {
-  const { data: movies = [], loading, error } = useMachanehMovies();
+  const { data: movies = [], loading, error, upsertMovie, removeMovie } = useMachanehMovies();
   const { staffProfile, firebaseUser, role } = useAuth();
   const { canPerformAction } = useRoleAccess();
   const canManage = canPerformAction('MANAGE_MACHANEH_MOVIES');
@@ -55,6 +55,7 @@ export default function MachanehMoviesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReplacingPoster, setIsReplacingPoster] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [formSessionKey, setFormSessionKey] = useState(0);
 
   const filteredMovies = useMemo(
     () => filterMachanehMovies(movies, searchTerm),
@@ -103,7 +104,7 @@ export default function MachanehMoviesPage() {
     }
 
     if (editingMovie) {
-      const { storageWarnings = [] } = await updateMachanehMovie(editingMovie.id, formData, {
+      const { movie, storageWarnings = [] } = await updateMachanehMovie(editingMovie.id, formData, {
         role,
         createdBy,
         initialData: editingMovie,
@@ -111,17 +112,22 @@ export default function MachanehMoviesPage() {
         removePoster,
       });
 
+      upsertMovie(movie);
+
       if (storageWarnings.length) {
         showFeedback('warning', `Movie updated successfully. ${storageWarnings.join(' ')}`);
       } else {
         showFeedback('success', 'Movie updated successfully.');
       }
     } else {
-      const { storageWarnings = [] } = await createMachanehMovie(formData, {
+      const { movie, storageWarnings = [] } = await createMachanehMovie(formData, {
         role,
         createdBy,
         posterFile,
       });
+
+      upsertMovie(movie);
+      setSearchTerm('');
 
       if (storageWarnings.length) {
         showFeedback('warning', `Movie added successfully. ${storageWarnings.join(' ')}`);
@@ -132,6 +138,7 @@ export default function MachanehMoviesPage() {
 
     setIsFormOpen(false);
     setEditingMovie(null);
+    setFormSessionKey((currentKey) => currentKey + 1);
   };
 
   const handleReplacePoster = async (movie, posterFile) => {
@@ -176,6 +183,7 @@ export default function MachanehMoviesPage() {
       }
 
       setDeletingMovie(null);
+      removeMovie(movie.id);
     } catch (deleteError) {
       console.error('Error deleting movie:', deleteError);
       showFeedback('error', deleteError?.message || 'Failed to delete movie. Please try again.');
@@ -240,6 +248,7 @@ export default function MachanehMoviesPage() {
 
       {canManage ? (
         <MachanehMoviesForm
+          key={formSessionKey}
           isOpen={isFormOpen}
           onClose={() => {
             setIsFormOpen(false);

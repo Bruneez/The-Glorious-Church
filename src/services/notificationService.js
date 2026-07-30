@@ -329,6 +329,26 @@ export async function createTransportUpdatedNotification({
   });
 }
 
+export async function createShepherdingResourcePublishedNotification({
+  resourceId,
+  resourceTitle,
+  resourceTypeLabel = 'resource',
+  excludeStaffId = '',
+}) {
+  const title = String(resourceTitle || 'New resource').trim();
+  const typeLabel = String(resourceTypeLabel || 'resource').trim();
+
+  return dispatchScopedNotification({
+    scope: NOTIFICATION_SCOPE.SYSTEM,
+    title: 'New Shepherding Resource',
+    description: `${title} was published in ${typeLabel}.`,
+    type: NOTIFICATION_TYPE.SHEPHERDING_RESOURCE_PUBLISHED,
+    relatedEntityId: resourceId,
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.SHEPHERDING_RESOURCE,
+    excludeStaffId,
+  });
+}
+
 export async function createOfferingRecordedNotification({
   offeringId,
   amountLabel,
@@ -346,6 +366,48 @@ export async function createOfferingRecordedNotification({
     relatedEntityId: offeringId,
     relatedEntityType: NOTIFICATION_ENTITY_TYPE.OFFERING,
     excludeStaffId,
+  });
+}
+
+export async function createAppFixManagerNotification({
+  title,
+  description,
+  type,
+  requestId,
+  excludeStaffId = '',
+}) {
+  return dispatchScopedNotification({
+    scope: NOTIFICATION_SCOPE.SYSTEM,
+    title: String(title || 'App Fix Update').trim(),
+    description: String(description || '').trim(),
+    type,
+    relatedEntityId: String(requestId || '').trim(),
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.APP_FIX_REQUEST,
+    excludeStaffId,
+  });
+}
+
+export async function createAppFixSubmitterNotification({
+  staffDocId,
+  title,
+  description,
+  type,
+  requestId,
+}) {
+  const normalizedStaffDocId = String(staffDocId || '').trim();
+  const normalizedRequestId = String(requestId || '').trim();
+
+  if (!normalizedStaffDocId || !normalizedRequestId) {
+    return null;
+  }
+
+  return createNotification({
+    userId: normalizedStaffDocId,
+    title: String(title || 'App Fix Update').trim(),
+    description: String(description || '').trim(),
+    type,
+    relatedEntityId: normalizedRequestId,
+    relatedEntityType: NOTIFICATION_ENTITY_TYPE.APP_FIX_REQUEST,
   });
 }
 

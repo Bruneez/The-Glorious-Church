@@ -20,4 +20,8 @@ export const COLLECTIONS = {
   MERCHANDISE_SALES: 'merchandiseSales',
   MERCHANDISE_STOCK_MOVEMENTS: 'merchandiseStockMovements',
   MERCHANDISE_REQUESTS: 'merchandiseRequests',
+  SHEPHERDING_TOOLS: 'shepherdingTools',
+  APP_FIX_REQUESTS: 'appFixRequests',
+  APP_FIX_UPDATES: 'appFixUpdates',
+  APP_FIX_ATTACHMENTS: 'appFixAttachments',
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Clapperboard } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -10,13 +10,16 @@ import {
   ACCEPTED_MOVIE_POSTER_ACCEPT,
   MINISTRY_TAG_OPTIONS,
   MOVIE_GENRE_OPTIONS,
+  getMachanehMovieValidationErrors,
   mapMachanehMovieToFormData,
-  validateMachanehMovieForm,
   validateMoviePosterFile,
 } from '@/config/machanehMoviesOptions';
 import { getMachanehMoviePosterStorageErrorMessage } from '@/config/machanehMoviesPosterValidation';
+import { getMachanehMovieFirestoreErrorMessage } from '@/config/machanehMoviesFirestoreValidation';
 import { getMoviePosterUrl } from '@/config/machanehMoviesDisplay';
 import { resolveMachanehMoviePosterStoragePath } from '@/utils/storagePathUtils';
+
+const FORM_ID = 'machaneh-movie-form';
 
 function MinistryTagSelector({ selectedTags, onToggle }) {
   return (
@@ -56,25 +59,81 @@ export default function MachanehMoviesForm({
   const [posterFile, setPosterFile] = useState(null);
   const [removePoster, setRemovePoster] = useState(false);
   const [posterError, setPosterError] = useState('');
+  const [titleError, setTitleError] = useState('');
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const errorBannerRef = useRef(null);
+  const titleFieldRef = useRef(null);
+  const posterFieldRef = useRef(null);
+  const isSubmittingRef = useRef(false);
 
   const isEditing = Boolean(initialData?.id);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setFormData(mapMachanehMovieToFormData(null));
+      setPosterFile(null);
+      setRemovePoster(false);
+      setPosterError('');
+      setTitleError('');
+      setFormError('');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+      return;
+    }
 
     setFormData(mapMachanehMovieToFormData(initialData));
     setPosterFile(null);
     setRemovePoster(false);
     setPosterError('');
+    setTitleError('');
     setFormError('');
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
   }, [initialData, isOpen]);
+
+  const scrollToErrorBanner = () => {
+    requestAnimationFrame(() => {
+      errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  };
+
+  const scrollToFirstFieldError = (errors) => {
+    requestAnimationFrame(() => {
+      if (errors.title) {
+        titleFieldRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+
+      if (errors.poster) {
+        posterFieldRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  };
+
+  const surfaceFieldValidationErrors = (errors) => {
+    setFormError('');
+    setTitleError(errors.title || '');
+    setPosterError(errors.poster || '');
+    scrollToFirstFieldError(errors);
+  };
+
+  const surfaceSubmitError = (message) => {
+    setTitleError('');
+    setPosterError('');
+    setFormError(message);
+    scrollToErrorBanner();
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'title') {
+      setTitleError('');
+      if (formError) setFormError('');
+    }
   };
 
   const handleTagToggle = (tag) => {
@@ -90,12 +149,13 @@ export default function MachanehMoviesForm({
   const handlePosterSelect = (file) => {
     const validationMessage = validateMoviePosterFile(file);
     if (validationMessage) {
-      setPosterError(validationMessage);
+      surfaceFieldValidationErrors({ poster: validationMessage });
       setPosterFile(null);
       return;
     }
 
     setPosterError('');
+    setFormError('');
     setPosterFile(file);
     setRemovePoster(false);
   };
@@ -104,40 +164,39 @@ export default function MachanehMoviesForm({
     setPosterFile(null);
     setRemovePoster(true);
     setPosterError('');
+    setFormError('');
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setFormError('');
 
-    const hasExistingPoster = Boolean(
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    setFormError('');
+    setTitleError('');
+    setPosterError('');
+
+    const hasExistingPoster = !removePoster && Boolean(
       getMoviePosterUrl(formData)
       || resolveMachanehMoviePosterStoragePath(formData)
       || resolveMachanehMoviePosterStoragePath(initialData),
     );
 
-    const validationMessage = validateMachanehMovieForm(formData, {
-      requirePoster: !isEditing && !posterFile,
+    const validationErrors = getMachanehMovieValidationErrors(formData, {
+      posterFile,
+      removePoster,
+      hasExistingPoster,
+      isEditing,
     });
 
-    if (validationMessage) {
-      setFormError(validationMessage);
+    if (validationErrors.title || validationErrors.poster) {
+      surfaceFieldValidationErrors(validationErrors);
       return;
     }
 
-    if (!posterFile && removePoster && !hasExistingPoster) {
-      setPosterError('Poster image is required.');
-      return;
-    }
-
-    if (posterFile) {
-      const posterValidationMessage = validateMoviePosterFile(posterFile);
-      if (posterValidationMessage) {
-        setPosterError(posterValidationMessage);
-        return;
-      }
-    }
-
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -153,12 +212,14 @@ export default function MachanehMoviesForm({
         removePoster,
       });
     } catch (submitError) {
-      setFormError(
+      const message =
         getMachanehMoviePosterStorageErrorMessage(submitError)
-          || submitError?.message
-          || 'Failed to save movie. Please try again.',
-      );
+        || getMachanehMovieFirestoreErrorMessage(submitError)
+        || submitError?.message
+        || 'Failed to save movie. Please try again.';
+      surfaceSubmitError(message);
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -173,7 +234,19 @@ export default function MachanehMoviesForm({
       icon={Clapperboard}
       maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {formError ? (
+          <div
+            ref={errorBannerRef}
+            role="alert"
+            className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-300 text-xs font-medium"
+          >
+            {formError}
+          </div>
+        ) : (
+          <div ref={errorBannerRef} className="hidden" aria-hidden="true" />
+        )}
+
         <Input
           label="Movie Title"
           name="title"
@@ -181,6 +254,8 @@ export default function MachanehMoviesForm({
           onChange={handleChange}
           placeholder="Enter movie title"
           required
+          error={titleError}
+          inputRef={titleFieldRef}
         />
 
         <div>
@@ -198,21 +273,23 @@ export default function MachanehMoviesForm({
           />
         </div>
 
-        <ImageUploadField
-          label="Poster Image"
-          existingImageUrl={existingPosterUrl}
-          selectedFile={posterFile}
-          onFileSelect={handlePosterSelect}
-          onRemove={handlePosterRemove}
-          accept={ACCEPTED_MOVIE_POSTER_ACCEPT}
-          maxSizeMB={5}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          previewShape="square"
-          previewName={formData.title || 'Movie poster'}
-          helperText="JPG, PNG, or WEBP up to 5 MB."
-          error={posterError}
-        />
+        <div ref={posterFieldRef}>
+          <ImageUploadField
+            label="Poster Image"
+            existingImageUrl={existingPosterUrl}
+            selectedFile={posterFile}
+            onFileSelect={handlePosterSelect}
+            onRemove={handlePosterRemove}
+            accept={ACCEPTED_MOVIE_POSTER_ACCEPT}
+            maxSizeMB={5}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            previewShape="square"
+            previewName={formData.title || 'Movie poster'}
+            helperText="JPG, PNG, or WEBP up to 5 MB. Required."
+            error={posterError}
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select
@@ -264,13 +341,15 @@ export default function MachanehMoviesForm({
           onToggle={handleTagToggle}
         />
 
-        {formError ? <p className="text-rose-400 text-[11px]">{formError}</p> : null}
-
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
+          <Button
+            type="submit"
+            isLoading={isSubmitting}
+            disabled={isSubmitting}
+          >
             {isEditing ? 'Save Changes' : 'Add Movie'}
           </Button>
         </div>

@@ -1,5 +1,7 @@
 import {
   Banknote,
+  BookOpen,
+  Bug,
   Bus,
   Calendar,
   ClipboardCheck,
@@ -18,6 +20,16 @@ export const NOTIFICATION_TYPE = {
   EVENT_ADDED: 'event_added',
   TRANSPORT_UPDATED: 'transport_updated',
   OFFERING_RECORDED: 'offering_recorded',
+  SHEPHERDING_RESOURCE_PUBLISHED: 'shepherding_resource_published',
+  APP_FIX_NEW_REQUEST: 'app_fix_new_request',
+  APP_FIX_CRITICAL_REQUEST: 'app_fix_critical_request',
+  APP_FIX_REOPENED: 'app_fix_reopened',
+  APP_FIX_ADDITIONAL_INFO: 'app_fix_additional_info',
+  APP_FIX_STATUS_CHANGED: 'app_fix_status_changed',
+  APP_FIX_INFO_REQUESTED: 'app_fix_info_requested',
+  APP_FIX_COMPLETED: 'app_fix_completed',
+  APP_FIX_REJECTED: 'app_fix_rejected',
+  APP_FIX_DUPLICATED: 'app_fix_duplicated',
 };
 
 export const NOTIFICATION_ENTITY_TYPE = {
@@ -28,6 +40,8 @@ export const NOTIFICATION_ENTITY_TYPE = {
   EVENT: 'event',
   TRANSPORT: 'transport',
   OFFERING: 'offering',
+  SHEPHERDING_RESOURCE: 'shepherding_resource',
+  APP_FIX_REQUEST: 'app_fix_request',
 };
 
 export const NOTIFICATION_SCOPE = {
@@ -75,6 +89,56 @@ export const NOTIFICATION_TYPE_META = {
     icon: Banknote,
     accent: 'text-emerald-400',
     bg: 'bg-emerald-500/10',
+  },
+  [NOTIFICATION_TYPE.SHEPHERDING_RESOURCE_PUBLISHED]: {
+    icon: BookOpen,
+    accent: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_NEW_REQUEST]: {
+    icon: Bug,
+    accent: 'text-sky-400',
+    bg: 'bg-sky-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_CRITICAL_REQUEST]: {
+    icon: Bug,
+    accent: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_REOPENED]: {
+    icon: Bug,
+    accent: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_ADDITIONAL_INFO]: {
+    icon: Bug,
+    accent: 'text-cyan-400',
+    bg: 'bg-cyan-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_STATUS_CHANGED]: {
+    icon: Bug,
+    accent: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_INFO_REQUESTED]: {
+    icon: Bug,
+    accent: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_COMPLETED]: {
+    icon: Bug,
+    accent: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_REJECTED]: {
+    icon: Bug,
+    accent: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+  },
+  [NOTIFICATION_TYPE.APP_FIX_DUPLICATED]: {
+    icon: Bug,
+    accent: 'text-violet-400',
+    bg: 'bg-violet-500/10',
   },
 };
 
