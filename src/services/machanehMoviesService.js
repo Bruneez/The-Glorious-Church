@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   collection,
   doc,
@@ -12,11 +12,14 @@ import {
 import { COLLECTIONS } from '@/config/collections';
 import { canPerformAction } from '@/config/permissions';
 import {
+  buildMachanehMovieFirestoreDocument,
   buildMachanehMoviePayload,
   isPermanentPosterUrl,
+  mergeMachanehMovies,
   validateMachanehMovieForm,
   validateMoviePosterFile,
 } from '@/config/machanehMoviesOptions';
+import { toMachanehMovieFirestoreError } from '@/config/machanehMoviesFirestoreValidation';
 import { resolveMachanehMoviePosterStoragePath } from '@/utils/storagePathUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
@@ -52,9 +55,26 @@ export function useMachanehMovies() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const optimisticMovieIdsRef = useRef(new Set());
+
+  const upsertMovie = useCallback((movie) => {
+    if (!movie?.id) return;
+
+    optimisticMovieIdsRef.current.add(movie.id);
+    setData((previousMovies) => mergeMachanehMovies(previousMovies, [movie]));
+  }, []);
+
+  const removeMovie = useCallback((movieId) => {
+    const normalizedId = String(movieId || '').trim();
+    if (!normalizedId) return;
+
+    optimisticMovieIdsRef.current.delete(normalizedId);
+    setData((previousMovies) => previousMovies.filter((movie) => movie.id !== normalizedId));
+  }, []);
 
   useEffect(() => {
     if (!canView) {
+      optimisticMovieIdsRef.current.clear();
       setData([]);
       setLoading(false);
       setError(new Error(VIEW_DENIED_MESSAGE));
@@ -72,7 +92,28 @@ export function useMachanehMovies() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        setData(snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() })));
+        const snapshotMovies = snapshot.docs.map((docSnapshot) => ({
+          id: docSnapshot.id,
+          ...docSnapshot.data(),
+        }));
+        const snapshotIds = new Set(snapshotMovies.map((movie) => movie.id));
+
+        for (const movieId of optimisticMovieIdsRef.current) {
+          if (snapshotIds.has(movieId)) {
+            optimisticMovieIdsRef.current.delete(movieId);
+          }
+        }
+
+        setData((previousMovies) => {
+          const pendingOptimistic = previousMovies.filter(
+            (movie) =>
+              movie.id
+              && optimisticMovieIdsRef.current.has(movie.id)
+              && !snapshotIds.has(movie.id),
+          );
+
+          return mergeMachanehMovies(snapshotMovies, pendingOptimistic);
+        });
         setLoading(false);
         setError(null);
       },
@@ -86,7 +127,7 @@ export function useMachanehMovies() {
     return () => unsubscribe();
   }, [canView]);
 
-  return { data, loading, error, canView };
+  return { data, loading, error, canView, upsertMovie, removeMovie };
 }
 
 export async function createMachanehMovie(formData, { role, createdBy = '', posterFile = null } = {}) {
@@ -122,19 +163,26 @@ export async function createMachanehMovie(formData, { role, createdBy = '', post
   }
 
   try {
-    await setDoc(docRef, {
-      ...payload,
+    const documentData = buildMachanehMovieFirestoreDocument(payload, {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
 
+    await setDoc(docRef, documentData);
+
+    const savedMovie = await getDocument(COLLECTIONS.MACHANEH_MOVIES, movieId);
+    if (!savedMovie?.id) {
+      await rollbackNewUpload(uploadedPoster.posterStoragePath);
+      throw toMachanehMovieFirestoreError(new Error('Movie was not saved. Please try again.'));
+    }
+
     return {
-      movie: { id: movieId, ...payload },
+      movie: savedMovie,
       storageWarnings: [],
     };
   } catch (error) {
     await rollbackNewUpload(uploadedPoster.posterStoragePath);
-    throw error;
+    throw toMachanehMovieFirestoreError(error);
   }
 }
 

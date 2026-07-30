@@ -49,6 +49,47 @@ export function normalizeMinistryTags(tags = []) {
     .filter(Boolean);
 }
 
+export function normalizeOptionalString(value) {
+  const trimmed = String(value ?? '').trim();
+  return trimmed || null;
+}
+
+export function hasMachanehMoviePosterReference(formData = {}) {
+  return (
+    isPermanentPosterUrl(formData.posterUrl)
+    || Boolean(normalizeOptionalString(formData.posterStoragePath))
+  );
+}
+
+export function getMachanehMovieValidationErrors(
+  formData,
+  {
+    posterFile = null,
+    removePoster = false,
+    hasExistingPoster = false,
+    isEditing = false,
+  } = {},
+) {
+  const errors = {};
+
+  if (!String(formData?.title || '').trim()) {
+    errors.title = 'Movie title is required.';
+  }
+
+  if (posterFile) {
+    const posterFileError = validateMoviePosterFile(posterFile);
+    if (posterFileError) {
+      errors.poster = posterFileError;
+    }
+  } else if (!isEditing) {
+    errors.poster = 'Poster image is required.';
+  } else if (removePoster || !hasExistingPoster) {
+    errors.poster = 'Poster image is required.';
+  }
+
+  return errors;
+}
+
 export function validateMoviePosterFile(file) {
   if (!file) return '';
 
@@ -64,6 +105,28 @@ export function validateMoviePosterFile(file) {
   }
 
   return '';
+}
+
+export function resolveMoviePosterContentType(file) {
+  if (!file) return null;
+
+  const fileType = String(file.type || '').trim().toLowerCase();
+  if (ACCEPTED_MOVIE_POSTER_TYPES.includes(fileType)) {
+    return fileType;
+  }
+
+  const extension = String(file.name || '').match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+
+  return null;
+}
+
+export function buildMachanehMoviePosterStoragePath(movieId, fileName, timestamp = Date.now()) {
+  const safeMovieId = String(movieId || '').trim();
+  const safeName = String(fileName || 'poster').replace(/[^\w.-]/g, '_');
+  return `machaneh-movies/${safeMovieId}/${timestamp}_${safeName}`;
 }
 
 export function mapMachanehMovieToFormData(movie) {
@@ -101,34 +164,71 @@ export function validateMachanehMovieForm(formData, { requirePoster = false } = 
     return 'Movie title is required.';
   }
 
-  if (requirePoster) {
-    const hasPoster = isPermanentPosterUrl(formData.posterUrl)
-      || String(formData.posterStoragePath || '').trim();
-    if (!hasPoster) {
-      return 'Poster image is required.';
-    }
+  if (requirePoster && !hasMachanehMoviePosterReference(formData)) {
+    return 'Poster image is required.';
   }
 
   return '';
 }
 
 export function buildMachanehMoviePayload(formData, { createdBy = '' } = {}) {
-  const releaseYearValue = String(formData.releaseYear || '').trim();
+  const releaseYearValue = String(formData.releaseYear ?? '').trim();
   const parsedReleaseYear = releaseYearValue ? Number(releaseYearValue) : null;
+  const posterUrl = isPermanentPosterUrl(formData.posterUrl)
+    ? String(formData.posterUrl).trim()
+    : null;
 
   return {
     title: String(formData.title || '').trim(),
-    description: String(formData.description || '').trim(),
-    genre: String(formData.genre || '').trim(),
-    duration: String(formData.duration || '').trim(),
+    description: normalizeOptionalString(formData.description),
+    genre: normalizeOptionalString(formData.genre),
+    duration: normalizeOptionalString(formData.duration),
     releaseYear: Number.isFinite(parsedReleaseYear) ? parsedReleaseYear : null,
-    language: String(formData.language || '').trim(),
-    ageRecommendation: String(formData.ageRecommendation || '').trim(),
+    language: normalizeOptionalString(formData.language),
+    ageRecommendation: normalizeOptionalString(formData.ageRecommendation),
     ministryTags: normalizeMinistryTags(formData.ministryTags),
-    posterUrl: isPermanentPosterUrl(formData.posterUrl) ? String(formData.posterUrl).trim() : '',
-    posterStoragePath: String(formData.posterStoragePath || '').trim(),
-    createdBy: String(createdBy || formData.createdBy || '').trim(),
+    posterUrl,
+    posterStoragePath: normalizeOptionalString(formData.posterStoragePath),
+    createdBy: normalizeOptionalString(createdBy || formData.createdBy),
   };
+}
+
+export const MACHANEH_MOVIE_FIRESTORE_FIELDS = [
+  'title',
+  'description',
+  'genre',
+  'duration',
+  'releaseYear',
+  'language',
+  'ageRecommendation',
+  'ministryTags',
+  'posterUrl',
+  'posterStoragePath',
+  'createdBy',
+  'createdAt',
+  'updatedAt',
+];
+
+export function buildMachanehMovieFirestoreDocument(payload, timestamps) {
+  const document = {
+    title: payload.title,
+    description: payload.description,
+    genre: payload.genre,
+    duration: payload.duration,
+    releaseYear: payload.releaseYear,
+    language: payload.language,
+    ageRecommendation: payload.ageRecommendation,
+    ministryTags: payload.ministryTags,
+    posterUrl: payload.posterUrl,
+    posterStoragePath: payload.posterStoragePath,
+    createdBy: payload.createdBy,
+    createdAt: timestamps.createdAt,
+    updatedAt: timestamps.updatedAt,
+  };
+
+  return Object.fromEntries(
+    Object.entries(document).filter(([, value]) => value !== undefined),
+  );
 }
 
 export function filterMachanehMovies(movies = [], searchTerm = '') {
@@ -161,4 +261,42 @@ export function getEmptyMachanehMoviesMessage(searchTerm = '', canManage = false
   }
 
   return 'No movies have been added yet.';
+}
+
+export function getMachanehMovieSortTime(movie = {}) {
+  const updatedAt = movie.updatedAt;
+  const createdAt = movie.createdAt;
+
+  if (updatedAt?.toMillis) return updatedAt.toMillis();
+  if (updatedAt?.seconds) return updatedAt.seconds * 1000;
+  if (typeof updatedAt === 'number') return updatedAt;
+
+  if (createdAt?.toMillis) return createdAt.toMillis();
+  if (createdAt?.seconds) return createdAt.seconds * 1000;
+  if (typeof createdAt === 'number') return createdAt;
+
+  return 0;
+}
+
+export function sortMachanehMoviesByRecency(movies = []) {
+  return [...movies].sort(
+    (left, right) => getMachanehMovieSortTime(right) - getMachanehMovieSortTime(left),
+  );
+}
+
+export function mergeMachanehMovies(existingMovies = [], incomingMovies = []) {
+  const byId = new Map();
+
+  for (const movie of existingMovies) {
+    if (movie?.id) {
+      byId.set(movie.id, movie);
+    }
+  }
+
+  for (const movie of incomingMovies) {
+    if (!movie?.id) continue;
+    byId.set(movie.id, { ...byId.get(movie.id), ...movie });
+  }
+
+  return sortMachanehMoviesByRecency(Array.from(byId.values()));
 }

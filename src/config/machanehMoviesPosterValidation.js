@@ -23,3 +23,14 @@ export function getMachanehMoviePosterStorageErrorMessage(error) {
 
   return '';
 }
+
+export function toMachanehMoviePosterUploadError(error) {
+  const message =
+    getMachanehMoviePosterStorageErrorMessage(error)
+    || error?.message
+    || 'Failed to upload poster image. Please try again.';
+
+  const uploadError = new Error(message);
+  uploadError.code = error?.code;
+  return uploadError;
+}

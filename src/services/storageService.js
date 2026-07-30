@@ -5,7 +5,13 @@ import {
   withUploadTimeout,
 } from '@/utils/storageErrors';
 import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/travellingOptions';
-import { MOVIE_POSTER_UPLOAD_TIMEOUT_MS } from '@/config/machanehMoviesOptions';
+import {
+  MOVIE_POSTER_UPLOAD_TIMEOUT_MS,
+  buildMachanehMoviePosterStoragePath,
+  resolveMoviePosterContentType,
+  validateMoviePosterFile,
+} from '@/config/machanehMoviesOptions';
+import { toMachanehMoviePosterUploadError } from '@/config/machanehMoviesPosterValidation';
 import { MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/merchandiseOptions';
 
 function rethrowStorageError(error) {
@@ -156,19 +162,34 @@ export async function deleteTravelDestinationImage(path) {
 }
 
 export async function uploadMachanehMoviePoster(file, movieId) {
-  const timestamp = Date.now();
-  const safeName = String(file.name || 'poster').replace(/[^\w.-]/g, '_');
-  const posterStoragePath = `machaneh-movies/${movieId}/${timestamp}_${safeName}`;
+  const posterValidationMessage = validateMoviePosterFile(file);
+  if (posterValidationMessage) {
+    throw new Error(posterValidationMessage);
+  }
+
+  const contentType = resolveMoviePosterContentType(file);
+  if (!contentType) {
+    throw new Error('Please upload a JPG, PNG, or WEBP poster image.');
+  }
+
+  const posterStoragePath = buildMachanehMoviePosterStoragePath(movieId, file.name);
 
   try {
     const posterUrl = await withUploadTimeout(
-      uploadFile(file, posterStoragePath),
+      uploadFile(file, posterStoragePath, {
+        contentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
       MOVIE_POSTER_UPLOAD_TIMEOUT_MS,
     );
 
+    if (!posterUrl) {
+      throw toMachanehMoviePosterUploadError(new Error('Failed to upload poster image. Please try again.'));
+    }
+
     return { posterUrl, posterStoragePath };
   } catch (error) {
-    rethrowStorageError(error);
+    throw toMachanehMoviePosterUploadError(error);
   }
 }
 

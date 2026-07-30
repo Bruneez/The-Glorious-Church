@@ -4,9 +4,13 @@ import { storage } from '@/config/firebase';
 
 const MEMBER_STORAGE_CLEANUP_LOG = '[Member Storage Cleanup]';
 
-export async function uploadFile(file, path) {
+export async function uploadFile(file, path, metadata) {
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  if (metadata) {
+    await uploadBytes(storageRef, file, metadata);
+  } else {
+    await uploadBytes(storageRef, file);
+  }
   return getDownloadURL(storageRef);
 }
 
