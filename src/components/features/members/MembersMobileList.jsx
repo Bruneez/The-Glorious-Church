@@ -1,12 +1,20 @@
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS } from '@/config/memberOptions';
+import {
+  getMemberFullName,
+  getOccupationDisplay,
+  getMemberProfileImageUrl,
+} from '@/config/memberOptions';
+import {
+  getMemberTableCreativeArtsLabel,
+  getMemberTableMinistryLabel,
+} from '@/config/memberTableOptions';
 
 function MemberAvatar({ member, size = 'md' }) {
   return (
     <UserAvatar
       name={getMemberFullName(member)}
-      photo={member.photo}
+      photo={getMemberProfileImageUrl(member)}
       size={size}
     />
   );
@@ -18,6 +26,8 @@ export default function MembersMobileList({
   onEdit,
   onDelete,
   canManageRow = () => false,
+  creativeArtsTeams = [],
+  ministries = [],
 }) {
   if (!members.length) {
     return (
@@ -30,11 +40,11 @@ export default function MembersMobileList({
   return (
     <div className="space-y-3 md:hidden">
       {members.map((member) => {
-        const status = member.status || MEMBER_STATUS.ACTIVE;
-        const isActive = status === MEMBER_STATUS.ACTIVE;
         const canManage = canManageRow(member);
         const fullName = getMemberFullName(member);
         const { primary, secondary } = getOccupationDisplay(member);
+        const creativeArtsName = getMemberTableCreativeArtsLabel(member, creativeArtsTeams);
+        const ministryName = getMemberTableMinistryLabel(member, ministries);
 
         return (
           <div
@@ -44,35 +54,26 @@ export default function MembersMobileList({
             <div className="flex items-start gap-3">
               <MemberAvatar member={member} size="lg" />
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{fullName || '-'}</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{member.phone || 'No phone'}</p>
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
-                      isActive
-                        ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-slate-800 text-slate-400 border border-slate-600/20'
-                    }`}
-                  >
-                    {status}
-                  </span>
-                </div>
+                <h3 className="text-sm font-bold text-white">{fullName || '-'}</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">{member.phone || 'No phone'}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div>
-                <p className="text-slate-500 uppercase tracking-wider font-semibold">Gender</p>
-                <p className="text-slate-200 mt-0.5">{member.gender || '-'}</p>
-              </div>
               <div>
                 <p className="text-slate-500 uppercase tracking-wider font-semibold">Occupation</p>
                 <p className="text-slate-200 mt-0.5">{primary || '-'}</p>
                 {secondary && (
                   <p className="text-[10px] text-slate-500 mt-0.5">{secondary}</p>
                 )}
+              </div>
+              <div>
+                <p className="text-slate-500 uppercase tracking-wider font-semibold">Creative Arts</p>
+                <p className="text-slate-200 mt-0.5">{creativeArtsName}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-slate-500 uppercase tracking-wider font-semibold">Ministries</p>
+                <p className="text-slate-200 mt-0.5">{ministryName}</p>
               </div>
             </div>
 

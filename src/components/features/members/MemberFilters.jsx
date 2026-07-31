@@ -9,21 +9,12 @@ export default function MemberFilters({
   onFilterStatusChange,
   filterChurch,
   onFilterChurchChange,
-  onSortToggle,
-  sortDirection,
   onAddMember,
 }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Members Directory</span>
-        <button
-          type="button"
-          onClick={onSortToggle}
-          className="bg-slate-900 text-[11px] text-slate-300 px-2.5 py-1.5 border border-slate-700 rounded-lg hover:text-white flex items-center gap-1 cursor-pointer"
-        >
-          Sort Name ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})
-        </button>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">

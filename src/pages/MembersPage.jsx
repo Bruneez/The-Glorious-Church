@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import MemberFilters from '@/components/features/members/MemberFilters';
@@ -13,17 +13,21 @@ import {
   deleteMember,
   filterMembers,
 } from '@/services/membersService';
+import { useCreativeArts } from '@/services/creativeArtsService';
+import { useMinistries } from '@/services/ministriesService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLES, normalizeRole, isChurchWideStaff, isCALeader } from '@/config/roles';
 import {
   MEMBER_STATUS,
-  getMemberDepartment,
   getStaffDepartment,
   memberBelongsToDepartment,
   inferMemberChurch,
 } from '@/config/memberOptions';
-
+import {
+  resolveMemberTableSort,
+  sortMembersTable,
+} from '@/config/memberTableOptions';
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
@@ -53,6 +57,8 @@ function FeedbackBanner({ feedback, onDismiss }) {
 
 export default function MembersPage() {
   const { data: members = [], loading, error } = useMembers();
+  const { data: creativeArtsTeams = [] } = useCreativeArts();
+  const { data: ministries = [] } = useMinistries();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role, canPerformAction } = useRoleAccess();
   const { staffProfile, staffDocId, firebaseUser } = useAuth();
@@ -60,7 +66,8 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterChurch, setFilterChurch] = useState('all');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [viewingMember, setViewingMember] = useState(null);
@@ -119,17 +126,23 @@ export default function MembersPage() {
       );
     }
 
-    filtered.sort((a, b) => {
-      const nameA = `${a.name || ''} ${a.surname || ''}`.trim().toLowerCase();
-      const nameB = `${b.name || ''} ${b.surname || ''}`.trim().toLowerCase();
-      if (sortDirection === 'asc') {
-        return nameA.localeCompare(nameB);
-      }
-      return nameB.localeCompare(nameA);
-    });
+    const { column, direction } = resolveMemberTableSort(sortColumn, sortDirection);
+    return sortMembersTable(filtered, column, direction, { creativeArtsTeams, ministries });
+  }, [
+    scopedMembers,
+    searchTerm,
+    filterStatus,
+    filterChurch,
+    sortColumn,
+    sortDirection,
+    creativeArtsTeams,
+    ministries,
+  ]);
 
-    return filtered;
-  }, [scopedMembers, searchTerm, filterStatus, filterChurch, sortDirection]);
+  const handleSortChange = useCallback((column, direction) => {
+    setSortColumn(column);
+    setSortDirection(direction);
+  }, []);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -237,8 +250,6 @@ export default function MembersPage() {
             onFilterStatusChange={setFilterStatus}
             filterChurch={filterChurch}
             onFilterChurchChange={setFilterChurch}
-            onSortToggle={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-            sortDirection={sortDirection}
             onAddMember={canManageMembers ? handleAddMember : undefined}
           />
         </div>
@@ -260,6 +271,11 @@ export default function MembersPage() {
                 onEdit={handleEditMember}
                 onDelete={handleDeleteMember}
                 canManageRow={canManageMember}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
+                creativeArtsTeams={creativeArtsTeams}
+                ministries={ministries}
               />
             </div>
 
@@ -270,6 +286,8 @@ export default function MembersPage() {
                 onEdit={handleEditMember}
                 onDelete={handleDeleteMember}
                 canManageRow={canManageMember}
+                creativeArtsTeams={creativeArtsTeams}
+                ministries={ministries}
               />
             </div>
           </>
