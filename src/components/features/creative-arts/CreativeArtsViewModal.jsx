@@ -4,6 +4,8 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import DepartmentAvatar from '@/components/features/creative-arts/DepartmentAvatar';
 import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinkedMembersTable';
+import MemberProfileModal from '@/components/features/members/MemberProfileModal';
+import { useMemberProfileModal } from '@/hooks/useMemberProfileModal';
 import { DEPARTMENT_STATUS, getMembersLinkedToCreativeArtsDepartment } from '@/config/creativeArtsOptions';
 import { useMembers } from '@/services/membersService';
 import { mapLinkedMemberForDisplay } from '@/config/schoolsOptions';
@@ -46,6 +48,7 @@ export default function CreativeArtsViewModal({
   canManage = false,
 }) {
   const { data: allMembers = [] } = useMembers();
+  const memberProfile = useMemberProfileModal();
   const linkedMembers = useMemo(() => {
     if (!department) return [];
     return getMembersLinkedToCreativeArtsDepartment(allMembers, department).map(mapLinkedMemberForDisplay);
@@ -65,7 +68,15 @@ export default function CreativeArtsViewModal({
   const description = department.description?.trim();
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-xl" title="Department Profile" icon={Palette}>
+    <>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-xl"
+      title="Department Profile"
+      icon={Palette}
+      preventClose={memberProfile.isOpen}
+    >
       {/* Profile hero */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-5 border-b border-slate-700/70">
         <DepartmentAvatar department={department} size="xl" />
@@ -115,6 +126,7 @@ export default function CreativeArtsViewModal({
           <SchoolLinkedMembersTable
             members={linkedMembers}
             emptyMessage="No members linked to this department."
+            onMemberSelect={memberProfile.openMemberProfile}
           />
         </div>
       </div>
@@ -149,5 +161,13 @@ export default function CreativeArtsViewModal({
         </div>
       </div>
     </Modal>
+
+    <MemberProfileModal
+      memberId={memberProfile.selectedMemberId}
+      isOpen={memberProfile.isOpen}
+      onClose={memberProfile.closeMemberProfile}
+      nested
+    />
+    </>
   );
 }

@@ -124,6 +124,7 @@ export default function MemberCard({
   onEdit,
   onDelete,
   canManage = false,
+  nested = false,
 }) {
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -173,9 +174,11 @@ export default function MemberCard({
     }
   };
 
+  const overlayZIndexClass = nested ? 'z-[80]' : 'z-[70]';
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-slate-900/60 backdrop-blur-sm"
+      className={`fixed inset-0 ${overlayZIndexClass} overflow-y-auto overscroll-contain bg-slate-900/60 backdrop-blur-sm`}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
