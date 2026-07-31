@@ -122,15 +122,33 @@ export function formatServiceProgramSavedTime(timestamp) {
 export function getServiceProgramSaveErrorMessage(error) {
   const code = String(error?.code || '');
 
-  if (code === 'permission-denied') {
+  if (code === 'permission-denied' || code === 'firestore/permission-denied') {
     return 'You do not have permission to save this service program.';
   }
 
-  if (code === 'unavailable') {
+  if (code === 'unavailable' || code === 'firestore/unavailable') {
     return 'Unable to reach the server. Check your connection and try again.';
   }
 
+  if (code.startsWith('firestore/') || code.startsWith('storage/')) {
+    return 'Failed to save service program. Please try again.';
+  }
+
   return error?.message || 'Failed to save service program. Please try again.';
+}
+
+export function canSaveServiceProgram({
+  canManage = false,
+  isSaving = false,
+  isTableLoading = false,
+  isDirty = false,
+  saveStatus = 'unsaved',
+} = {}) {
+  if (!canManage || isSaving || isTableLoading) {
+    return false;
+  }
+
+  return isDirty || saveStatus === 'unsaved' || saveStatus === 'failed';
 }
 
 export function getServiceProgramLoadErrorMessage() {
