@@ -131,3 +131,17 @@ export function resolveAppFixAttachmentStoragePath(attachment = {}) {
 
   return extractStoragePathFromDownloadUrl(attachment.fileUrl || '');
 }
+
+export function resolveProjectCoverStoragePath(project = {}) {
+  const directPath = normalizeStorageObjectPath(project.coverStoragePath);
+  if (directPath) return directPath;
+
+  return extractStoragePathFromDownloadUrl(project.coverUrl || '');
+}
+
+export function resolveProjectAttachmentStoragePath(attachment = {}) {
+  const directPath = normalizeStorageObjectPath(attachment.fileStoragePath);
+  if (directPath) return directPath;
+
+  return extractStoragePathFromDownloadUrl(attachment.fileUrl || '');
+}

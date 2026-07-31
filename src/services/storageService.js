@@ -29,6 +29,18 @@ import {
   resolveAttachmentContentType,
   validateAttachment,
 } from '@/services/appFixesStorage';
+import {
+  PROJECT_ATTACHMENT_UPLOAD_TIMEOUT_MS,
+  PROJECT_COVER_UPLOAD_TIMEOUT_MS,
+} from '@/config/projectsConstants';
+import {
+  generateProjectAttachmentStoragePath,
+  generateProjectCoverStoragePath,
+  resolveAttachmentContentType as resolveProjectAttachmentContentType,
+  resolveCoverContentType as resolveProjectCoverContentType,
+  validateAttachment as validateProjectAttachment,
+  validateCoverImage,
+} from '@/services/projectStorage';
 
 function rethrowStorageError(error) {
   const message = getStorageErrorMessage(error);
@@ -331,5 +343,110 @@ export async function uploadAppFixAttachment(file, requestId, { onProgress } = {
 }
 
 export async function deleteAppFixAttachment(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadProjectCover(file, projectId, { storagePath, contentType } = {}) {
+  const validationMessage = validateCoverImage(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const resolvedContentType = contentType || resolveProjectCoverContentType(file);
+  if (!resolvedContentType) {
+    throw new Error('Please upload a JPG, PNG, or WEBP cover image.');
+  }
+
+  const coverStoragePath = storagePath || generateProjectCoverStoragePath(projectId, file.name);
+
+  try {
+    const coverUrl = await withUploadTimeout(
+      uploadFile(file, coverStoragePath, {
+        contentType: resolvedContentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
+      PROJECT_COVER_UPLOAD_TIMEOUT_MS,
+    );
+
+    if (!coverUrl) {
+      throw new Error('Failed to upload cover image. Please try again.');
+    }
+
+    return { coverUrl, coverStoragePath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteProjectCover(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadProjectAttachment(file, projectId, { storagePath, contentType, onProgress } = {}) {
+  const validationMessage = validateProjectAttachment(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const resolvedContentType = contentType || resolveProjectAttachmentContentType(file);
+  if (!resolvedContentType) {
+    throw new Error('Please upload a JPG, PNG, WEBP, or PDF file.');
+  }
+
+  const fileStoragePath = storagePath || generateProjectAttachmentStoragePath(projectId, file.name);
+  let uploadedPath = '';
+
+  try {
+    const storageRef = ref(storage, fileStoragePath);
+    const uploadTask = uploadBytesResumable(storageRef, file, {
+      contentType: resolvedContentType,
+      cacheControl: 'public,max-age=31536000',
+    });
+
+    const fileUrl = await new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          if (typeof onProgress === 'function' && snapshot.totalBytes > 0) {
+            onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
+          }
+        },
+        reject,
+        async () => {
+          uploadedPath = fileStoragePath;
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadUrl);
+          } catch (error) {
+            reject(error);
+          }
+        },
+      );
+    });
+
+    if (!fileUrl) {
+      throw new Error('Failed to upload attachment. Please try again.');
+    }
+
+    if (typeof onProgress === 'function') {
+      onProgress(100);
+    }
+
+    return {
+      fileUrl,
+      fileStoragePath,
+      contentType: resolvedContentType,
+      fileName: String(file.name || '').trim(),
+      fileSizeBytes: Number.isFinite(Number(file.size)) ? Number(file.size) : null,
+    };
+  } catch (error) {
+    if (uploadedPath) {
+      await deleteFileSafe(uploadedPath);
+    }
+    rethrowStorageError(error);
+  }
+}
+
+export async function deleteProjectAttachment(path) {
   return deleteFileSafe(path);
 }

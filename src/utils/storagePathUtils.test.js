@@ -10,6 +10,8 @@ import {
   resolveTravelDestinationImageStoragePath,
   resolveShepherdingCoverStoragePath,
   resolveAppFixAttachmentStoragePath,
+  resolveProjectAttachmentStoragePath,
+  resolveProjectCoverStoragePath,
 } from './storagePathUtils.js';
 
 test('extractStoragePathFromDownloadUrl decodes Firebase download URLs', () => {
@@ -240,5 +242,25 @@ test('resolveAppFixAttachmentStoragePath prefers fileStoragePath over fileUrl', 
       fileUrl: 'https://example.com/other.png',
     }),
     'app-fixes/req-1/123_screen.png',
+  );
+});
+
+test('resolveProjectCoverStoragePath prefers coverStoragePath over coverUrl', () => {
+  assert.equal(
+    resolveProjectCoverStoragePath({
+      coverStoragePath: 'projects/proj-1/cover/123_cover.webp',
+      coverUrl: 'https://example.com/other.webp',
+    }),
+    'projects/proj-1/cover/123_cover.webp',
+  );
+});
+
+test('resolveProjectAttachmentStoragePath prefers fileStoragePath over fileUrl', () => {
+  assert.equal(
+    resolveProjectAttachmentStoragePath({
+      fileStoragePath: 'projects/proj-1/attachments/123_brief.pdf',
+      fileUrl: 'https://example.com/other.pdf',
+    }),
+    'projects/proj-1/attachments/123_brief.pdf',
   );
 });

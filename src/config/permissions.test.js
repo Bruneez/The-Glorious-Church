@@ -39,6 +39,7 @@ const OPERATIONAL_ACTIONS = [
   'VIEW_MERCHANDISE',
   'VIEW_SHEPHERDING_TOOLS',
   'VIEW_APP_FIXES',
+  'VIEW_PROJECTS',
   'UPDATE_OWN_TASK_STATUS',
 ];
 
@@ -65,6 +66,7 @@ const OPERATIONAL_VISIBLE_ROUTES = [
   '/merchandise',
   '/shepherding-tools',
   '/app-fixes',
+  '/projects',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -86,6 +88,7 @@ const ELDER_VISIBLE_ROUTES = [
   '/merchandise',
   '/shepherding-tools',
   '/app-fixes',
+  '/projects',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -249,6 +252,12 @@ test('Admin and Pastor stay aligned across actions except Development Board acce
     if (action === 'MANAGE_SHEPHERDING_TOOLS' || action === 'MANAGE_APP_FIXES') {
       assert.equal(canPerformAction(ROLES.ADMIN, action), true);
       assert.equal(canPerformAction(ROLES.PASTOR, action), false);
+      return;
+    }
+
+    if (action === 'CREATE_PROJECTS') {
+      assert.equal(canPerformAction(ROLES.PASTOR, action), true);
+      assert.equal(canPerformAction(ROLES.ADMIN, action), false);
       return;
     }
 

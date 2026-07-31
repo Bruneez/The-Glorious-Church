@@ -88,6 +88,113 @@ service cloud.firestore {
     //       && parentRequest().data.createdByUserId == request.auth.uid);
     // }
 
+    // Production template for Projects (projects collection):
+    // match /projects/{projectId} {
+    //   function staffRole() {
+    //     return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role;
+    //   }
+    //   function canManageProjects() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Admin'];
+    //   }
+    //   function canCreateProjects() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Pastor'];
+    //   }
+    //   function canViewProjects() {
+    //     return request.auth != null && staffRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    //   }
+    //   function isActiveProject() {
+    //     return resource.data.deletedAt == null;
+    //   }
+    //   function isProjectCreator() {
+    //     return request.auth.uid == resource.data.createdByUserId;
+    //   }
+    //   function isProjectLeader() {
+    //     return request.auth.uid == resource.data.leaderUserId
+    //       || isProjectCreator();
+    //   }
+    //   function isProjectTeamManager() {
+    //     return canManageProjects() || isProjectLeader();
+    //   }
+    //   function isOpenProject() {
+    //     return resource.data.visibility == 'open';
+    //   }
+    //   allow read: if canViewProjects()
+    //     && isActiveProject()
+    //     && (canManageProjects() || isProjectCreator() || isOpenProject());
+    //   allow create: if canCreateProjects()
+    //     && request.resource.data.createdByUserId == request.auth.uid
+    //     && request.resource.data.deletedAt == null;
+    //   allow update: if isActiveProject()
+    //     && (canManageProjects() || (canCreateProjects() && isProjectCreator()) || isProjectTeamManager());
+    //   allow delete: if canManageProjects()
+    //     || (canCreateProjects() && isProjectCreator());
+    // }
+
+    // Production template for Project memberships (projectMemberships collection):
+    // match /projectMemberships/{membershipId} {
+    //   function parentProject() {
+    //     return get(/databases/$(database)/documents/projects/$(resource.data.projectId));
+    //   }
+    //   function parentProjectForCreate() {
+    //     return get(/databases/$(database)/documents/projects/$(request.resource.data.projectId));
+    //   }
+    //   allow read: if canViewProjects()
+    //     && resource.data.deletedAt == null
+    //     && parentProject().data.deletedAt == null
+    //     && (canManageProjects()
+    //       || parentProject().data.createdByUserId == request.auth.uid
+    //       || resource.data.userId == request.auth.uid
+    //       || parentProject().data.visibility == 'open');
+    //   allow create: if canViewProjects()
+    //     && request.resource.data.deletedAt == null
+    //     && parentProjectForCreate().data.deletedAt == null
+    //     && (canManageProjects()
+    //       || parentProjectForCreate().data.createdByUserId == request.auth.uid
+    //       || (parentProjectForCreate().data.visibility == 'open'
+    //         && request.resource.data.userId == request.auth.uid));
+    //   allow update, delete: if canManageProjects()
+    //     || parentProject().data.createdByUserId == request.auth.uid
+    //     || parentProject().data.leaderUserId == request.auth.uid
+    //     || get(/databases/$(database)/documents/projectMemberships/$(request.auth.uid + '_' + resource.data.projectId)).data.role == 'owner'
+    //     || resource.data.userId == request.auth.uid;
+    // }
+
+    // Production template for Project updates (projectUpdates collection):
+    // match /projectUpdates/{updateId} {
+    //   function parentProject() {
+    //     return get(/databases/$(database)/documents/projects/$(resource.data.projectId));
+    //   }
+    //   allow read: if canViewProjects()
+    //     && resource.data.deletedAt == null
+    //     && parentProject().data.deletedAt == null
+    //     && (canManageProjects()
+    //       || parentProject().data.createdByUserId == request.auth.uid
+    //       || parentProject().data.visibility == 'open');
+    //   allow create, update, delete: if canManageProjects()
+    //     || parentProject().data.createdByUserId == request.auth.uid
+    //     || (canViewProjects()
+    //       && get(/databases/$(database)/documents/projectMemberships/$(request.auth.uid + '_' + request.resource.data.projectId)).data.status == 'active');
+    // }
+
+    // Production template for Project attachments (projectAttachments collection):
+    // match /projectAttachments/{attachmentId} {
+    //   function parentProject() {
+    //     return get(/databases/$(database)/documents/projects/$(resource.data.projectId));
+    //   }
+    //   allow read: if canViewProjects()
+    //     && resource.data.deletedAt == null
+    //     && parentProject().data.deletedAt == null
+    //     && (canManageProjects()
+    //       || parentProject().data.createdByUserId == request.auth.uid
+    //       || parentProject().data.visibility == 'open');
+    //   allow create: if canViewProjects()
+    //     && request.resource.data.deletedAt == null
+    //     && (canManageProjects()
+    //       || parentProject().data.createdByUserId == request.auth.uid);
+    //   allow update, delete: if canManageProjects()
+    //     || parentProject().data.createdByUserId == request.auth.uid;
+    // }
+
     // Example: stricter rules for the `members` collection
     // Uncomment and adjust ownership/role checks to use this.
     // match /members/{memberId} {

@@ -76,6 +76,18 @@ service firebase.storage {
       return userRole() in ['Lead Pastor', 'Admin'];
     }
 
+    function canViewProjects() {
+      return userRole() in ['Lead Pastor', 'Pastor', 'Admin', 'Leader', 'Elder'];
+    }
+
+    function canCreateProjects() {
+      return userRole() in ['Lead Pastor', 'Pastor'];
+    }
+
+    function canManageProjects() {
+      return userRole() in ['Lead Pastor', 'Admin'];
+    }
+
     function isTravelDestinationPath(storagePath) {
       return storagePath.matches('travel-destinations/.*');
     }
@@ -94,6 +106,10 @@ service firebase.storage {
 
     function isAppFixAttachmentPath(storagePath) {
       return storagePath.matches('app-fixes/.*');
+    }
+
+    function isProjectStoragePath(storagePath) {
+      return storagePath.matches('projects/.*');
     }
 
     function isAllowedTravelImage() {
@@ -160,6 +176,33 @@ service firebase.storage {
       allow delete: if canManageAppFixes();
     }
 
+    function isAllowedProjectCover() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function isAllowedProjectAttachment() {
+      return request.resource != null
+        && (
+          request.resource.contentType.matches('image/(jpeg|png|webp)')
+          || request.resource.contentType == 'application/pdf'
+        )
+        && request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    match /projects/{projectId}/cover/{fileName} {
+      allow read: if canViewProjects();
+      allow create, update: if canCreateProjects() && isAllowedProjectCover();
+      allow delete: if canManageProjects() || canCreateProjects();
+    }
+
+    match /projects/{projectId}/attachments/{fileName} {
+      allow read: if canViewProjects();
+      allow create, update: if canViewProjects() && isAllowedProjectAttachment();
+      allow delete: if canManageProjects() || canCreateProjects();
+    }
+
     // Development: allow authenticated access on other storage paths.
     match /{allPaths=**} {
       allow read, write: if isAuthenticated()
@@ -167,7 +210,8 @@ service firebase.storage {
         && !isMachanehMoviePosterPath(allPaths)
         && !isMerchandiseImagePath(allPaths)
         && !isShepherdingToolsCoverPath(allPaths)
-        && !isAppFixAttachmentPath(allPaths);
+        && !isAppFixAttachmentPath(allPaths)
+        && !isProjectStoragePath(allPaths);
     }
   }
 }

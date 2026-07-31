@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { Calendar, Palette } from 'lucide-react';
+import DashboardProjectsPanel from '@/components/features/projects/DashboardProjectsPanel';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useProjects } from '@/hooks/useProjects';
 import { useMembers } from '@/services/membersService';
 import { useOfferings } from '@/services/offeringsService';
 import { useAttendance } from '@/services/attendanceService';
@@ -88,7 +90,14 @@ function ItemTypeBadge({ type }) {
 
 export default function DashboardPage() {
   const { staffProfile, firebaseUser } = useAuth();
-  const { role } = useRoleAccess();
+  const { role, canPerformAction } = useRoleAccess();
+  const canViewProjects = canPerformAction('VIEW_PROJECTS');
+  const {
+    projects = [],
+    memberships = [],
+    loading: projectsLoading,
+    userId,
+  } = useProjects();
   const { data: members = [], loading: membersLoading } = useMembers();
   const { data: offerings = [], loading: offeringsLoading } = useOfferings();
   const { data: attendanceRecords = [], loading: attendanceLoading } = useAttendance();
@@ -214,26 +223,59 @@ export default function DashboardPage() {
           ))}
         </PanelShell>
 
-        <PanelShell
-          title="Creative Arts Overview"
-          icon={Palette}
-          loading={membersLoading}
-          isEmpty={false}
-          emptyMessage=""
-        >
-          {creativeArtsOverview.map((department) => (
-            <div
-              key={department.name}
-              className="rounded-lg p-3 border bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30 transition flex items-center justify-between gap-3"
-            >
-              <h3 className="text-sm font-semibold text-white">{department.name}</h3>
-              <span className="text-sm font-bold text-indigo-400 shrink-0">
-                {department.memberCount}
-              </span>
-            </div>
-          ))}
-        </PanelShell>
+        {canViewProjects ? (
+          <DashboardProjectsPanel
+            projects={projects}
+            memberships={memberships}
+            userId={userId}
+            loading={projectsLoading}
+          />
+        ) : (
+          <PanelShell
+            title="Creative Arts Overview"
+            icon={Palette}
+            loading={membersLoading}
+            isEmpty={false}
+            emptyMessage=""
+          >
+            {creativeArtsOverview.map((department) => (
+              <div
+                key={department.name}
+                className="rounded-lg p-3 border bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30 transition flex items-center justify-between gap-3"
+              >
+                <h3 className="text-sm font-semibold text-white">{department.name}</h3>
+                <span className="text-sm font-bold text-indigo-400 shrink-0">
+                  {department.memberCount}
+                </span>
+              </div>
+            ))}
+          </PanelShell>
+        )}
       </div>
+
+      {canViewProjects ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PanelShell
+            title="Creative Arts Overview"
+            icon={Palette}
+            loading={membersLoading}
+            isEmpty={false}
+            emptyMessage=""
+          >
+            {creativeArtsOverview.map((department) => (
+              <div
+                key={department.name}
+                className="rounded-lg p-3 border bg-slate-900/50 border-slate-700/50 hover:border-indigo-500/30 transition flex items-center justify-between gap-3"
+              >
+                <h3 className="text-sm font-semibold text-white">{department.name}</h3>
+                <span className="text-sm font-bold text-indigo-400 shrink-0">
+                  {department.memberCount}
+                </span>
+              </div>
+            ))}
+          </PanelShell>
+        </div>
+      ) : null}
     </div>
   );
 }

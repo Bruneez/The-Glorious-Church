@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatRelativeTime } from '@/utils/formatters';
 import {
+  NOTIFICATION_ENTITY_TYPE,
   NOTIFICATION_LIMIT,
   NOTIFICATION_TYPE,
   NOTIFICATION_TYPE_META,
@@ -26,6 +28,7 @@ function NotificationIcon({ type }) {
 }
 
 export default function NotificationBell({ className = '' }) {
+  const navigate = useNavigate();
   const { staffDocId } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -45,6 +48,14 @@ export default function NotificationBell({ className = '' }) {
   async function handleNotificationClick(notification) {
     if (!notification.isRead) {
       await markNotificationAsRead(notification.id);
+    }
+
+    if (
+      notification.relatedEntityType === NOTIFICATION_ENTITY_TYPE.PROJECT
+      && notification.relatedEntityId
+    ) {
+      setIsOpen(false);
+      navigate(`/projects/${notification.relatedEntityId}`);
     }
   }
 
