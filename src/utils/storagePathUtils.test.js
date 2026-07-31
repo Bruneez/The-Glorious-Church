@@ -222,6 +222,11 @@ test('resolveShepherdingCoverStoragePath prefers coverImageStoragePath', () => {
   );
 });
 
+test('resolveShepherdingCoverStoragePath safely handles null and undefined records', () => {
+  assert.equal(resolveShepherdingCoverStoragePath(null), '');
+  assert.equal(resolveShepherdingCoverStoragePath(undefined), '');
+});
+
 test('resolveShepherdingCoverStoragePath resolves Firebase Storage path from coverImageUrl', () => {
   const url =
     'https://firebasestorage.googleapis.com/v0/b/the-glorious-church.firebasestorage.app/o/shepherding-tools%2Fabc123%2F999_cover.webp?alt=media&token=abc';

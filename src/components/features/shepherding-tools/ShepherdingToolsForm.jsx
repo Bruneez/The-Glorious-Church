@@ -25,6 +25,7 @@ import {
 } from '@/config/shepherdingToolsResourceOptions';
 import { getResourceCoverUrl } from '@/config/shepherdingToolsDisplay';
 import { getShepherdingToolsTabById } from '@/config/shepherdingToolsOptions';
+import { getShepherdingToolsSubmitErrorMessage } from '@/config/shepherdingToolsCoverValidation';
 import { resolveShepherdingCoverStoragePath } from '@/utils/storagePathUtils';
 
 const FORM_ID = 'shepherding-tools-form';
@@ -149,7 +150,8 @@ export default function ShepherdingToolsForm({
         removeCover,
       });
     } catch (error) {
-      setFormError(error?.message || 'The resource could not be saved. Please try again.');
+      console.error('Failed to save Shepherding Tools resource:', error);
+      setFormError(getShepherdingToolsSubmitErrorMessage(error));
       errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } finally {
       isSubmittingRef.current = false;

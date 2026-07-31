@@ -125,38 +125,45 @@ export default function ShepherdingToolsPage() {
   };
 
   const handleFormSubmit = async ({ formData, coverFile, removeCover }) => {
-    if (!canManage) return;
-
-    if (editingResource?.id) {
-      const result = await updateResource(editingResource.id, formData, {
-        role,
-        createdByUserId,
-        initialData: editingResource,
-        coverFile,
-        removeCover,
-      });
-
-      if (result.storageWarnings?.length) {
-        showFeedback('warning', `Resource updated. ${result.storageWarnings.join(' ')}`);
-      } else {
-        showFeedback('success', 'Resource updated successfully.');
-      }
-
-      await maybeSendPublishNotification({ ...editingResource, ...formData, id: editingResource.id });
-    } else {
-      const result = await createResource(formData, {
-        role,
-        createdByUserId,
-        coverFile,
-      });
-
-      showFeedback('success', 'Resource added successfully.');
-      await maybeSendPublishNotification({ ...result.resource, ...formData });
+    if (!canManage) {
+      throw new Error('You do not have permission to manage Shepherding Tools resources.');
     }
 
-    setIsFormOpen(false);
-    setEditingResource(null);
-    setFormSessionKey((previous) => previous + 1);
+    try {
+      if (editingResource?.id) {
+        const result = await updateResource(editingResource.id, formData, {
+          role,
+          createdByUserId,
+          initialData: editingResource,
+          coverFile,
+          removeCover,
+        });
+
+        if (result.storageWarnings?.length) {
+          showFeedback('warning', `Resource updated. ${result.storageWarnings.join(' ')}`);
+        } else {
+          showFeedback('success', 'Resource updated successfully.');
+        }
+
+        await maybeSendPublishNotification({ ...editingResource, ...formData, id: editingResource.id });
+      } else {
+        const result = await createResource(formData, {
+          role,
+          createdByUserId,
+          coverFile,
+        });
+
+        showFeedback('success', 'Resource added successfully.');
+        await maybeSendPublishNotification({ ...result.resource, ...formData });
+      }
+
+      setIsFormOpen(false);
+      setEditingResource(null);
+      setFormSessionKey((previous) => previous + 1);
+    } catch (error) {
+      console.error('Failed to add or update Shepherding Tools resource:', error);
+      throw error;
+    }
   };
 
   const handleDeleteConfirm = async (resource) => {
