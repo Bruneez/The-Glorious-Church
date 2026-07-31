@@ -67,6 +67,8 @@ export function formatServiceDateDisplay(serviceDate) {
   });
 }
 
+export const DEFAULT_PROGRAM_ROW_COUNT = 10;
+
 export function createEmptyProgramRow(order = 0) {
   return {
     id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -77,6 +79,62 @@ export function createEmptyProgramRow(order = 0) {
     leader: '',
     order,
   };
+}
+
+export function createDefaultProgramRows(count = DEFAULT_PROGRAM_ROW_COUNT) {
+  return Array.from({ length: count }, (_, index) => createEmptyProgramRow(index));
+}
+
+/**
+ * Load saved rows when a program exists; otherwise seed defaults for new editable programs.
+ */
+export function resolveProgramRowsForDisplay(
+  firestoreRows = [],
+  { hasSavedProgram = false, seedDefaults = false } = {},
+) {
+  if (hasSavedProgram) {
+    return mapServiceProgramRowsFromFirestore(firestoreRows);
+  }
+
+  if (seedDefaults) {
+    return createDefaultProgramRows();
+  }
+
+  return [];
+}
+
+export function serializeProgramRowsForCompare(rows = []) {
+  return JSON.stringify(normalizeRowsForSave(rows));
+}
+
+export function formatServiceProgramSavedTime(timestamp) {
+  if (!timestamp) return '';
+
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return '';
+
+  return parsed.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function getServiceProgramSaveErrorMessage(error) {
+  const code = String(error?.code || '');
+
+  if (code === 'permission-denied') {
+    return 'You do not have permission to save this service program.';
+  }
+
+  if (code === 'unavailable') {
+    return 'Unable to reach the server. Check your connection and try again.';
+  }
+
+  return error?.message || 'Failed to save service program. Please try again.';
+}
+
+export function getServiceProgramLoadErrorMessage() {
+  return 'Failed to load service program. Please try again.';
 }
 
 export function buildServiceProgramDocId(serviceDate, serviceType) {
@@ -122,6 +180,7 @@ export function buildServiceProgramPayload({
   createdBy = '',
   createdAt = '',
   updatedAt = '',
+  updatedBy = '',
 }) {
   return {
     serviceDate,
@@ -130,6 +189,7 @@ export function buildServiceProgramPayload({
     createdBy: String(createdBy || '').trim(),
     createdAt,
     updatedAt,
+    updatedBy: String(updatedBy || createdBy || '').trim(),
   };
 }
 

@@ -8,13 +8,13 @@ import {
 } from '@/config/serviceProgramOptions';
 import { useDocument } from '@/hooks/useFirestore';
 
-export function useServiceProgram(serviceDate, serviceType) {
+export function useServiceProgram(serviceDate, serviceType, refreshKey = 0) {
   const docId = useMemo(() => {
     if (!serviceDate || !serviceType) return null;
     return buildServiceProgramDocId(serviceDate, serviceType);
   }, [serviceDate, serviceType]);
 
-  return useDocument(COLLECTIONS.SERVICE_PROGRAMS, docId);
+  return useDocument(COLLECTIONS.SERVICE_PROGRAMS, docId, refreshKey);
 }
 
 export async function saveServiceProgram({
@@ -37,6 +37,8 @@ export async function saveServiceProgram({
   const docRef = doc(db, COLLECTIONS.SERVICE_PROGRAMS, docId);
   const existingSnapshot = await getDoc(docRef);
 
+  const actor = String(createdBy || '').trim();
+
   if (existingSnapshot.exists()) {
     const existingData = existingSnapshot.data();
     const payload = {
@@ -44,7 +46,8 @@ export async function saveServiceProgram({
       serviceType,
       rows: buildServiceProgramPayload({ serviceDate, serviceType, rows }).rows,
       updatedAt: timestamp,
-      createdBy: existingData.createdBy || String(createdBy || '').trim(),
+      updatedBy: actor,
+      createdBy: existingData.createdBy || actor,
       createdAt: existingData.createdAt || timestamp,
     };
 
@@ -56,9 +59,10 @@ export async function saveServiceProgram({
     serviceDate,
     serviceType,
     rows,
-    createdBy,
+    createdBy: actor,
     createdAt: timestamp,
     updatedAt: timestamp,
+    updatedBy: actor,
   });
 
   await setDoc(docRef, payload);
