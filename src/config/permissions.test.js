@@ -26,11 +26,9 @@ const OPERATIONAL_ACTIONS = [
   'MANAGE_EVENTS',
   'MANAGE_CREATIVE_ARTS',
   'MANAGE_MINISTRIES',
-  'MANAGE_TRANSPORT',
   'MANAGE_SCHOOLS',
   'EDIT_DELETE_SCHOOLS',
   'MANAGE_SERVICE_PROGRAM',
-  'MANAGE_TRAVELLING',
   'MANAGE_MACHANEH_MOVIES',
   'MANAGE_MERCHANDISE',
   'UPDATE_OWN_TASK_STATUS',
@@ -250,6 +248,13 @@ test('Admin and Pastor stay aligned across actions except Development Board acce
     }
 
     if (action === 'MANAGE_SHEPHERDING_TOOLS' || action === 'MANAGE_APP_FIXES') {
+      assert.equal(canPerformAction(ROLES.ADMIN, action), true);
+      assert.equal(canPerformAction(ROLES.PASTOR, action), false);
+      return;
+    }
+
+    if (action === 'MANAGE_TRAVELLING' || action === 'MANAGE_TRANSPORT') {
+      assert.equal(canPerformAction(ROLES.LEAD_PASTOR, action), true);
       assert.equal(canPerformAction(ROLES.ADMIN, action), true);
       assert.equal(canPerformAction(ROLES.PASTOR, action), false);
       return;

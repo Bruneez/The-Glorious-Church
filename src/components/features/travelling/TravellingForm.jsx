@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plane } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -16,8 +16,8 @@ import {
   validateTravelDestinationFieldErrors,
   validateTravelImageFile,
 } from '@/config/travellingOptions';
-import { getTravelStorageErrorMessage } from '@/config/travellingImageValidation';
-import { resolveTravelDestinationImageStoragePath } from '@/utils/storagePathUtils';
+import { getTravellingSubmitErrorMessage } from '@/config/travellingImageValidation';
+import { resolvePreviousTravelDestinationImagePath } from '@/services/travellingStorageLifecycle';
 import { getDestinationImageUrl, getDestinationImageAlt } from '@/config/travellingDisplay';
 
 function clearExtentSpecificFields(travelExtent) {
@@ -41,6 +41,7 @@ export default function TravellingForm({
   const [imageFile, setImageFile] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,6 +56,7 @@ export default function TravellingForm({
     setFieldErrors({});
     setFormError('');
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
   }, [defaultTravelExtent, initialData, isOpen]);
 
   const isInternational = formData.travelExtent === TRAVEL_EXTENT.INTERNATIONAL;
@@ -105,6 +107,8 @@ export default function TravellingForm({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmittingRef.current || isSubmitting) return;
+
     setFormError('');
 
     const errors = validateTravelDestinationFieldErrors(formData);
@@ -119,15 +123,14 @@ export default function TravellingForm({
     }
 
     setFieldErrors({});
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
-      const previousImagePath =
-        formData.imageStoragePath
-        || initialData?.imageStoragePath
-        || resolveTravelDestinationImageStoragePath(formData)
-        || resolveTravelDestinationImageStoragePath(initialData)
-        || '';
+      const previousImagePath = resolvePreviousTravelDestinationImagePath(
+        { previousImagePath: formData.previousImagePath },
+        initialData,
+      );
 
       await onSubmit({
         formData: {
@@ -141,12 +144,10 @@ export default function TravellingForm({
         removeImage,
       });
     } catch (submitError) {
-      setFormError(
-        getTravelStorageErrorMessage(submitError)
-          || submitError?.message
-          || 'Failed to save travel destination. Please try again.',
-      );
+      console.error('Failed to save travel destination:', submitError);
+      setFormError(getTravellingSubmitErrorMessage(submitError));
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -168,7 +169,7 @@ export default function TravellingForm({
       icon={Plane}
       maxWidth="max-w-lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} noValidate className="space-y-3">
         <Select
           label="Travel Extent"
           name="travelExtent"

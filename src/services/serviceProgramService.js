@@ -22,7 +22,6 @@ export async function saveServiceProgram({
   serviceType,
   rows,
   createdBy = '',
-  existingProgram = null,
 }) {
   if (!serviceDate) {
     throw new Error('Service date is required.');
@@ -33,7 +32,7 @@ export async function saveServiceProgram({
   }
 
   const timestamp = new Date().toISOString();
-  const docId = existingProgram?.id || buildServiceProgramDocId(serviceDate, serviceType);
+  const docId = buildServiceProgramDocId(serviceDate, serviceType);
   const docRef = doc(db, COLLECTIONS.SERVICE_PROGRAMS, docId);
   const existingSnapshot = await getDoc(docRef);
 

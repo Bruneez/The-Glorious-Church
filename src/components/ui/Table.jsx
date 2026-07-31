@@ -3,7 +3,8 @@ export default function Table({
   data = [], 
   onRowClick = null,
   emptyMessage = 'No data available',
-  className = ''
+  className = '',
+  getRowKey = null,
 }) {
   if (!data || data.length === 0) {
     return (
@@ -30,11 +31,35 @@ export default function Table({
             </tr>
           </thead>
           <tbody>
-            {data.map((row, rowIndex) => (
+            {data.map((row, rowIndex) => {
+              const rowKey = typeof getRowKey === 'function' ? getRowKey(row, rowIndex) : rowIndex;
+              const isInteractive = typeof onRowClick === 'function';
+
+              const handleRowActivate = () => {
+                if (isInteractive) onRowClick(row);
+              };
+
+              const handleRowKeyDown = (event) => {
+                if (!isInteractive) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onRowClick(row);
+                }
+              };
+
+              return (
               <tr
-                key={rowIndex}
-                onClick={() => onRowClick && onRowClick(row)}
-                className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition ${onRowClick ? 'cursor-pointer' : ''}`}
+                key={rowKey}
+                onClick={isInteractive ? handleRowActivate : undefined}
+                onKeyDown={handleRowKeyDown}
+                role={isInteractive ? 'button' : undefined}
+                tabIndex={isInteractive ? 0 : undefined}
+                aria-label={isInteractive && row.fullName ? `View profile for ${row.fullName}` : undefined}
+                className={`border-b border-slate-700/50 transition ${
+                  isInteractive
+                    ? 'cursor-pointer hover:bg-slate-700/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/70'
+                    : 'hover:bg-slate-700/30'
+                }`}
               >
                 {columns.map((column) => (
                   <td
@@ -45,7 +70,8 @@ export default function Table({
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

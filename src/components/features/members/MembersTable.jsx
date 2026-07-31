@@ -1,20 +1,38 @@
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { getMemberFullName, getOccupationDisplay, MEMBER_STATUS, getMemberProfileImageUrl } from '@/config/memberOptions';
 import Table from '@/components/ui/Table';
+import TableColumnSortControls from '@/components/ui/TableColumnSortControls';
+import {
+  getMemberFullName,
+  getOccupationDisplay,
+  getMemberProfileImageUrl,
+} from '@/config/memberOptions';
+import {
+  getMemberTableCreativeArtsLabel,
+  getMemberTableMinistryLabel,
+} from '@/config/memberTableOptions';
 
-function StatusBadge({ status }) {
-  const isActive = (status || MEMBER_STATUS.ACTIVE) === MEMBER_STATUS.ACTIVE;
-
+function SortableHeader({
+  label,
+  columnKey,
+  activeColumn,
+  activeDirection,
+  onSort,
+  ascendingLabel,
+  descendingLabel,
+}) {
   return (
-    <span
-      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-        isActive
-          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-          : 'bg-slate-900/60 text-slate-400 border border-slate-600/20'
-      }`}
-    >
-      {status || MEMBER_STATUS.ACTIVE}
+    <span className="inline-flex items-center gap-x-1.5 whitespace-nowrap">
+      <span className="leading-tight">{label}</span>
+      <TableColumnSortControls
+        columnKey={columnKey}
+        activeColumn={activeColumn}
+        activeDirection={activeDirection}
+        onSort={onSort}
+        ascendingLabel={ascendingLabel}
+        descendingLabel={descendingLabel}
+        className="ml-0.5"
+      />
     </span>
   );
 }
@@ -48,7 +66,18 @@ export default function MembersTable({
   onEdit,
   onDelete,
   canManageRow = () => false,
+  sortColumn = null,
+  sortDirection = null,
+  onSortChange,
+  creativeArtsTeams = [],
+  ministries = [],
 }) {
+  const sortProps = {
+    activeColumn: sortColumn,
+    activeDirection: sortDirection,
+    onSort: onSortChange,
+  };
+
   const columns = [
     {
       key: 'avatar',
@@ -59,6 +88,15 @@ export default function MembersTable({
     {
       key: 'fullName',
       label: 'Full Name',
+      headerRender: () => (
+        <SortableHeader
+          label="Full Name"
+          columnKey="fullName"
+          ascendingLabel="Sort full name A to Z"
+          descendingLabel="Sort full name Z to A"
+          {...sortProps}
+        />
+      ),
       render: (_, row) => (
         <span className="font-medium text-slate-100 whitespace-nowrap">
           {getMemberFullName(row) || '-'}
@@ -68,22 +106,66 @@ export default function MembersTable({
     {
       key: 'phone',
       label: 'Phone Number',
+      headerRender: () => (
+        <SortableHeader
+          label="Phone Number"
+          columnKey="phone"
+          ascendingLabel="Sort phone number ascending"
+          descendingLabel="Sort phone number descending"
+          {...sortProps}
+        />
+      ),
       render: (value) => <span className="whitespace-nowrap">{value || '-'}</span>,
-    },
-    {
-      key: 'gender',
-      label: 'Gender',
-      render: (value) => value || '-',
     },
     {
       key: 'occupation',
       label: 'Occupation',
+      headerRender: () => (
+        <SortableHeader
+          label="Occupation"
+          columnKey="occupation"
+          ascendingLabel="Sort occupation A to Z"
+          descendingLabel="Sort occupation Z to A"
+          {...sortProps}
+        />
+      ),
       render: (_, row) => <OccupationCell member={row} />,
     },
     {
-      key: 'status',
-      label: 'Status',
-      render: (value) => <StatusBadge status={value} />,
+      key: 'creativeArts',
+      label: 'Creative Arts',
+      headerRender: () => (
+        <SortableHeader
+          label="Creative Arts"
+          columnKey="creativeArts"
+          ascendingLabel="Sort Creative Arts A to Z"
+          descendingLabel="Sort Creative Arts Z to A"
+          {...sortProps}
+        />
+      ),
+      render: (_, row) => (
+        <span className="whitespace-nowrap text-slate-200">
+          {getMemberTableCreativeArtsLabel(row, creativeArtsTeams)}
+        </span>
+      ),
+    },
+    {
+      key: 'ministries',
+      label: 'Ministries',
+      headerRender: () => (
+        <SortableHeader
+          label="Ministries"
+          columnKey="ministries"
+          ascendingLabel="Sort ministries A to Z"
+          descendingLabel="Sort ministries Z to A"
+          {...sortProps}
+        />
+      ),
+      render: (_, row) => (
+        <span className="whitespace-nowrap text-slate-200">
+          {getMemberTableMinistryLabel(row, ministries)}
+        </span>
+      ),
     },
     {
       key: 'actions',

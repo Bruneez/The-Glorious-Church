@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import MemberFilters from '@/components/features/members/MemberFilters';
 import MembersTable from '@/components/features/members/MembersTable';
 import MembersMobileList from '@/components/features/members/MembersMobileList';
 import MemberForm from '@/components/features/members/MemberForm';
-import MemberCard from '@/components/features/members/MemberCard';
+import MemberProfileModal from '@/components/features/members/MemberProfileModal';
 import {
   useMembers,
   createMember,
@@ -13,17 +13,21 @@ import {
   deleteMember,
   filterMembers,
 } from '@/services/membersService';
+import { useCreativeArts } from '@/services/creativeArtsService';
+import { useMinistries } from '@/services/ministriesService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useMemberManagementAccess } from '@/hooks/useMemberManagementAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLES, normalizeRole, isChurchWideStaff, isCALeader } from '@/config/roles';
 import {
   MEMBER_STATUS,
-  getMemberDepartment,
-  getStaffDepartment,
-  memberBelongsToDepartment,
   inferMemberChurch,
+  memberBelongsToDepartment,
 } from '@/config/memberOptions';
-
+import {
+  resolveMemberTableSort,
+  sortMembersTable,
+} from '@/config/memberTableOptions';
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
@@ -53,27 +57,29 @@ function FeedbackBanner({ feedback, onDismiss }) {
 
 export default function MembersPage() {
   const { data: members = [], loading, error } = useMembers();
+  const { data: creativeArtsTeams = [] } = useCreativeArts();
+  const { data: ministries = [] } = useMinistries();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { role, canPerformAction } = useRoleAccess();
-  const { staffProfile, staffDocId, firebaseUser } = useAuth();
+  const { role } = useRoleAccess();
+  const { staffDocId, firebaseUser } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterChurch, setFilterChurch] = useState('all');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
-  const [viewingMember, setViewingMember] = useState(null);
+  const [viewingMemberId, setViewingMemberId] = useState(null);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   useEffect(() => {
     const memberId = searchParams.get('memberId');
     if (!memberId || loading) return;
 
-    const member = members.find((item) => item.id === memberId);
-    if (!member) return;
+    if (!members.some((item) => item.id === memberId)) return;
 
-    setViewingMember(member);
+    setViewingMemberId(memberId);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('memberId');
@@ -82,27 +88,16 @@ export default function MembersPage() {
 
   const normalizedRole = normalizeRole(role);
   const isChurchWideUser = isChurchWideStaff(normalizedRole);
-  const isCALeader = normalizedRole === ROLES.LEADER;
-  const creatorDepartment = getStaffDepartment(staffProfile);
-  const canManageMembers =
-    canPerformAction('MANAGE_MEMBERS') || isCALeader;
+  const isCALeaderUser = normalizedRole === ROLES.LEADER;
+  const { canManageMembers, canManageMember, creatorDepartment } = useMemberManagementAccess();
 
   const scopedMembers = useMemo(() => {
     if (isChurchWideUser) return members;
-    if (isCALeader && creatorDepartment) {
+    if (isCALeaderUser && creatorDepartment) {
       return members.filter((member) => memberBelongsToDepartment(member, creatorDepartment));
     }
     return members;
-  }, [members, isChurchWideUser, isCALeader, creatorDepartment]);
-
-  const canManageMember = (member) => {
-    if (!canManageMembers) return false;
-    if (isChurchWideUser) return true;
-    if (isCALeader && creatorDepartment) {
-      return memberBelongsToDepartment(member, creatorDepartment);
-    }
-    return false;
-  };
+  }, [members, isChurchWideUser, isCALeaderUser, creatorDepartment]);
 
   const filteredMembers = useMemo(() => {
     let filtered = filterMembers(scopedMembers, searchTerm);
@@ -119,24 +114,30 @@ export default function MembersPage() {
       );
     }
 
-    filtered.sort((a, b) => {
-      const nameA = `${a.name || ''} ${a.surname || ''}`.trim().toLowerCase();
-      const nameB = `${b.name || ''} ${b.surname || ''}`.trim().toLowerCase();
-      if (sortDirection === 'asc') {
-        return nameA.localeCompare(nameB);
-      }
-      return nameB.localeCompare(nameA);
-    });
+    const { column, direction } = resolveMemberTableSort(sortColumn, sortDirection);
+    return sortMembersTable(filtered, column, direction, { creativeArtsTeams, ministries });
+  }, [
+    scopedMembers,
+    searchTerm,
+    filterStatus,
+    filterChurch,
+    sortColumn,
+    sortDirection,
+    creativeArtsTeams,
+    ministries,
+  ]);
 
-    return filtered;
-  }, [scopedMembers, searchTerm, filterStatus, filterChurch, sortDirection]);
+  const handleSortChange = useCallback((column, direction) => {
+    setSortColumn(column);
+    setSortDirection(direction);
+  }, []);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
   };
 
   const handleAddMember = () => {
-    if (isCALeader && !creatorDepartment) {
+    if (isCALeaderUser && !creatorDepartment) {
       showFeedback(
         'error',
         'Your staff profile does not have a department assigned. Contact an administrator.',
@@ -155,7 +156,36 @@ export default function MembersPage() {
   };
 
   const handleViewMember = (member) => {
-    setViewingMember(member);
+    if (!member?.id) return;
+    setViewingMemberId(member.id);
+  };
+
+  const handleProfileEdit = (member) => {
+    setViewingMemberId(null);
+    setEditingMember(member);
+    setIsFormOpen(true);
+  };
+
+  const handleProfileDelete = async (member) => {
+    const memberId = member?.id;
+    if (!memberId || !canManageMember(member)) return;
+
+    try {
+      const { storageWarnings = [] } = await deleteMember(memberId);
+
+      if (storageWarnings.length) {
+        showFeedback(
+          'warning',
+          `Member deleted successfully. ${storageWarnings.join(' ')}`,
+        );
+      } else {
+        showFeedback('success', 'Member deleted successfully.');
+      }
+    } catch (deleteError) {
+      console.error('Error deleting member:', deleteError);
+      showFeedback('error', 'Failed to delete member. Please try again.');
+      throw deleteError;
+    }
   };
 
   const createdBy = staffDocId || firebaseUser?.uid || '';
@@ -221,7 +251,7 @@ export default function MembersPage() {
     <div className="page-root">
       <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback({ type: '', message: '' })} />
 
-      {isCALeader && creatorDepartment && (
+      {isCALeaderUser && creatorDepartment && (
         <p className="text-[11px] text-slate-400">
           Viewing members in your department:{' '}
           <span className="font-semibold text-slate-200">{creatorDepartment}</span>
@@ -237,8 +267,6 @@ export default function MembersPage() {
             onFilterStatusChange={setFilterStatus}
             filterChurch={filterChurch}
             onFilterChurchChange={setFilterChurch}
-            onSortToggle={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-            sortDirection={sortDirection}
             onAddMember={canManageMembers ? handleAddMember : undefined}
           />
         </div>
@@ -260,6 +288,11 @@ export default function MembersPage() {
                 onEdit={handleEditMember}
                 onDelete={handleDeleteMember}
                 canManageRow={canManageMember}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
+                creativeArtsTeams={creativeArtsTeams}
+                ministries={ministries}
               />
             </div>
 
@@ -270,6 +303,8 @@ export default function MembersPage() {
                 onEdit={handleEditMember}
                 onDelete={handleDeleteMember}
                 canManageRow={canManageMember}
+                creativeArtsTeams={creativeArtsTeams}
+                ministries={ministries}
               />
             </div>
           </>
@@ -297,19 +332,17 @@ export default function MembersPage() {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingMember}
-        lockCreativeArtsDepartmentName={isCALeader ? creatorDepartment : ''}
+        lockCreativeArtsDepartmentName={isCALeaderUser ? creatorDepartment : ''}
       />
 
-      {viewingMember && (
-        <MemberCard
-          member={viewingMember}
-          isOpen={!!viewingMember}
-          onClose={() => setViewingMember(null)}
-          onEdit={canManageMember(viewingMember) ? handleEditMember : undefined}
-          onDelete={canManageMember(viewingMember) ? handleDeleteMember : undefined}
-          canManage={canManageMember(viewingMember)}
-        />
-      )}
+      <MemberProfileModal
+        memberId={viewingMemberId}
+        isOpen={Boolean(viewingMemberId)}
+        onClose={() => setViewingMemberId(null)}
+        onEdit={handleProfileEdit}
+        onDelete={handleProfileDelete}
+        lockCreativeArtsDepartmentName={isCALeaderUser ? creatorDepartment : ''}
+      />
     </div>
   );
 }

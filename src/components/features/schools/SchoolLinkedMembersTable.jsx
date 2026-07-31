@@ -1,12 +1,19 @@
 import UserAvatar from '@/components/ui/UserAvatar';
-import { MEMBER_STATUS } from '@/config/memberOptions';
+import { getMemberFullName, getMemberProfileImageUrl, MEMBER_STATUS } from '@/config/memberOptions';
 import { SCHOOL_STATUS } from '@/config/schoolsOptions';
+import { resolveLinkedMemberId, warnMissingLinkedMemberId } from '@/utils/linkedMemberUtils';
 import Table from '@/components/ui/Table';
 
 function MemberAvatar({ member }) {
-  const fullName = `${member?.name || ''} ${member?.surname || ''}`.trim();
+  const fullName = getMemberFullName(member);
 
-  return <UserAvatar name={fullName} photo={member?.photo} size="sm" />;
+  return (
+    <UserAvatar
+      name={fullName}
+      photo={getMemberProfileImageUrl(member)}
+      size="sm"
+    />
+  );
 }
 
 function MemberStatusBadge({ status }) {
@@ -28,7 +35,20 @@ function MemberStatusBadge({ status }) {
 export default function SchoolLinkedMembersTable({
   members = [],
   emptyMessage = 'No members linked to this school.',
+  onMemberSelect,
 }) {
+  const handleRowClick = (row) => {
+    if (typeof onMemberSelect !== 'function') return;
+
+    const memberId = resolveLinkedMemberId(row);
+    if (!memberId) {
+      warnMissingLinkedMemberId(row, 'School linked members table row');
+      return;
+    }
+
+    onMemberSelect(memberId);
+  };
+
   const columns = [
     {
       key: 'avatar',
@@ -71,6 +91,8 @@ export default function SchoolLinkedMembersTable({
       data={members}
       emptyMessage={emptyMessage}
       className="bg-transparent border-0"
+      onRowClick={onMemberSelect ? handleRowClick : undefined}
+      getRowKey={(row) => resolveLinkedMemberId(row) || row.fullName}
     />
   );
 }

@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_PROGRAM_ROW_COUNT,
   buildServiceProgramDocId,
+  buildServiceProgramPayload,
+  canSaveServiceProgram,
   createDefaultProgramRows,
   createEmptyProgramRow,
+  getServiceProgramSaveErrorMessage,
   mapServiceProgramRowsFromFirestore,
   moveProgramRow,
   normalizeRowsForSave,
@@ -101,4 +104,76 @@ test('mapServiceProgramRowsFromFirestore fills missing row fields safely', () =>
 
   assert.equal(mapped[0].programItem, '');
   assert.equal(mapped[0].leader, '');
+});
+
+test('buildServiceProgramPayload persists header fields and normalized rows', () => {
+  const payload = buildServiceProgramPayload({
+    serviceDate: '2026-07-31',
+    serviceType: 'Glorious Church Service',
+    rows: [{ ...createEmptyProgramRow(0), programItem: 'Welcome' }],
+    createdBy: 'Lead Pastor',
+    createdAt: '2026-07-31T08:00:00.000Z',
+    updatedAt: '2026-07-31T09:00:00.000Z',
+    updatedBy: 'Lead Pastor',
+  });
+
+  assert.equal(payload.serviceDate, '2026-07-31');
+  assert.equal(payload.serviceType, 'Glorious Church Service');
+  assert.equal(payload.createdBy, 'Lead Pastor');
+  assert.equal(payload.updatedBy, 'Lead Pastor');
+  assert.equal(payload.rows[0].programItem, 'Welcome');
+  assert.equal(payload.rows[0].order, 0);
+});
+
+test('canSaveServiceProgram enables save for new, edited, or failed programs only', () => {
+  assert.equal(
+    canSaveServiceProgram({
+      canManage: true,
+      isSaving: false,
+      isTableLoading: false,
+      isDirty: false,
+      saveStatus: 'unsaved',
+    }),
+    true,
+  );
+
+  assert.equal(
+    canSaveServiceProgram({
+      canManage: true,
+      isSaving: false,
+      isTableLoading: false,
+      isDirty: true,
+      saveStatus: 'saved',
+    }),
+    true,
+  );
+
+  assert.equal(
+    canSaveServiceProgram({
+      canManage: true,
+      isSaving: false,
+      isTableLoading: false,
+      isDirty: false,
+      saveStatus: 'saved',
+    }),
+    false,
+  );
+
+  assert.equal(
+    canSaveServiceProgram({
+      canManage: false,
+      isSaving: false,
+      isTableLoading: false,
+      isDirty: true,
+      saveStatus: 'unsaved',
+    }),
+    false,
+  );
+});
+
+test('getServiceProgramSaveErrorMessage maps Firestore permission failures', () => {
+  assert.match(
+    getServiceProgramSaveErrorMessage({ code: 'firestore/permission-denied' }),
+    /permission to save/i,
+  );
 });

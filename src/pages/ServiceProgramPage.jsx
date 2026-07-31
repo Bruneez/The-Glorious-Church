@@ -6,6 +6,7 @@ import ServiceProgramTable from '@/components/features/service-program/ServicePr
 import {
   DEFAULT_SERVICE_TYPE,
   buildServiceProgramDocId,
+  canSaveServiceProgram,
   createEmptyProgramRow,
   formatServiceProgramSavedTime,
   getDefaultServiceDate,
@@ -91,6 +92,7 @@ export default function ServiceProgramPage() {
 
   const isDirtyRef = useRef(false);
   const loadedContextRef = useRef('');
+  const rowsRef = useRef([]);
 
   const programContextKey = buildServiceProgramDocId(serviceDate, serviceType);
   const { data: program, loading, error } = useServiceProgram(serviceDate, serviceType, retryToken);
@@ -127,6 +129,7 @@ export default function ServiceProgramPage() {
     });
 
     setRows(resolvedRows);
+    rowsRef.current = resolvedRows;
     isDirtyRef.current = false;
     setIsDirty(false);
     loadedContextRef.current = programContextKey;
@@ -170,29 +173,47 @@ export default function ServiceProgramPage() {
   };
 
   const handleAddRow = () => {
-    setRows((currentRows) => [...currentRows, createEmptyProgramRow(currentRows.length)]);
+    setRows((currentRows) => {
+      const nextRows = [...currentRows, createEmptyProgramRow(currentRows.length)];
+      rowsRef.current = nextRows;
+      return nextRows;
+    });
     markDirty();
   };
 
   const handleRowChange = (rowId, field, value) => {
-    setRows((currentRows) =>
-      currentRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)),
-    );
+    setRows((currentRows) => {
+      const nextRows = currentRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row));
+      rowsRef.current = nextRows;
+      return nextRows;
+    });
     markDirty();
   };
 
   const handleMoveUp = (rowIndex) => {
-    setRows((currentRows) => moveProgramRow(currentRows, rowIndex, -1));
+    setRows((currentRows) => {
+      const nextRows = moveProgramRow(currentRows, rowIndex, -1);
+      rowsRef.current = nextRows;
+      return nextRows;
+    });
     markDirty();
   };
 
   const handleMoveDown = (rowIndex) => {
-    setRows((currentRows) => moveProgramRow(currentRows, rowIndex, 1));
+    setRows((currentRows) => {
+      const nextRows = moveProgramRow(currentRows, rowIndex, 1);
+      rowsRef.current = nextRows;
+      return nextRows;
+    });
     markDirty();
   };
 
   const handleDeleteRow = (rowIndex) => {
-    setRows((currentRows) => currentRows.filter((_, index) => index !== rowIndex));
+    setRows((currentRows) => {
+      const nextRows = currentRows.filter((_, index) => index !== rowIndex);
+      rowsRef.current = nextRows;
+      return nextRows;
+    });
     markDirty();
   };
 
@@ -218,9 +239,8 @@ export default function ServiceProgramPage() {
       const savedProgram = await saveServiceProgram({
         serviceDate,
         serviceType,
-        rows,
+        rows: rowsRef.current,
         createdBy,
-        existingProgram: program,
       });
 
       isDirtyRef.current = false;
@@ -242,8 +262,13 @@ export default function ServiceProgramPage() {
     }
   };
 
-  const canSave =
-    canManage && !isSaving && !isTableLoading && (isDirty || saveStatus !== SAVE_STATUS.SAVED);
+  const canSave = canSaveServiceProgram({
+    canManage,
+    isSaving,
+    isTableLoading,
+    isDirty,
+    saveStatus,
+  });
 
   return (
     <div className="page-root">

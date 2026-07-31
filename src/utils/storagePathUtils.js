@@ -109,6 +109,24 @@ export function resolveTravelDestinationImageStoragePath(destination = {}) {
   return '';
 }
 
+export function resolveTransportVehicleImageStoragePath(driver = {}) {
+  const record = asStorageRecord(driver);
+  const directPath = normalizeStorageObjectPath(record.vehicleImageStoragePath);
+  if (directPath) return directPath;
+
+  const fromImageUrl = extractStoragePathFromDownloadUrl(record.vehicleImageUrl || '');
+  if (fromImageUrl) return fromImageUrl;
+
+  const legacyUrl = String(
+    record.vehicleImage || record.vehiclePhoto || record.photo || record.image || '',
+  ).trim();
+  if (!isNonFirebaseStorageReference(legacyUrl)) {
+    return extractStoragePathFromDownloadUrl(legacyUrl);
+  }
+
+  return '';
+}
+
 export function resolveMachanehMoviePosterStoragePath(movie = {}) {
   const record = asStorageRecord(movie);
   const directPath = normalizeStorageObjectPath(record.posterStoragePath);

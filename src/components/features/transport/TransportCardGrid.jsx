@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react';
 import { Bus, Edit2, Trash2, MapPin, Phone, Users } from 'lucide-react';
-import UserAvatar from '@/components/ui/UserAvatar';
 import { getDriverVehicle, getVehicleImage, TRANSPORT_STATUS } from '@/config/transportOptions';
 
 function StatusBadge({ status }) {
@@ -25,9 +25,24 @@ function StatusBadge({ status }) {
 
 function VehicleAvatar({ driver }) {
   const image = getVehicleImage(driver);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  if (image) {
-    return <UserAvatar name={driver.name} photo={image} size="lg" />;
+  useEffect(() => {
+    setImageFailed(false);
+  }, [image, driver?.id]);
+
+  if (image && !imageFailed) {
+    return (
+      <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/30 overflow-hidden flex items-center justify-center shrink-0">
+        <img
+          src={image}
+          alt={driver.name ? `${driver.name} transport photo` : 'Transport photo'}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={() => setImageFailed(true)}
+        />
+      </div>
+    );
   }
 
   return (

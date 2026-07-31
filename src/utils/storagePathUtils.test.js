@@ -8,6 +8,7 @@ import {
   resolveMinistryAvatarStoragePath,
   resolveSchoolBadgeStoragePath,
   resolveTravelDestinationImageStoragePath,
+  resolveTransportVehicleImageStoragePath,
   resolveShepherdingCoverStoragePath,
   resolveAppFixAttachmentStoragePath,
   resolveProjectAttachmentStoragePath,
@@ -210,6 +211,26 @@ test('resolveTravelDestinationImageStoragePath ignores blob preview URLs', () =>
     }),
     '',
   );
+});
+
+test('resolveTravelDestinationImageStoragePath safely handles null records when adding a location', () => {
+  assert.equal(resolveTravelDestinationImageStoragePath(null), '');
+  assert.equal(resolveTravelDestinationImageStoragePath(undefined), '');
+});
+
+test('resolveTransportVehicleImageStoragePath prefers vehicleImageStoragePath', () => {
+  assert.equal(
+    resolveTransportVehicleImageStoragePath({
+      vehicleImageStoragePath: 'transport/driver-1/123_photo.jpg',
+      vehicleImageUrl: 'https://firebasestorage.googleapis.com/v0/b/demo/o/other.jpg?alt=media',
+    }),
+    'transport/driver-1/123_photo.jpg',
+  );
+});
+
+test('resolveTransportVehicleImageStoragePath safely handles null records when adding transport', () => {
+  assert.equal(resolveTransportVehicleImageStoragePath(null), '');
+  assert.equal(resolveTransportVehicleImageStoragePath(undefined), '');
 });
 
 test('resolveShepherdingCoverStoragePath prefers coverImageStoragePath', () => {

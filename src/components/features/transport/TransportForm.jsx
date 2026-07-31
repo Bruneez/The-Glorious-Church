@@ -1,46 +1,53 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import {
   TRANSPORT_STATUS,
   TRANSPORT_STATUS_OPTIONS,
+  ACCEPTED_TRANSPORT_IMAGE_ACCEPT,
+  mapTransportToFormData,
   validateTransportForm,
+  validateTransportImageFile,
+  getVehicleImage,
 } from '@/config/transportOptions';
+import { getTransportSubmitErrorMessage } from '@/config/transportImageValidation';
+import { resolvePreviousTransportVehicleImagePath } from '@/services/transportStorageLifecycle';
 
-const EMPTY_FORM = {
-  name: '',
-  phone: '',
-  vehicle: '',
-  route: '',
-  capacity: '',
-  status: TRANSPORT_STATUS.ACTIVE,
-};
-
-export default function TransportForm({ isOpen, onClose, onSubmit, initialData = null }) {
-  const [formData, setFormData] = useState(EMPTY_FORM);
+export default function TransportForm({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData = null,
+  canManage = false,
+}) {
+  const [formData, setFormData] = useState(mapTransportToFormData(null));
+  const [imageFile, setImageFile] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [imageError, setImageError] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    setFormData({
-      name: initialData?.name || '',
-      phone: initialData?.phone || '',
-      vehicle: initialData?.vehicle || initialData?.vehicleReg || '',
-      route: initialData?.route || '',
-      capacity: initialData?.capacity ?? '',
-      status: initialData?.status || TRANSPORT_STATUS.ACTIVE,
-    });
+    setFormData(mapTransportToFormData(initialData));
+    setImageFile(null);
+    setRemoveImage(false);
+    setImageError('');
     setError('');
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
   }, [initialData, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canManage || isSubmittingRef.current || isSubmitting) return;
+
     setError('');
 
     const validationError = validateTransportForm(formData);
@@ -49,12 +56,39 @@ export default function TransportForm({ isOpen, onClose, onSubmit, initialData =
       return;
     }
 
+    if (imageFile) {
+      const imageValidation = validateTransportImageFile(imageFile);
+      if (imageValidation) {
+        setImageError(imageValidation);
+        return;
+      }
+    }
+
+    setImageError('');
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
-      await onSubmit(formData);
+      const previousImagePath = resolvePreviousTransportVehicleImagePath(
+        { previousImagePath: formData.previousImagePath },
+        initialData,
+      );
+
+      await onSubmit({
+        formData: {
+          ...formData,
+          vehicleImageUrl: removeImage ? '' : formData.vehicleImageUrl,
+          vehicleImageStoragePath: removeImage ? '' : formData.vehicleImageStoragePath,
+          previousImagePath: removeImage || imageFile ? previousImagePath : '',
+        },
+        imageFile: removeImage ? null : imageFile,
+        removeImage,
+      });
     } catch (submitError) {
-      setError(submitError?.message || 'Failed to save driver. Please try again.');
+      console.error('Failed to save transport record:', submitError);
+      setError(getTransportSubmitErrorMessage(submitError));
+    } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -64,6 +98,34 @@ export default function TransportForm({ isOpen, onClose, onSubmit, initialData =
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleImageSelect = (file) => {
+    const validationMessage = validateTransportImageFile(file);
+    if (validationMessage) {
+      setImageError(validationMessage);
+      setImageFile(null);
+      return;
+    }
+
+    setImageError('');
+    setImageFile(file);
+    setRemoveImage(false);
+  };
+
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setRemoveImage(true);
+    setImageError('');
+  };
+
+  const existingImageUrl =
+    !removeImage && !imageFile
+      ? formData.vehicleImageUrl || getVehicleImage(initialData)
+      : '';
+
+  if (!canManage) {
+    return null;
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -72,7 +134,23 @@ export default function TransportForm({ isOpen, onClose, onSubmit, initialData =
       icon={Bus}
       maxWidth="max-w-lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} noValidate className="space-y-3">
+        <ImageUploadField
+          label="Driver or Vehicle Photo"
+          existingImageUrl={existingImageUrl}
+          selectedFile={imageFile}
+          onFileSelect={handleImageSelect}
+          onRemove={handleImageRemove}
+          accept={ACCEPTED_TRANSPORT_IMAGE_ACCEPT}
+          maxSizeMB={5}
+          previewShape="circle"
+          previewName={formData.name || 'Transport'}
+          helperText="JPG, PNG, or WEBP up to 5 MB. Optional photo shown on the transport tile."
+          error={imageError}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+        />
+
         <Input
           label="Driver Name"
           name="name"

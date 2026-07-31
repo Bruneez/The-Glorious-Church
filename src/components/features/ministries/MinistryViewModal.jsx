@@ -4,6 +4,8 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import MinistryAvatar from '@/components/features/ministries/MinistryAvatar';
 import SchoolLinkedMembersTable from '@/components/features/schools/SchoolLinkedMembersTable';
+import MemberProfileModal from '@/components/features/members/MemberProfileModal';
+import { useMemberProfileModal } from '@/hooks/useMemberProfileModal';
 import {
   MINISTRY_STATUS,
   MINISTRY_FUTURE_SECTIONS,
@@ -55,6 +57,7 @@ export default function MinistryViewModal({
   canManage = false,
 }) {
   const { data: allMembers = [] } = useMembers();
+  const memberProfile = useMemberProfileModal();
   const linkedMembers = useMemo(() => {
     if (!ministry) return [];
     return getMembersLinkedToMinistry(allMembers, ministry).map(mapLinkedMemberForDisplay);
@@ -65,12 +68,14 @@ export default function MinistryViewModal({
   const memberCount = linkedMembers.length;
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Ministry Details"
       icon={Church}
       maxWidth="max-w-2xl"
+      preventClose={memberProfile.isOpen}
     >
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-slate-700/70">
@@ -113,6 +118,7 @@ export default function MinistryViewModal({
             <SchoolLinkedMembersTable
               members={linkedMembers}
               emptyMessage="No members linked to this ministry."
+              onMemberSelect={memberProfile.openMemberProfile}
             />
           </div>
         </div>
@@ -148,5 +154,13 @@ export default function MinistryViewModal({
         </div>
       </div>
     </Modal>
+
+    <MemberProfileModal
+      memberId={memberProfile.selectedMemberId}
+      isOpen={memberProfile.isOpen}
+      onClose={memberProfile.closeMemberProfile}
+      nested
+    />
+    </>
   );
 }

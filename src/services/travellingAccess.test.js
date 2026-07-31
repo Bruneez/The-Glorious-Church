@@ -27,14 +27,15 @@ test('admin can manage travelling', () => {
   assert.doesNotThrow(() => assertCanManageTravelling(ROLES.ADMIN));
 });
 
-test('Pastor can manage travelling destinations', () => {
-  assert.equal(canPerformAction(ROLES.PASTOR, 'MANAGE_TRAVELLING'), true);
-  assert.doesNotThrow(() => assertCanManageTravelling(ROLES.PASTOR));
+test('Pastor can view travelling but not manage destinations', () => {
+  assert.equal(canPerformAction(ROLES.PASTOR, 'VIEW_TRAVELLING'), true);
+  assert.equal(canPerformAction(ROLES.PASTOR, 'MANAGE_TRAVELLING'), false);
+  assert.throws(() => assertCanManageTravelling(ROLES.PASTOR), /permission to manage/i);
 });
 
 test('non-admin users cannot manage travelling', () => {
   assert.equal(canPerformAction(ROLES.LEADER, 'MANAGE_TRAVELLING'), false);
-  assert.throws(() => assertCanManageTravelling(ROLES.LEADER), /administrators can manage/i);
+  assert.throws(() => assertCanManageTravelling(ROLES.LEADER), /permission to manage/i);
 });
 
 test('travelling route access follows view permission and role aliases', () => {
