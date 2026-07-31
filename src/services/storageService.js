@@ -9,6 +9,12 @@ import {
 import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS, resolveTravelImageContentType, validateTravelImageFile } from '@/config/travellingOptions';
 import { toTravelImageUploadError } from '@/config/travellingImageValidation';
 import {
+  TRANSPORT_IMAGE_UPLOAD_TIMEOUT_MS,
+  resolveTransportImageContentType,
+  validateTransportImageFile,
+} from '@/config/transportOptions';
+import { toTransportImageUploadError } from '@/config/transportImageValidation';
+import {
   MOVIE_POSTER_UPLOAD_TIMEOUT_MS,
   buildMachanehMoviePosterStoragePath,
   resolveMoviePosterContentType,
@@ -205,6 +211,44 @@ export async function uploadTravelDestinationImage(file, destinationId) {
 }
 
 export async function deleteTravelDestinationImage(path) {
+  return deleteFileSafe(path);
+}
+
+export async function uploadTransportVehicleImage(file, driverId) {
+  const validationMessage = validateTransportImageFile(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const contentType = resolveTransportImageContentType(file);
+  if (!contentType) {
+    throw new Error('Please upload a JPG, PNG, or WEBP image.');
+  }
+
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'image').replace(/[^\w.-]/g, '_');
+  const vehicleImageStoragePath = `transport/${driverId}/${timestamp}_${safeName}`;
+
+  try {
+    const vehicleImageUrl = await withUploadTimeout(
+      uploadFile(file, vehicleImageStoragePath, {
+        contentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
+      TRANSPORT_IMAGE_UPLOAD_TIMEOUT_MS,
+    );
+
+    if (!vehicleImageUrl) {
+      throw new Error('Failed to upload transport photo. Please try again.');
+    }
+
+    return { vehicleImageUrl, vehicleImageStoragePath };
+  } catch (error) {
+    throw toTransportImageUploadError(error);
+  }
+}
+
+export async function deleteTransportVehicleImage(path) {
   return deleteFileSafe(path);
 }
 

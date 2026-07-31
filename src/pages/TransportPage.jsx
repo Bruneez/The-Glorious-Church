@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import TransportForm from '@/components/features/transport/TransportForm';
 import TransportFilters from '@/components/features/transport/TransportFilters';
@@ -12,7 +12,8 @@ import {
 } from '@/services/transportService';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { buildTransportPayload, computeTransportStats } from '@/config/transportOptions';
+import { computeTransportStats } from '@/config/transportOptions';
+import { MANAGE_DENIED_MESSAGE } from '@/services/transportGuards';
 
 function SummaryCard({ label, value, loading }) {
   return (
@@ -25,16 +26,41 @@ function SummaryCard({ label, value, loading }) {
   );
 }
 
+function FeedbackBanner({ feedback, onDismiss }) {
+  if (!feedback?.message) return null;
+
+  const toneClass =
+    feedback.type === 'success'
+      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+      : feedback.type === 'warning'
+        ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300'
+        : 'bg-rose-500/10 border border-rose-500/20 text-rose-400';
+
+  return (
+    <div
+      className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between gap-3 ${toneClass}`}
+    >
+      <span>{feedback.message}</span>
+      <button type="button" onClick={onDismiss} className="text-current hover:opacity-80 shrink-0">
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
 export default function TransportPage() {
   const { data: drivers = [], loading } = useTransport();
   const { canPerformAction } = useRoleAccess();
-  const { staffProfile, firebaseUser } = useAuth();
+  const { staffProfile, firebaseUser, role } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortDirection, setSortDirection] = useState('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+  const canManageTransport = canPerformAction('MANAGE_TRANSPORT');
 
   const stats = useMemo(() => computeTransportStats(drivers), [drivers]);
 
@@ -73,22 +99,56 @@ export default function TransportPage() {
     staffProfile?.name || firebaseUser?.displayName || firebaseUser?.email || 'Staff Member';
 
   const handleAddDriver = () => {
+    if (!canManageTransport) return;
     setEditingDriver(null);
     setIsFormOpen(true);
   };
 
   const handleEditDriver = (driver) => {
+    if (!canManageTransport) return;
     setEditingDriver(driver);
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (formData) => {
-    const payload = buildTransportPayload(formData, getCreatedByName(), editingDriver);
+  const handleFormSubmit = async ({ formData, imageFile, removeImage }) => {
+    if (!canManageTransport) {
+      throw new Error(MANAGE_DENIED_MESSAGE);
+    }
+
+    const createdBy = getCreatedByName();
 
     if (editingDriver?.id) {
-      await updateTransportRoute(editingDriver.id, payload);
+      const { storageWarnings = [] } = await updateTransportRoute(editingDriver.id, formData, {
+        role,
+        createdBy,
+        initialData: editingDriver,
+        imageFile,
+        removeImage,
+      });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Transport record updated successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Transport record updated successfully.' });
+      }
     } else {
-      await createTransportRoute(payload);
+      const { storageWarnings = [] } = await createTransportRoute(formData, {
+        role,
+        createdBy,
+        imageFile,
+      });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Transport record added successfully. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Transport record added successfully.' });
+      }
     }
 
     setIsFormOpen(false);
@@ -96,15 +156,32 @@ export default function TransportPage() {
   };
 
   const handleDeleteDriver = async (driverId) => {
+    if (!canManageTransport) return;
+
+    const driver = drivers.find((item) => item.id === driverId);
+
     try {
-      await deleteTransportRoute(driverId);
-    } catch (error) {
-      console.error('Error deleting driver:', error);
-      alert('Failed to delete driver. Please try again.');
+      const { storageWarnings = [] } = await deleteTransportRoute(driverId, {
+        role,
+        initialData: driver,
+      });
+
+      if (storageWarnings.length) {
+        setFeedback({
+          type: 'warning',
+          message: `Transport record deleted. ${storageWarnings.join(' ')}`,
+        });
+      } else {
+        setFeedback({ type: 'success', message: 'Transport record deleted successfully.' });
+      }
+    } catch (deleteError) {
+      console.error('Error deleting driver:', deleteError);
+      setFeedback({
+        type: 'error',
+        message: deleteError?.message || 'Failed to delete driver. Please try again.',
+      });
     }
   };
-
-  const canManageTransport = canPerformAction('MANAGE_TRANSPORT');
 
   return (
     <div className="page-root">
@@ -121,6 +198,8 @@ export default function TransportPage() {
           </Button>
         )}
       </div>
+
+      <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback({ type: '', message: '' })} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <SummaryCard label="Total Drivers" value={stats.totalDrivers} loading={loading} />
@@ -164,6 +243,7 @@ export default function TransportPage() {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingDriver}
+        canManage={canManageTransport}
       />
     </div>
   );
