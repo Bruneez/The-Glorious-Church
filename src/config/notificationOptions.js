@@ -5,6 +5,7 @@ import {
   Bus,
   Calendar,
   ClipboardCheck,
+  FolderKanban,
   UserPlus,
   Users,
   UserCog,
@@ -30,6 +31,11 @@ export const NOTIFICATION_TYPE = {
   APP_FIX_COMPLETED: 'app_fix_completed',
   APP_FIX_REJECTED: 'app_fix_rejected',
   APP_FIX_DUPLICATED: 'app_fix_duplicated',
+  PROJECT_JOIN_REQUEST: 'project_join_request',
+  PROJECT_JOIN_APPROVED: 'project_join_approved',
+  PROJECT_JOIN_REJECTED: 'project_join_rejected',
+  PROJECT_LEADER_ASSIGNED: 'project_leader_assigned',
+  PROJECT_STATUS_CHANGED: 'project_status_changed',
 };
 
 export const NOTIFICATION_ENTITY_TYPE = {
@@ -42,6 +48,7 @@ export const NOTIFICATION_ENTITY_TYPE = {
   OFFERING: 'offering',
   SHEPHERDING_RESOURCE: 'shepherding_resource',
   APP_FIX_REQUEST: 'app_fix_request',
+  PROJECT: 'project',
 };
 
 export const NOTIFICATION_SCOPE = {
@@ -139,6 +146,31 @@ export const NOTIFICATION_TYPE_META = {
     icon: Bug,
     accent: 'text-violet-400',
     bg: 'bg-violet-500/10',
+  },
+  [NOTIFICATION_TYPE.PROJECT_JOIN_REQUEST]: {
+    icon: FolderKanban,
+    accent: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+  },
+  [NOTIFICATION_TYPE.PROJECT_JOIN_APPROVED]: {
+    icon: FolderKanban,
+    accent: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+  },
+  [NOTIFICATION_TYPE.PROJECT_JOIN_REJECTED]: {
+    icon: FolderKanban,
+    accent: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+  },
+  [NOTIFICATION_TYPE.PROJECT_LEADER_ASSIGNED]: {
+    icon: FolderKanban,
+    accent: 'text-sky-400',
+    bg: 'bg-sky-500/10',
+  },
+  [NOTIFICATION_TYPE.PROJECT_STATUS_CHANGED]: {
+    icon: FolderKanban,
+    accent: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
   },
 };
 

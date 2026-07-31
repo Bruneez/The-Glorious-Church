@@ -170,7 +170,7 @@ export default function MachanehMoviesForm({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (isSubmittingRef.current) {
+    if (isSubmittingRef.current || isSubmitting) {
       return;
     }
 
@@ -253,7 +253,6 @@ export default function MachanehMoviesForm({
           value={formData.title}
           onChange={handleChange}
           placeholder="Enter movie title"
-          required
           error={titleError}
           inputRef={titleFieldRef}
         />

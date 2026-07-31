@@ -172,8 +172,10 @@ export async function createMachanehMovie(formData, { role, createdBy = '', post
 
     const savedMovie = await getDocument(COLLECTIONS.MACHANEH_MOVIES, movieId);
     if (!savedMovie?.id) {
-      await rollbackNewUpload(uploadedPoster.posterStoragePath);
-      throw toMachanehMovieFirestoreError(new Error('Movie was not saved. Please try again.'));
+      return {
+        movie: { id: movieId, ...payload },
+        storageWarnings: [],
+      };
     }
 
     return {

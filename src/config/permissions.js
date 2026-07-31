@@ -56,6 +56,7 @@ const MINISTRY_PARTICIPANT_ALLOWED_ROUTES = [
   '/merchandise',
   '/shepherding-tools',
   '/app-fixes',
+  '/projects',
   '/calendar',
   '/service-program',
   '/tasks',
@@ -71,6 +72,7 @@ function canMinistryParticipantAccessRoute(pathname) {
   if (MINISTRY_PARTICIPANT_RESTRICTED_ROUTES.includes(pathname)) return false;
   if (MINISTRY_PARTICIPANT_ALLOWED_ROUTES.includes(pathname)) return true;
   if (pathname.startsWith('/schools/')) return true;
+  if (pathname.startsWith('/projects/')) return true;
   if (pathname === '/profile') return true;
   return false;
 }
@@ -80,6 +82,7 @@ export const ROUTE_ACCESS = {
   '/blueprint': ALL_STAFF,
   '/shepherding-tools': ALL_STAFF,
   '/app-fixes': ALL_STAFF,
+  '/projects': ALL_STAFF,
   '/users': [ROLES.LEAD_PASTOR],
   '/system-users': [ROLES.LEAD_PASTOR],
   '/members': ALL_STAFF,
@@ -156,6 +159,8 @@ export const ACTIONS = {
   MANAGE_SHEPHERDING_TOOLS: [ROLES.ADMIN],
   VIEW_APP_FIXES: [...ALL_STAFF, ROLES.ELDER],
   MANAGE_APP_FIXES: [ROLES.ADMIN],
+  VIEW_PROJECTS: [...ALL_STAFF, ROLES.ELDER],
+  CREATE_PROJECTS: [ROLES.LEAD_PASTOR, ROLES.PASTOR],
 };
 
 export function canPerformAction(role, action) {

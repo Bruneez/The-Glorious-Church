@@ -76,7 +76,6 @@ export default function MachanehMoviesPage() {
   };
 
   const handleAddMovie = () => {
-    if (!canManage) return;
     setEditingMovie(null);
     setIsFormOpen(true);
   };
@@ -100,45 +99,52 @@ export default function MachanehMoviesPage() {
 
   const handleFormSubmit = async ({ formData, posterFile, removePoster }) => {
     if (!canManage) {
-      throw new Error('You do not have permission to manage Machaneh Movies.');
+      const message = 'You do not have permission to manage Machaneh Movies.';
+      showFeedback('error', message);
+      throw new Error(message);
     }
 
-    if (editingMovie) {
-      const { movie, storageWarnings = [] } = await updateMachanehMovie(editingMovie.id, formData, {
-        role,
-        createdBy,
-        initialData: editingMovie,
-        posterFile,
-        removePoster,
-      });
+    try {
+      if (editingMovie) {
+        const { movie, storageWarnings = [] } = await updateMachanehMovie(editingMovie.id, formData, {
+          role,
+          createdBy,
+          initialData: editingMovie,
+          posterFile,
+          removePoster,
+        });
 
-      upsertMovie(movie);
+        upsertMovie(movie);
 
-      if (storageWarnings.length) {
-        showFeedback('warning', `Movie updated successfully. ${storageWarnings.join(' ')}`);
+        if (storageWarnings.length) {
+          showFeedback('warning', `Movie updated successfully. ${storageWarnings.join(' ')}`);
+        } else {
+          showFeedback('success', 'Movie updated successfully.');
+        }
       } else {
-        showFeedback('success', 'Movie updated successfully.');
-      }
-    } else {
-      const { movie, storageWarnings = [] } = await createMachanehMovie(formData, {
-        role,
-        createdBy,
-        posterFile,
-      });
+        const { movie, storageWarnings = [] } = await createMachanehMovie(formData, {
+          role,
+          createdBy,
+          posterFile,
+        });
 
-      upsertMovie(movie);
-      setSearchTerm('');
+        upsertMovie(movie);
+        setSearchTerm('');
 
-      if (storageWarnings.length) {
-        showFeedback('warning', `Movie added successfully. ${storageWarnings.join(' ')}`);
-      } else {
-        showFeedback('success', 'Movie added successfully.');
+        if (storageWarnings.length) {
+          showFeedback('warning', `Movie added successfully. ${storageWarnings.join(' ')}`);
+        } else {
+          showFeedback('success', 'Movie added successfully.');
+        }
       }
+
+      setIsFormOpen(false);
+      setEditingMovie(null);
+      setFormSessionKey((currentKey) => currentKey + 1);
+    } catch (submitError) {
+      console.error('Error saving Machaneh movie:', submitError);
+      throw submitError;
     }
-
-    setIsFormOpen(false);
-    setEditingMovie(null);
-    setFormSessionKey((currentKey) => currentKey + 1);
   };
 
   const handleReplacePoster = async (movie, posterFile) => {

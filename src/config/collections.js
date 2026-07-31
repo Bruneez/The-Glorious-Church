@@ -24,4 +24,8 @@ export const COLLECTIONS = {
   APP_FIX_REQUESTS: 'appFixRequests',
   APP_FIX_UPDATES: 'appFixUpdates',
   APP_FIX_ATTACHMENTS: 'appFixAttachments',
+  PROJECTS: 'projects',
+  PROJECT_MEMBERSHIPS: 'projectMemberships',
+  PROJECT_UPDATES: 'projectUpdates',
+  PROJECT_ATTACHMENTS: 'projectAttachments',
 };

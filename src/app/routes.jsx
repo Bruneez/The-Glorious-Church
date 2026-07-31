@@ -27,6 +27,9 @@ import MachanehMoviesPage from '@/pages/MachanehMoviesPage';
 import ShepherdingToolsPage from '@/pages/ShepherdingToolsPage';
 import MerchandisePage from '@/pages/MerchandisePage';
 import AppFixesPage from '@/pages/AppFixesPage';
+import ProjectsPage from '@/pages/ProjectsPage';
+import ProjectDetailPage from '@/pages/ProjectDetailPage';
+import ProjectTeamPage from '@/pages/ProjectTeamPage';
 export default function AppRoutes() {
   return (
     <Routes>
@@ -66,6 +69,9 @@ export default function AppRoutes() {
           <Route path="service-program" element={<ServiceProgramPage />} />
           <Route path="development-board" element={<DevelopmentBoardPage />} />
           <Route path="tasks" element={<TasksPage />} />
+          <Route path="projects/:projectId/team" element={<ProjectTeamPage />} />
+          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
         </Route>
       </Route>
