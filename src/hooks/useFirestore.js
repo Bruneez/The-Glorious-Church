@@ -55,7 +55,7 @@ export function useCollection(collectionName, options = {}) {
   return { data, loading, error };
 }
 
-export function useDocument(collectionName, docId) {
+export function useDocument(collectionName, docId, refreshKey = 0) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,7 +87,7 @@ export function useDocument(collectionName, docId) {
     );
 
     return () => unsubscribe();
-  }, [collectionName, docId]);
+  }, [collectionName, docId, refreshKey]);
 
   return { data, loading, error };
 }
