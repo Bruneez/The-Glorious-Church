@@ -19,6 +19,10 @@ import {
   validateTravelDestinationForm,
   validateTravelImageFile,
 } from '@/config/travellingOptions';
+import {
+  normalizeTravelImageUploadResult,
+  toTravelImageUploadError,
+} from '@/config/travellingImageValidation';
 import { resolveTravelDestinationImageStoragePath } from '@/utils/storagePathUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
@@ -59,6 +63,15 @@ async function rollbackNewUpload(imageStoragePath) {
     await deleteTravelDestinationImage(imageStoragePath);
   } catch {
     // Non-blocking rollback failure.
+  }
+}
+
+async function uploadValidatedTravelImage(imageFile, destinationId) {
+  try {
+    const uploadResult = await uploadTravelDestinationImage(imageFile, destinationId);
+    return normalizeTravelImageUploadResult(uploadResult);
+  } catch (error) {
+    throw toTravelImageUploadError(error);
   }
 }
 
@@ -126,7 +139,7 @@ export async function createTravelDestination(formData, { role, createdBy = '', 
   let uploadedImage = null;
 
   if (imageFile) {
-    uploadedImage = await uploadTravelDestinationImage(imageFile, destinationId);
+    uploadedImage = await uploadValidatedTravelImage(imageFile, destinationId);
   }
 
   const payload = buildTravelDestinationPayload(
@@ -195,7 +208,7 @@ export async function updateTravelDestination(
     nextImageUrl = '';
     nextImagePath = '';
   } else if (imageFile) {
-    replacementImage = await uploadTravelDestinationImage(imageFile, destinationId);
+    replacementImage = await uploadValidatedTravelImage(imageFile, destinationId);
     nextImageUrl = replacementImage.imageUrl;
     nextImagePath = replacementImage.imageStoragePath;
   }
@@ -281,7 +294,7 @@ export async function replaceTravelDestinationImage(
   }
 
   const previousImagePath = resolveTravelDestinationImageStoragePath(existing);
-  const replacementImage = await uploadTravelDestinationImage(imageFile, destinationId);
+  const replacementImage = await uploadValidatedTravelImage(imageFile, destinationId);
 
   try {
     await updateDoc(doc(db, COLLECTIONS.TRAVEL_DESTINATIONS, destinationId), {

@@ -139,45 +139,50 @@ export default function TravellingPage() {
 
   const handleFormSubmit = async ({ formData, imageFile, removeImage }) => {
     if (!canManage) {
-      throw new Error('Only administrators can manage travel destinations.');
+      throw new Error('You do not have permission to manage travel destinations.');
     }
 
-    if (editingDestination) {
-      const { storageWarnings = [] } = await updateTravelDestination(editingDestination.id, formData, {
-        role,
-        createdBy,
-        initialData: editingDestination,
-        imageFile,
-        removeImage,
-      });
-
-      if (storageWarnings.length) {
-        setFeedback({
-          type: 'warning',
-          message: `Travel location updated successfully. ${storageWarnings.join(' ')}`,
+    try {
+      if (editingDestination) {
+        const { storageWarnings = [] } = await updateTravelDestination(editingDestination.id, formData, {
+          role,
+          createdBy,
+          initialData: editingDestination,
+          imageFile,
+          removeImage,
         });
-      } else {
-        setFeedback({ type: 'success', message: 'Travel location updated successfully.' });
-      }
-    } else {
-      const { storageWarnings = [] } = await createTravelDestination(formData, {
-        role,
-        createdBy,
-        imageFile,
-      });
 
-      if (storageWarnings.length) {
-        setFeedback({
-          type: 'warning',
-          message: `Travel location added successfully. ${storageWarnings.join(' ')}`,
-        });
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `Travel location updated successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'Travel location updated successfully.' });
+        }
       } else {
-        setFeedback({ type: 'success', message: 'Travel location added successfully.' });
+        const { storageWarnings = [] } = await createTravelDestination(formData, {
+          role,
+          createdBy,
+          imageFile,
+        });
+
+        if (storageWarnings.length) {
+          setFeedback({
+            type: 'warning',
+            message: `Travel location added successfully. ${storageWarnings.join(' ')}`,
+          });
+        } else {
+          setFeedback({ type: 'success', message: 'Travel location added successfully.' });
+        }
       }
+
+      setIsFormOpen(false);
+      setEditingDestination(null);
+    } catch (submitError) {
+      console.error('Failed to add or update travel destination:', submitError);
+      throw submitError;
     }
-
-    setIsFormOpen(false);
-    setEditingDestination(null);
   };
 
   const handleDeleteConfirm = async (destination) => {

@@ -41,7 +41,7 @@ service firebase.storage {
     }
 
     function canManageTravelling() {
-      return userRole() in ['Lead Pastor', 'Pastor', 'Admin'];
+      return userRole() in ['Lead Pastor', 'Admin'];
     }
 
     function canViewMachanehMovies() {

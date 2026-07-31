@@ -6,7 +6,8 @@ import {
   getStorageErrorMessage,
   withUploadTimeout,
 } from '@/utils/storageErrors';
-import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/travellingOptions';
+import { TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS, resolveTravelImageContentType, validateTravelImageFile } from '@/config/travellingOptions';
+import { toTravelImageUploadError } from '@/config/travellingImageValidation';
 import {
   MOVIE_POSTER_UPLOAD_TIMEOUT_MS,
   buildMachanehMoviePosterStoragePath,
@@ -170,19 +171,36 @@ export async function deleteMinistryAvatar(path) {
 }
 
 export async function uploadTravelDestinationImage(file, destinationId) {
+  const validationMessage = validateTravelImageFile(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const contentType = resolveTravelImageContentType(file);
+  if (!contentType) {
+    throw new Error('Please upload a JPG, PNG, or WEBP image.');
+  }
+
   const timestamp = Date.now();
   const safeName = String(file.name || 'image').replace(/[^\w.-]/g, '_');
   const imageStoragePath = `travel-destinations/${destinationId}/${timestamp}_${safeName}`;
 
   try {
     const imageUrl = await withUploadTimeout(
-      uploadFile(file, imageStoragePath),
+      uploadFile(file, imageStoragePath, {
+        contentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
       TRAVEL_IMAGE_UPLOAD_TIMEOUT_MS,
     );
 
+    if (!imageUrl) {
+      throw new Error('Failed to upload destination image. Please try again.');
+    }
+
     return { imageUrl, imageStoragePath };
   } catch (error) {
-    rethrowStorageError(error);
+    throw toTravelImageUploadError(error);
   }
 }
 

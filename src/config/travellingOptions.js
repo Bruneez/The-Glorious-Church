@@ -107,6 +107,22 @@ export function validateTravelImageFile(file) {
   return '';
 }
 
+export function resolveTravelImageContentType(file) {
+  if (!file) return null;
+
+  const fileType = String(file.type || '').trim().toLowerCase();
+  if (ACCEPTED_TRAVEL_IMAGE_TYPES.includes(fileType)) {
+    return fileType;
+  }
+
+  const extension = String(file.name || '').match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+
+  return null;
+}
+
 export function isPermanentImageUrl(url) {
   const value = String(url || '').trim();
   if (!value) return false;
@@ -121,7 +137,7 @@ export function getRecommendedTransportLabel(value) {
 }
 
 export function mapTravelDestinationToFormData(destination) {
-  if (!destination) {
+  if (!destination || typeof destination !== 'object') {
     return {
       travelExtent: TRAVEL_EXTENT.INTERNATIONAL,
       country: '',

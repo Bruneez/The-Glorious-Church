@@ -212,6 +212,11 @@ test('resolveTravelDestinationImageStoragePath ignores blob preview URLs', () =>
   );
 });
 
+test('resolveTravelDestinationImageStoragePath safely handles null records when adding a location', () => {
+  assert.equal(resolveTravelDestinationImageStoragePath(null), '');
+  assert.equal(resolveTravelDestinationImageStoragePath(undefined), '');
+});
+
 test('resolveShepherdingCoverStoragePath prefers coverImageStoragePath', () => {
   assert.equal(
     resolveShepherdingCoverStoragePath({

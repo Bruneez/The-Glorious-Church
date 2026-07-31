@@ -53,6 +53,10 @@ test('resolvePreviousTravelDestinationImagePath prefers explicit previousImagePa
   );
 });
 
+test('resolvePreviousTravelDestinationImagePath safely handles null initialData when adding a location', () => {
+  assert.equal(resolvePreviousTravelDestinationImagePath({}, null), '');
+});
+
 test('storage/object-not-found remains non-fatal during destination image cleanup', async () => {
   const deleteFn = async () => {
     const error = new Error('Object not found');

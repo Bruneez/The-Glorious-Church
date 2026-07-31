@@ -3,7 +3,7 @@ import { canPerformAction } from '../config/permissions.js';
 export const VIEW_DENIED_MESSAGE =
   'You do not have permission to view travel destinations.';
 export const MANAGE_DENIED_MESSAGE =
-  'Only administrators can manage travel destinations.';
+  'You do not have permission to manage travel destinations.';
 
 export function assertCanViewTravelling(role) {
   if (!canPerformAction(role, 'VIEW_TRAVELLING')) {
