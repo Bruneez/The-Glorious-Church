@@ -18,6 +18,7 @@ import { MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/merchandiseOptions
 import {
   SHEPHERDING_COVER_UPLOAD_TIMEOUT_MS,
 } from '@/config/shepherdingToolsResourceOptions';
+import { toShepherdingCoverUploadError } from '@/config/shepherdingToolsCoverValidation';
 import {
   generateStoragePath,
   resolveCoverContentType,
@@ -274,7 +275,7 @@ export async function uploadShepherdingCoverImage(file, resourceId) {
 
     return { coverImageUrl, coverImageStoragePath };
   } catch (error) {
-    rethrowStorageError(error);
+    throw toShepherdingCoverUploadError(error);
   }
 }
 

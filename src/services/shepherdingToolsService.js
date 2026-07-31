@@ -18,6 +18,10 @@ import {
   validateShepherdingResourceForm,
   validateShepherdingCoverFile,
 } from '@/config/shepherdingToolsResourceOptions';
+import {
+  normalizeShepherdingCoverUploadResult,
+  toShepherdingCoverUploadError,
+} from '@/config/shepherdingToolsCoverValidation';
 import { resolveShepherdingCoverStoragePath } from '@/utils/storagePathUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
@@ -65,6 +69,15 @@ async function rollbackCoverUpload(coverStoragePath) {
     await deleteShepherdingCoverImage(coverStoragePath);
   } catch {
     // Non-blocking rollback failure.
+  }
+}
+
+async function uploadValidatedShepherdingCover(coverFile, resourceId) {
+  try {
+    const uploadResult = await uploadShepherdingCoverImage(coverFile, resourceId);
+    return normalizeShepherdingCoverUploadResult(uploadResult);
+  } catch (error) {
+    throw toShepherdingCoverUploadError(error);
   }
 }
 
@@ -178,7 +191,7 @@ export async function createResource(
   let uploadedCover = null;
 
   if (coverFile) {
-    uploadedCover = await uploadShepherdingCoverImage(coverFile, resourceId);
+    uploadedCover = await uploadValidatedShepherdingCover(coverFile, resourceId);
   }
 
   const payload = buildShepherdingResourcePayload(
@@ -257,7 +270,7 @@ export async function updateResource(
     nextCoverUrl = '';
     nextCoverPath = '';
   } else if (coverFile) {
-    replacementCover = await uploadShepherdingCoverImage(coverFile, resourceId);
+    replacementCover = await uploadValidatedShepherdingCover(coverFile, resourceId);
     nextCoverUrl = replacementCover.coverImageUrl;
     nextCoverPath = replacementCover.coverImageStoragePath;
   }

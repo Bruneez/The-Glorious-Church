@@ -17,6 +17,10 @@ test('resolvePreviousShepherdingCoverPath prefers explicit previousCoverPath', (
   );
 });
 
+test('resolvePreviousShepherdingCoverPath safely handles null initialData when adding a resource', () => {
+  assert.equal(resolvePreviousShepherdingCoverPath({}, null), '');
+});
+
 test('replaceImage validates file and returns next storage path metadata', () => {
   const replacement = replaceImage('resource-123', {
     type: 'image/png',

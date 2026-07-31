@@ -35,8 +35,12 @@ export function normalizeStorageObjectPath(path = '') {
   return value.replace(/^\/+/, '');
 }
 
+function asStorageRecord(record) {
+  return record && typeof record === 'object' ? record : {};
+}
+
 export function resolveMemberPhotoStoragePath(member) {
-  const record = member || {};
+  const record = asStorageRecord(member);
   const directPath = normalizeStorageObjectPath(record.profileImagePath);
   if (directPath) return directPath;
 
@@ -44,7 +48,7 @@ export function resolveMemberPhotoStoragePath(member) {
 }
 
 export function resolveMemberReportCardStoragePath(member) {
-  const record = member || {};
+  const record = asStorageRecord(member);
   const directPath = normalizeStorageObjectPath(record.reportCardPath);
   if (directPath) return directPath;
 
@@ -52,13 +56,14 @@ export function resolveMemberReportCardStoragePath(member) {
 }
 
 export function resolveSchoolBadgeStoragePath(school = {}) {
-  const directPath = normalizeStorageObjectPath(school.badgePath);
+  const record = asStorageRecord(school);
+  const directPath = normalizeStorageObjectPath(record.badgePath);
   if (directPath) return directPath;
 
-  const fromBadgeUrl = extractStoragePathFromDownloadUrl(school.badgeUrl || '');
+  const fromBadgeUrl = extractStoragePathFromDownloadUrl(record.badgeUrl || '');
   if (fromBadgeUrl) return fromBadgeUrl;
 
-  const logo = String(school.logo || '').trim();
+  const logo = String(record.logo || '').trim();
   if (!isNonFirebaseStorageReference(logo)) {
     return extractStoragePathFromDownloadUrl(logo);
   }
@@ -67,13 +72,14 @@ export function resolveSchoolBadgeStoragePath(school = {}) {
 }
 
 export function resolveCreativeArtsLogoStoragePath(department = {}) {
-  const directPath = normalizeStorageObjectPath(department.logoPath);
+  const record = asStorageRecord(department);
+  const directPath = normalizeStorageObjectPath(record.logoPath);
   if (directPath) return directPath;
 
-  const fromLogoUrl = extractStoragePathFromDownloadUrl(department.logoUrl || '');
+  const fromLogoUrl = extractStoragePathFromDownloadUrl(record.logoUrl || '');
   if (fromLogoUrl) return fromLogoUrl;
 
-  const photo = String(department.photo || '').trim();
+  const photo = String(record.photo || '').trim();
   if (!isNonFirebaseStorageReference(photo)) {
     return extractStoragePathFromDownloadUrl(photo);
   }
@@ -82,66 +88,74 @@ export function resolveCreativeArtsLogoStoragePath(department = {}) {
 }
 
 export function resolveMinistryAvatarStoragePath(ministry = {}) {
-  const directPath = normalizeStorageObjectPath(ministry.avatarPath);
+  const record = asStorageRecord(ministry);
+  const directPath = normalizeStorageObjectPath(record.avatarPath);
   if (directPath) return directPath;
 
-  const fromAvatarUrl = extractStoragePathFromDownloadUrl(ministry.avatarUrl || '');
+  const fromAvatarUrl = extractStoragePathFromDownloadUrl(record.avatarUrl || '');
   if (fromAvatarUrl) return fromAvatarUrl;
 
   return '';
 }
 
 export function resolveTravelDestinationImageStoragePath(destination = {}) {
-  const directPath = normalizeStorageObjectPath(destination.imageStoragePath);
+  const record = asStorageRecord(destination);
+  const directPath = normalizeStorageObjectPath(record.imageStoragePath);
   if (directPath) return directPath;
 
-  const fromImageUrl = extractStoragePathFromDownloadUrl(destination.imageUrl || '');
+  const fromImageUrl = extractStoragePathFromDownloadUrl(record.imageUrl || '');
   if (fromImageUrl) return fromImageUrl;
 
   return '';
 }
 
 export function resolveMachanehMoviePosterStoragePath(movie = {}) {
-  const directPath = normalizeStorageObjectPath(movie.posterStoragePath);
+  const record = asStorageRecord(movie);
+  const directPath = normalizeStorageObjectPath(record.posterStoragePath);
   if (directPath) return directPath;
 
-  const fromPosterUrl = extractStoragePathFromDownloadUrl(movie.posterUrl || '');
+  const fromPosterUrl = extractStoragePathFromDownloadUrl(record.posterUrl || '');
   if (fromPosterUrl) return fromPosterUrl;
 
   return '';
 }
 
 export function resolveMerchandiseImageStoragePath(image = {}) {
-  const directPath = normalizeStorageObjectPath(image.storagePath);
+  const record = asStorageRecord(image);
+  const directPath = normalizeStorageObjectPath(record.storagePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(image.url || '');
+  return extractStoragePathFromDownloadUrl(record.url || '');
 }
 
 export function resolveShepherdingCoverStoragePath(resource = {}) {
-  const directPath = normalizeStorageObjectPath(resource.coverImageStoragePath);
+  const record = asStorageRecord(resource);
+  const directPath = normalizeStorageObjectPath(record.coverImageStoragePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(resource.coverImageUrl || '');
+  return extractStoragePathFromDownloadUrl(record.coverImageUrl || '');
 }
 
 export function resolveAppFixAttachmentStoragePath(attachment = {}) {
-  const directPath = normalizeStorageObjectPath(attachment.fileStoragePath);
+  const record = asStorageRecord(attachment);
+  const directPath = normalizeStorageObjectPath(record.fileStoragePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(attachment.fileUrl || '');
+  return extractStoragePathFromDownloadUrl(record.fileUrl || '');
 }
 
 export function resolveProjectCoverStoragePath(project = {}) {
-  const directPath = normalizeStorageObjectPath(project.coverStoragePath);
+  const record = asStorageRecord(project);
+  const directPath = normalizeStorageObjectPath(record.coverStoragePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(project.coverUrl || '');
+  return extractStoragePathFromDownloadUrl(record.coverUrl || '');
 }
 
 export function resolveProjectAttachmentStoragePath(attachment = {}) {
-  const directPath = normalizeStorageObjectPath(attachment.fileStoragePath);
+  const record = asStorageRecord(attachment);
+  const directPath = normalizeStorageObjectPath(record.fileStoragePath);
   if (directPath) return directPath;
 
-  return extractStoragePathFromDownloadUrl(attachment.fileUrl || '');
+  return extractStoragePathFromDownloadUrl(record.fileUrl || '');
 }
