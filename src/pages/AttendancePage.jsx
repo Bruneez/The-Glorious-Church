@@ -11,6 +11,7 @@ import AttendanceMobileList from '@/components/features/attendance/AttendanceMob
 import AttendanceAnalyticsSection from '@/components/features/attendance/analytics/AttendanceAnalyticsSection';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { getPageTitle } from '@/config/navConfig';
 import { isChurchWideStaff, isCALeader, isElderRole, normalizeRole } from '@/config/roles';
 import {
   useAttendance,
@@ -282,7 +283,7 @@ export default function AttendancePage() {
     <div className="page-root">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-wide">Attendance Tracker</h1>
+          <h1 className="text-xl font-bold text-white tracking-wide">{getPageTitle('/attendance')}</h1>
           <p className="text-sm text-slate-400 mt-1">
             {isChurchWideUser
               ? 'Record overall church service attendance and participation statistics.'

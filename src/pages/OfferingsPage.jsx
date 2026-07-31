@@ -8,6 +8,7 @@ import OfferingViewModal from '@/components/features/offerings/OfferingViewModal
 import OfferingDeleteModal from '@/components/features/offerings/OfferingDeleteModal';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { getPageTitle } from '@/config/navConfig';
 import {
   useOfferings,
   createOffering,
@@ -145,7 +146,7 @@ export default function OfferingsPage() {
     <div className="page-root">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-wide">Offerings Log</h1>
+          <h1 className="text-xl font-bold text-white tracking-wide">{getPageTitle('/offerings')}</h1>
           <p className="text-sm text-slate-400 mt-1">
             Record and track church offering collections.
           </p>
