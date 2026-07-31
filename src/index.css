@@ -83,6 +83,25 @@ body {
   border: none;
 }
 
+.map-attribution-compact .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.35) !important;
+  color: rgba(148, 163, 184, 0.5) !important;
+  font-size: 9px !important;
+  line-height: 1.2;
+  padding: 1px 5px !important;
+  margin: 0 4px 4px 0 !important;
+  border-radius: 4px;
+  max-width: min(42vw, 14rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: none;
+}
+
+.map-attribution-compact .leaflet-control-attribution a {
+  color: rgba(148, 163, 184, 0.55) !important;
+}
+
 @layer components {
   .page-root {
     width: 100%;

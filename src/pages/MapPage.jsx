@@ -75,27 +75,22 @@ export default function MapPage() {
   const loading = membersLoading || schoolsLoading || otherLoading;
 
   return (
-    <div className="page-root flex-1 min-h-0 h-full gap-5 md:gap-6">
-      <div className="shrink-0">
-        <h1 className="text-xl font-bold text-white tracking-wide">Map</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          View church members, schools, branches and ministries from one central map.
-        </p>
-      </div>
-
-      <MapLayerControls activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
-
-      <div className="relative flex-1 min-h-[320px] md:min-h-[480px] w-full rounded-xl border border-slate-700/70 overflow-hidden bg-slate-950 shadow-sm">
+    <div className="map-page relative -mx-4 -my-4 h-[calc(100dvh-4.5rem-env(safe-area-inset-top,0px)-2rem)] min-h-[320px] w-[calc(100%+2rem)] max-w-none sm:-mx-5 sm:w-[calc(100%+2.5rem)] xl:-mx-7 xl:-my-6 xl:h-[calc(100vh-4.5rem)] xl:w-[calc(100%+3.5rem)] 2xl:-mx-8 2xl:w-[calc(100%+4rem)]">
+      <div className="relative h-full w-full overflow-hidden bg-slate-950">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
           </div>
         ) : (
-          <LeafletMap
-            center={MAP_DEFAULT_CENTER}
-            zoom={MAP_DEFAULT_ZOOM}
-            markers={visibleMarkers}
-          />
+          <>
+            <LeafletMap
+              center={MAP_DEFAULT_CENTER}
+              zoom={MAP_DEFAULT_ZOOM}
+              markers={visibleMarkers}
+              compactAttribution
+            />
+            <MapLayerControls activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
+          </>
         )}
       </div>
     </div>
