@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -34,6 +34,7 @@ export default function LeafletMap({
   tileUrl = ESRI_WORLD_IMAGERY_TILE_URL,
   attribution = ESRI_ATTRIBUTION,
   maxZoom = 19,
+  compactAttribution = false,
 }) {
   const positions = useMemo(
     () => markers.map((marker) => marker.coords),
@@ -44,10 +45,11 @@ export default function LeafletMap({
     <MapContainer
       center={center}
       zoom={zoom}
-      className="h-full w-full"
+      className={`h-full w-full${compactAttribution ? ' map-attribution-compact' : ''}`}
       scrollWheelZoom
-      zoomControl
+      zoomControl={!compactAttribution}
     >
+      {compactAttribution ? <ZoomControl position="topright" /> : null}
       <TileLayer url={tileUrl} attribution={attribution} maxZoom={maxZoom} />
       <FitBounds positions={positions} enabled={fitBounds && positions.length > 0} />
       {markers.map((marker) => (

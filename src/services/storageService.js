@@ -31,6 +31,7 @@ import {
   resolveCoverContentType,
   validateImage,
 } from '@/services/shepherdingToolsStorage';
+import { validateMemberPhotoFile } from '@/config/memberPhotoValidation';
 import { APP_FIX_ATTACHMENT_UPLOAD_TIMEOUT_MS } from '@/config/appFixesAttachmentOptions';
 import {
   generateStoragePath as generateAppFixStoragePath,
@@ -88,7 +89,25 @@ export async function uploadMemberReportCard(file) {
 }
 
 export async function uploadStaffPhoto(file) {
-  return uploadImage(file, 'staff-photos');
+  const validationMessage = validateMemberPhotoFile(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const timestamp = Date.now();
+  const safeName = String(file.name || 'photo').replace(/[^\w.-]/g, '_');
+  const photoPath = `staff-photos/${timestamp}_${safeName}`;
+
+  try {
+    const photoUrl = await withUploadTimeout(
+      uploadFile(file, photoPath),
+      MEMBER_PHOTO_UPLOAD_TIMEOUT_MS,
+    );
+
+    return { photoUrl, photoPath };
+  } catch (error) {
+    rethrowStorageError(error);
+  }
 }
 
 export async function uploadSchoolBadge(file) {
@@ -157,7 +176,7 @@ export async function deleteMemberReportCard(path) {
 }
 
 export async function deleteStaffPhoto(path) {
-  return deleteFile(path);
+  return deleteFileSafe(path);
 }
 
 export async function deleteSchoolLogo(path) {

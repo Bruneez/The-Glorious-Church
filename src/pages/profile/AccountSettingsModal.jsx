@@ -3,16 +3,24 @@ import { UserCog } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { changePassword } from '@/services/authService';
 import { updateStaffProfile } from '@/services/staffService';
-import { fileToBase64 } from '@/utils/imageUtils';
+import { uploadStaffPhoto, deleteStaffPhoto } from '@/services/storageService';
+import {
+  ACCEPTED_MEMBER_PHOTO_ACCEPT,
+  validateMemberPhotoFile,
+} from '@/config/memberPhotoValidation';
+import { extractStoragePathFromDownloadUrl } from '@/utils/storagePathUtils';
+import { getStorageErrorMessage } from '@/utils/storageErrors';
 import Modal from '@/components/ui/Modal';
-import UserAvatar from '@/components/ui/UserAvatar';
+import ImageUploadField from '@/components/common/ImageUploadField';
 
 export default function AccountSettingsModal({ isOpen, onClose }) {
   const { firebaseUser, staffDocId, staffProfile, refreshStaffProfile } = useAuth();
   const [name, setName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [photoBase64, setPhotoBase64] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -23,7 +31,9 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
     if (!isOpen || !staffProfile) return;
 
     setName(staffProfile.name || '');
-    setPhotoBase64(staffProfile.photo || '');
+    setPhotoFile(null);
+    setRemovePhoto(false);
+    setPhotoError('');
     setNewPassword('');
     setConfirmPassword('');
     setError('');
@@ -32,12 +42,23 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
     setSuccess('');
   }, [isOpen, staffProfile]);
 
-  async function handleFileChange(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  function handlePhotoSelect(file) {
+    const validationMessage = validateMemberPhotoFile(file);
+    if (validationMessage) {
+      setPhotoError(validationMessage);
+      setPhotoFile(null);
+      return;
+    }
 
-    const base64 = await fileToBase64(file);
-    setPhotoBase64(base64);
+    setPhotoError('');
+    setPhotoFile(file);
+    setRemovePhoto(false);
+  }
+
+  function handlePhotoRemove() {
+    setPhotoFile(null);
+    setRemovePhoto(true);
+    setPhotoError('');
   }
 
   async function handleSubmit(event) {
@@ -75,11 +96,46 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
 
     setIsSaving(true);
 
+    let uploadedPhotoPath = '';
+
     try {
-      await updateStaffProfile(staffDocId, {
-        name: name.trim(),
-        photo: photoBase64,
-      });
+      const updates = { name: name.trim() };
+
+      if (removePhoto) {
+        updates.photo = '';
+      } else if (photoFile) {
+        const validationMessage = validateMemberPhotoFile(photoFile);
+        if (validationMessage) {
+          setPhotoError(validationMessage);
+          return;
+        }
+
+        const uploadedPhoto = await uploadStaffPhoto(photoFile);
+        updates.photo = uploadedPhoto.photoUrl;
+        uploadedPhotoPath = uploadedPhoto.photoPath;
+      }
+
+      await updateStaffProfile(staffDocId, updates);
+
+      if (uploadedPhotoPath) {
+        const previousPhotoPath = extractStoragePathFromDownloadUrl(staffProfile?.photo || '');
+        if (previousPhotoPath) {
+          try {
+            await deleteStaffPhoto(previousPhotoPath);
+          } catch (cleanupError) {
+            console.warn('Failed to delete previous staff profile photo:', cleanupError);
+          }
+        }
+      } else if (removePhoto) {
+        const previousPhotoPath = extractStoragePathFromDownloadUrl(staffProfile?.photo || '');
+        if (previousPhotoPath) {
+          try {
+            await deleteStaffPhoto(previousPhotoPath);
+          } catch (cleanupError) {
+            console.warn('Failed to delete removed staff profile photo:', cleanupError);
+          }
+        }
+      }
 
       if (isUpdatingPassword) {
         await changePassword(firebaseUser, trimmedNewPassword);
@@ -87,16 +143,28 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
 
       await refreshStaffProfile();
       setSuccess(
-        isUpdatingPassword ? 'Password updated successfully.' : 'Profile updated successfully.'
+        isUpdatingPassword ? 'Password updated successfully.' : 'Profile updated successfully.',
       );
       window.setTimeout(() => onClose(), 1500);
     } catch (err) {
+      if (uploadedPhotoPath) {
+        try {
+          await deleteStaffPhoto(uploadedPhotoPath);
+        } catch (rollbackError) {
+          console.warn('Failed to roll back uploaded staff profile photo:', rollbackError);
+        }
+      }
+
       console.error(err);
-      setError(err.message || 'Error saving updates.');
+      setError(
+        getStorageErrorMessage(err) || err.message || 'Error saving updates.',
+      );
     } finally {
       setIsSaving(false);
     }
   }
+
+  const existingPhotoUrl = !removePhoto && !photoFile ? staffProfile?.photo || '' : '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Account Settings" icon={UserCog}>
@@ -109,22 +177,21 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
           <p className="text-emerald-400 text-[11px]">{success}</p>
         ) : null}
 
-        <div>
-          <label className="block text-slate-400 mb-1">Update Profile Picture</label>
-          <div className="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700">
-            <UserAvatar
-              name={name || staffProfile?.name || 'User'}
-              photo={photoBase64 || staffProfile?.photo}
-              size="md"
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer"
-            />
-          </div>
-        </div>
+        <ImageUploadField
+          label="Update Profile Picture"
+          existingImageUrl={existingPhotoUrl}
+          selectedFile={photoFile}
+          onFileSelect={handlePhotoSelect}
+          onRemove={handlePhotoRemove}
+          accept={ACCEPTED_MEMBER_PHOTO_ACCEPT}
+          maxSizeMB={5}
+          disabled={isSaving}
+          loading={isSaving}
+          previewShape="circle"
+          previewName={name || staffProfile?.name || 'User'}
+          helperText="JPG, PNG, or WEBP up to 5 MB."
+          error={photoError}
+        />
 
         <div>
           <label className="block text-slate-400 mb-0.5">Full Name</label>
