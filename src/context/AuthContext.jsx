@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [staffProfile, setStaffProfile] = useState(null);
   const [role, setRole] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isStaffSessionLoading, setIsStaffSessionLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState(null);
 
@@ -50,20 +51,32 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
 
-      if (!authInitialized) {
-        setAuthInitialized(true);
-        setIsLoading(false);
-      }
-
       if (!user) {
         clearStaffSession();
+        setIsStaffSessionLoading(false);
+
+        if (!authInitialized) {
+          setAuthInitialized(true);
+          setIsLoading(false);
+        }
         return;
       }
 
-      loadStaffSession(user).catch((error) => {
+      setIsStaffSessionLoading(true);
+
+      try {
+        await loadStaffSession(user);
+      } catch (error) {
         console.error('Staff profile resolution failed:', error);
         clearStaffSession();
-      });
+      } finally {
+        setIsStaffSessionLoading(false);
+
+        if (!authInitialized) {
+          setAuthInitialized(true);
+          setIsLoading(false);
+        }
+      }
     });
 
     return unsubscribe;
@@ -72,29 +85,52 @@ export function AuthProvider({ children }) {
   const signIn = useCallback(async (email, password) => {
     setAuthError(null);
     const user = await authSignIn(email, password);
-    loadStaffSession(user).catch((error) => {
+    setIsStaffSessionLoading(true);
+
+    try {
+      await loadStaffSession(user);
+    } catch (error) {
       console.error('Staff profile resolution failed after sign-in:', error);
-    });
+      clearStaffSession();
+    } finally {
+      setIsStaffSessionLoading(false);
+    }
+
     return user;
-  }, [loadStaffSession]);
+  }, [clearStaffSession, loadStaffSession]);
 
   const signUp = useCallback(async (email, password) => {
     setAuthError(null);
     const user = await authSignUp(email, password);
-    loadStaffSession(user).catch((error) => {
+    setIsStaffSessionLoading(true);
+
+    try {
+      await loadStaffSession(user);
+    } catch (error) {
       console.error('Staff profile resolution failed after sign-up:', error);
-    });
+      clearStaffSession();
+    } finally {
+      setIsStaffSessionLoading(false);
+    }
+
     return user;
-  }, [loadStaffSession]);
+  }, [clearStaffSession, loadStaffSession]);
 
   const signOut = useCallback(async () => {
     await authSignOut();
     clearStaffSession();
+    setIsStaffSessionLoading(false);
   }, [clearStaffSession]);
 
   const refreshStaffProfile = useCallback(async () => {
     if (!firebaseUser) return;
-    await loadStaffSession(firebaseUser);
+    setIsStaffSessionLoading(true);
+
+    try {
+      await loadStaffSession(firebaseUser);
+    } finally {
+      setIsStaffSessionLoading(false);
+    }
   }, [firebaseUser, loadStaffSession]);
 
   const value = useMemo(
@@ -105,6 +141,7 @@ export function AuthProvider({ children }) {
       role,
       isAuthenticated: Boolean(firebaseUser),
       isLoading,
+      isStaffSessionLoading,
       authError,
       setAuthError,
       signIn,
@@ -118,6 +155,7 @@ export function AuthProvider({ children }) {
       staffProfile,
       role,
       isLoading,
+      isStaffSessionLoading,
       authError,
       signIn,
       signUp,

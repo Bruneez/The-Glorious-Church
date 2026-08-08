@@ -4,12 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { canAccessRoute } from '@/config/permissions';
 
 export default function ProtectedRoute() {
-  const { isAuthenticated, isLoading, role } = useAuth();
+  const { isAuthenticated, isLoading, isStaffSessionLoading, role } = useAuth();
   const location = useLocation();
+  const isSessionReady = !isLoading && (!isAuthenticated || !isStaffSessionLoading);
 
   let content = null;
 
-  if (!isLoading) {
+  if (isSessionReady) {
     if (!isAuthenticated) {
       content = <Navigate to="/login" replace state={{ from: location.pathname }} />;
     } else if (!canAccessRoute(role, location.pathname)) {
@@ -22,7 +23,7 @@ export default function ProtectedRoute() {
   return (
     <>
       {content}
-      <SplashScreen active={isLoading} />
+      <SplashScreen active={!isSessionReady} />
     </>
   );
 }
