@@ -75,7 +75,7 @@ export default function MapPage() {
   const loading = membersLoading || schoolsLoading || otherLoading;
 
   return (
-    <div className="map-page relative -mx-4 -my-4 h-[calc(100dvh-4.5rem-env(safe-area-inset-top,0px)-2rem)] min-h-[320px] w-[calc(100%+2rem)] max-w-none sm:-mx-5 sm:w-[calc(100%+2.5rem)] xl:-mx-7 xl:-my-6 xl:h-[calc(100vh-4.5rem)] xl:w-[calc(100%+3.5rem)] 2xl:-mx-8 2xl:w-[calc(100%+4rem)]">
+    <div className="h-full min-h-0 w-full">
       <div className="relative h-full w-full overflow-hidden bg-slate-950">
         {loading ? (
           <div className="flex h-full items-center justify-center">

@@ -7,7 +7,7 @@ function LayerToggleButton({ layer, isActive, onToggleLayer }) {
     <button
       type="button"
       onClick={() => onToggleLayer(layer.id)}
-      className={`inline-flex w-full items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition ${
         isActive
           ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-200'
           : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
@@ -43,7 +43,7 @@ export default function MapLayerControls({ activeLayers, onToggleLayer, classNam
 
       <div
         id="map-layer-controls-panel"
-        className={`pointer-events-auto flex flex-col gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/85 p-2 shadow-lg backdrop-blur-sm ${
+        className={`pointer-events-auto flex flex-col items-start gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/85 p-2 shadow-lg backdrop-blur-sm ${
           mobileExpanded ? 'flex' : 'hidden md:flex'
         }`}
       >
