@@ -6,6 +6,7 @@ import OfferingsTable from '@/components/features/offerings/OfferingsTable';
 import OfferingsMobileList from '@/components/features/offerings/OfferingsMobileList';
 import OfferingViewModal from '@/components/features/offerings/OfferingViewModal';
 import OfferingDeleteModal from '@/components/features/offerings/OfferingDeleteModal';
+import OfferingsAnalyticsSection from '@/components/features/offerings/analytics/OfferingsAnalyticsSection';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { getPageTitle } from '@/config/navConfig';
@@ -237,6 +238,12 @@ export default function OfferingsPage() {
           </>
         )}
       </div>
+
+      <OfferingsAnalyticsSection
+        offerings={offerings}
+        loading={loading}
+        canView={canPerformAction('MANAGE_OFFERINGS')}
+      />
 
       <OfferingForm
         isOpen={isFormOpen}
