@@ -92,6 +92,22 @@ export function validateMerchandiseImageFile(file) {
   return '';
 }
 
+export function resolveMerchandiseImageContentType(file) {
+  if (!file) return null;
+
+  const fileType = String(file.type || '').trim().toLowerCase();
+  if (ACCEPTED_MERCHANDISE_IMAGE_TYPES.includes(fileType)) {
+    return fileType;
+  }
+
+  const extension = String(file.name || '').match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+
+  return null;
+}
+
 export function makeVariantId(colour, size) {
   return `${String(colour || '').trim().toLowerCase()}__${String(size || '').trim().toLowerCase()}`;
 }

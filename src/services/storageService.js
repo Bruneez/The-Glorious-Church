@@ -21,7 +21,15 @@ import {
   validateMoviePosterFile,
 } from '@/config/machanehMoviesOptions';
 import { toMachanehMoviePosterUploadError } from '@/config/machanehMoviesPosterValidation';
-import { MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS } from '@/config/merchandiseOptions';
+import {
+  MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS,
+  resolveMerchandiseImageContentType,
+  validateMerchandiseImageFile,
+} from '@/config/merchandiseOptions';
+import {
+  MERCHANDISE_INVALID_IMAGE_MESSAGE,
+  toMerchandiseImageUploadError,
+} from '@/config/merchandiseImageValidation';
 import {
   SHEPHERDING_COVER_UPLOAD_TIMEOUT_MS,
 } from '@/config/shepherdingToolsResourceOptions';
@@ -308,19 +316,42 @@ export async function deleteMachanehMoviePoster(path) {
 }
 
 export async function uploadMerchandiseImage(file, itemId) {
+  const validationMessage = validateMerchandiseImageFile(file);
+  if (validationMessage) {
+    throw new Error(validationMessage);
+  }
+
+  const contentType = resolveMerchandiseImageContentType(file);
+  if (!contentType) {
+    throw new Error(MERCHANDISE_INVALID_IMAGE_MESSAGE);
+  }
+
   const timestamp = Date.now();
   const safeName = String(file.name || 'image').replace(/[^\w.-]+/g, '_');
   const storagePath = `merchandise/${itemId}/${timestamp}_${safeName}`;
 
   try {
     const url = await withUploadTimeout(
-      uploadFile(file, storagePath),
+      uploadFile(file, storagePath, {
+        contentType,
+        cacheControl: 'public,max-age=31536000',
+      }),
       MERCHANDISE_IMAGE_UPLOAD_TIMEOUT_MS,
     );
 
+    if (!url) {
+      throw new Error('The product image could not be uploaded. Please try again.');
+    }
+
     return { url, storagePath };
   } catch (error) {
-    rethrowStorageError(error);
+    console.warn('[Merchandise Image Upload] failed:', {
+      itemId,
+      storagePath,
+      code: error?.code || 'unknown',
+      message: error?.message || '',
+    });
+    throw toMerchandiseImageUploadError(error);
   }
 }
 

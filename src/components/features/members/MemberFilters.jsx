@@ -1,4 +1,4 @@
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { CHURCH_FILTER_OPTIONS, STATUS_OPTIONS } from '@/config/memberOptions';
 
@@ -10,11 +10,43 @@ export default function MemberFilters({
   filterChurch,
   onFilterChurchChange,
   onAddMember,
+  totalCount = 0,
+  filteredCount = 0,
+  isLoading = false,
 }) {
+  const showFilteredSummary =
+    !isLoading && filteredCount !== totalCount;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Members Directory</span>
+      <div className="flex items-start justify-between gap-3 min-w-0">
+        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider shrink-0">
+          Members Directory
+        </span>
+
+        <div className="flex flex-col items-end gap-0.5 shrink-0 text-right">
+          <div
+            className="inline-flex items-center gap-1.5 text-[11px] text-slate-400"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" aria-hidden="true" />
+            {isLoading ? (
+              <span className="text-slate-500">Members: —</span>
+            ) : (
+              <span>
+                <span className="text-slate-500">Members:</span>{' '}
+                <span className="font-semibold text-slate-200 tabular-nums">{totalCount}</span>
+              </span>
+            )}
+          </div>
+
+          {showFilteredSummary ? (
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Showing {filteredCount} of {totalCount} members
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
