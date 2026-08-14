@@ -268,6 +268,9 @@ export default function MembersPage() {
             filterChurch={filterChurch}
             onFilterChurchChange={setFilterChurch}
             onAddMember={canManageMembers ? handleAddMember : undefined}
+            totalCount={scopedMembers.length}
+            filteredCount={filteredMembers.length}
+            isLoading={loading}
           />
         </div>
 
