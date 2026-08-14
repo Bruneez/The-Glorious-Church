@@ -41,6 +41,7 @@ import {
   assertCanViewAppFixes,
   assertCanViewRequest,
   canManageRequest,
+  MANAGE_DENIED_MESSAGE,
   VIEW_DENIED_MESSAGE,
 } from '@/services/appFixesGuards';
 import { cleanupUnusedUpload } from '@/services/appFixesStorageLifecycle';
@@ -191,24 +192,64 @@ async function uploadAttachmentsForRequest(
 
 export function useAppFixRequests(
   {
+    mode = 'user',
+    enabled = true,
     searchTerm = '',
     statusFilter = '',
     priorityFilter = '',
     categoryFilter = '',
   } = {},
 ) {
-  const { role, firebaseUser } = useAuth();
+  const { role, firebaseUser, isStaffSessionLoading } = useAuth();
   const createdByUserId = firebaseUser?.uid || '';
   const canView = canPerformAction(role, 'VIEW_APP_FIXES');
+  const canManage = canManageRequest(role);
+  const isManagementMode = mode === 'management';
+  const isQueryEnabled = Boolean(
+    enabled
+    && !isStaffSessionLoading
+    && canView
+    && createdByUserId
+    && (!isManagementMode || canManage),
+  );
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!canView || !createdByUserId) {
+    if (!enabled) {
       setData([]);
       setLoading(false);
-      setError(canView ? null : new Error(VIEW_DENIED_MESSAGE));
+      setError(null);
+      return undefined;
+    }
+
+    if (isStaffSessionLoading || !createdByUserId) {
+      setData([]);
+      setLoading(true);
+      setError(null);
+      return undefined;
+    }
+
+    if (!canView) {
+      setData([]);
+      setLoading(false);
+      setError(new Error(VIEW_DENIED_MESSAGE));
+      return undefined;
+    }
+
+    if (isManagementMode && !canManage) {
+      setData([]);
+      setLoading(false);
+      setError(new Error(MANAGE_DENIED_MESSAGE));
+      return undefined;
+    }
+
+    if (!isQueryEnabled) {
+      setData([]);
+      setLoading(false);
+      setError(null);
       return undefined;
     }
 
@@ -217,7 +258,7 @@ export function useAppFixRequests(
 
     const constraints = getAppFixRequestsQueryConstraints({
       role,
-      createdByUserId: canManageRequest(role) ? '' : createdByUserId,
+      createdByUserId: canManage ? '' : createdByUserId,
     });
     const q = query(collection(db, COLLECTIONS.APP_FIX_REQUESTS), ...constraints);
 
@@ -234,14 +275,27 @@ export function useAppFixRequests(
         setError(null);
       },
       (snapshotError) => {
-        console.error('useAppFixRequests subscription error:', snapshotError);
+        console.error('[App Fixes] Request subscription failed', {
+          role,
+          userId: createdByUserId,
+          errorCode: snapshotError?.code || '',
+        });
         setError(snapshotError);
         setLoading(false);
       },
     );
 
     return () => unsubscribe();
-  }, [canView, createdByUserId, role]);
+  }, [
+    canManage,
+    canView,
+    createdByUserId,
+    enabled,
+    isManagementMode,
+    isQueryEnabled,
+    isStaffSessionLoading,
+    role,
+  ]);
 
   const requests = useMemo(
     () => applyAppFixRequestSearch(data, {
@@ -249,12 +303,29 @@ export function useAppFixRequests(
       statusFilter,
       priorityFilter,
       categoryFilter,
-      createdByUserId: canManageRequest(role) ? '' : createdByUserId,
+      createdByUserId: canManage ? '' : createdByUserId,
     }),
-    [data, role, createdByUserId, searchTerm, statusFilter, priorityFilter, categoryFilter],
+    [data, role, createdByUserId, searchTerm, statusFilter, priorityFilter, categoryFilter, canManage],
   );
 
-  return { requests, allRequests: data, loading, error, canView, createdByUserId };
+  return {
+    requests,
+    allRequests: data,
+    loading,
+    error,
+    canView,
+    canManage,
+    createdByUserId,
+    isStaffSessionLoading,
+  };
+}
+
+export function useAppFixUserRequests(options = {}) {
+  return useAppFixRequests({ ...options, mode: 'user' });
+}
+
+export function useAppFixManagementRequests(options = {}) {
+  return useAppFixRequests({ ...options, mode: 'management' });
 }
 
 export function useAppFixRequestDetails(requestId, { enabled = true } = {}) {

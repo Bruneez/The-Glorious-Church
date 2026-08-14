@@ -16,7 +16,7 @@ import { useCollection } from '@/hooks/useFirestore';
 import { COLLECTIONS } from '@/config/collections';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import { useAppFixRequests } from '@/services/appFixesService';
+import { useAppFixManagementRequests } from '@/services/appFixesService';
 
 function RequestSkeletonGrid() {
   return (
@@ -44,7 +44,7 @@ function EmptyResults({ hasFilters }) {
   );
 }
 
-export default function AppFixManagementDashboard({ onFeedback }) {
+export default function AppFixManagementDashboard({ enabled = true, onFeedback }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [groupMode, setGroupMode] = useState(APP_FIX_GROUP_MODES.ALL);
   const [viewingRequest, setViewingRequest] = useState(null);
@@ -58,7 +58,7 @@ export default function AppFixManagementDashboard({ onFeedback }) {
     || '';
 
   const { data: staff = [] } = useCollection(COLLECTIONS.STAFF);
-  const { allRequests, loading, error } = useAppFixRequests();
+  const { allRequests, loading, error } = useAppFixManagementRequests({ enabled });
 
   const staffByUserId = useMemo(() => buildStaffLookupMap(staff), [staff]);
 

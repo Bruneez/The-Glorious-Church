@@ -5,12 +5,16 @@ import AppFixRequestCard from '@/components/features/app-fixes/AppFixRequestCard
 import AppFixReportForm from '@/components/features/app-fixes/AppFixReportForm';
 import AppFixRequestViewModal from '@/components/features/app-fixes/AppFixRequestViewModal';
 import { getAppFixErrorMessage } from '@/config/appFixesErrorMessages';
+import {
+  buildAppFixUserSummary,
+  getAppFixUserSummaryCards,
+} from '@/config/appFixesUserOptions';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import {
   submitRequestWithAttachments,
   updateRequest,
-  useAppFixRequests,
+  useAppFixUserRequests,
 } from '@/services/appFixesService';
 
 function AppFixesEmptyState({ message, helperText, action }) {
@@ -39,7 +43,31 @@ function RequestSkeletonGrid() {
   );
 }
 
-export default function MyAppFixRequestsPanel({ onFeedback }) {
+function UserSummaryCards({ requests = [], loading = false }) {
+  const cards = getAppFixUserSummaryCards(buildAppFixUserSummary(requests));
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 min-w-0">
+      {cards.map((card) => (
+        <div
+          key={card.key}
+          className="p-4 rounded-xl border border-slate-700/70 bg-slate-900/50 shadow-sm"
+        >
+          {loading ? (
+            <div className="h-8 w-10 rounded bg-slate-800 animate-pulse" aria-hidden="true" />
+          ) : (
+            <h3 className="text-2xl font-bold text-indigo-400">{card.value}</h3>
+          )}
+          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mt-1">
+            {card.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function MyAppFixRequestsPanel({ enabled = true, onFeedback }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
@@ -55,7 +83,10 @@ export default function MyAppFixRequestsPanel({ onFeedback }) {
     || firebaseUser?.displayName
     || '';
 
-  const { requests, loading, error } = useAppFixRequests({ searchTerm });
+  const { requests, allRequests, loading, error } = useAppFixUserRequests({
+    enabled,
+    searchTerm,
+  });
 
   const handleSubmit = async ({ formData, attachmentFiles, onFileProgress }) => {
     if (editingRequest?.id) {
@@ -86,6 +117,8 @@ export default function MyAppFixRequestsPanel({ onFeedback }) {
 
   return (
     <div className="space-y-4 min-w-0">
+      <UserSummaryCards requests={allRequests} loading={loading} />
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="relative max-w-md min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
@@ -131,8 +164,8 @@ export default function MyAppFixRequestsPanel({ onFeedback }) {
         </div>
       ) : (
         <AppFixesEmptyState
-          message="You have not reported any app problems yet."
-          helperText="Use the Report a Problem button if you experience an error or need technical assistance."
+          message="You have not submitted any app-fix requests yet."
+          helperText="Use Report a Problem if you experience an error or need technical assistance."
           action={(
             <Button
               icon={Plus}
@@ -141,7 +174,7 @@ export default function MyAppFixRequestsPanel({ onFeedback }) {
                 setIsFormOpen(true);
               }}
             >
-              Report a Problem
+              Report Your First Problem
             </Button>
           )}
         />
