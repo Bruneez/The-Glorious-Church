@@ -1,20 +1,24 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import SplashScreen from '@/components/ui/SplashScreen';
 import { useAuth } from '@/hooks/useAuth';
+import { AUTH_STATUS, resolvePostLoginPath } from '@/utils/authSessionState';
 
 export default function GuestRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { authStatus } = useAuth();
+  const location = useLocation();
 
-  let content = null;
-
-  if (!isLoading) {
-    content = isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  if (authStatus === AUTH_STATUS.LOADING) {
+    return <SplashScreen active />;
   }
 
-  return (
-    <>
-      {content}
-      <SplashScreen active={isLoading} />
-    </>
-  );
+  if (authStatus === AUTH_STATUS.AUTHENTICATED) {
+    return (
+      <Navigate
+        to={resolvePostLoginPath(location.state?.from)}
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
 }

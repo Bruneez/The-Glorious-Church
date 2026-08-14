@@ -37,6 +37,7 @@ export default function SchoolsViewModal({ school, members = [], isOpen, onClose
   return (
     <>
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="School Profile"

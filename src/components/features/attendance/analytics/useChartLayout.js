@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import {
+  getInitialChartLayoutBucket,
+  subscribeChartLayoutBucket,
+} from '../../../../utils/viewportLayout.js';
 
-function getChartLayout(width) {
-  const isMobile = width < 640;
-  const isTablet = width >= 640 && width < 1024;
-
-  if (isMobile) {
+function getChartLayoutForBucket(bucket) {
+  if (bucket === 'mobile') {
     return {
       isMobile: true,
       isTablet: false,
@@ -21,7 +22,7 @@ function getChartLayout(width) {
     };
   }
 
-  if (isTablet) {
+  if (bucket === 'tablet') {
     return {
       isMobile: false,
       isTablet: true,
@@ -54,20 +55,26 @@ function getChartLayout(width) {
   };
 }
 
+/** @deprecated Prefer layout buckets via `getChartLayoutForBucket`. Width mapping remains for tests. */
+export function getChartLayout(widthOrBucket) {
+  if (widthOrBucket === 'mobile' || widthOrBucket === 'tablet' || widthOrBucket === 'desktop') {
+    return getChartLayoutForBucket(widthOrBucket);
+  }
+
+  const width = Number(widthOrBucket) || 1280;
+  if (width < 640) return getChartLayoutForBucket('mobile');
+  if (width < 1024) return getChartLayoutForBucket('tablet');
+  return getChartLayoutForBucket('desktop');
+}
+
 export function useChartLayout() {
-  const [layout, setLayout] = useState(() =>
-    getChartLayout(typeof window !== 'undefined' ? window.innerWidth : 1280),
-  );
+  const [layout, setLayout] = useState(() => getChartLayoutForBucket(getInitialChartLayoutBucket()));
 
-  useEffect(() => {
-    const updateLayout = () => setLayout(getChartLayout(window.innerWidth));
-
-    updateLayout();
-    window.addEventListener('resize', updateLayout);
-    return () => window.removeEventListener('resize', updateLayout);
-  }, []);
+  useEffect(() => subscribeChartLayoutBucket((bucket) => {
+    setLayout(getChartLayoutForBucket(bucket));
+  }), []);
 
   return layout;
 }
 
-export { getChartLayout };
+export { getChartLayoutForBucket };

@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Bug } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import UnsavedChangesDialog from '@/components/ui/UnsavedChangesDialog';
+import FormDraftRestoreBanner from '@/components/common/FormDraftRestoreBanner';
 import AppFixAttachmentUploadField from '@/components/features/app-fixes/AppFixAttachmentUploadField';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
+import { useFormUnsavedGuard } from '@/hooks/useFormUnsavedGuard';
+import { useAuth } from '@/hooks/useAuth';
 import {
   APP_FIX_BROWSER_MODE_OPTIONS,
   APP_FIX_CATEGORY,
@@ -69,7 +76,9 @@ export default function AppFixReportForm({
   mode = 'create',
 }) {
   const { role } = useRoleAccess();
+  const { firebaseUser } = useAuth();
   const [formData, setFormData] = useState(createEmptyAppFixReportFormData());
+  const [baselineFormData, setBaselineFormData] = useState(createEmptyAppFixReportFormData());
   const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -82,26 +91,63 @@ export default function AppFixReportForm({
   const showCustomCategory = formData.category === APP_FIX_CATEGORY.OTHER;
   const canEditCurrentRequest = !isEditing || canUserEditRequestByStatus(initialData);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData(createEmptyAppFixReportFormData());
-      setAttachmentFiles([]);
-      setFieldErrors({});
-      setFormError('');
-      setUploadProgressByIndex({});
-      setIsSubmitting(false);
-      isSubmittingRef.current = false;
-      return;
-    }
+  const recordKey = useMemo(() => {
+    if (mode === 'edit') return resolveFormRecordKey(initialData);
+    return 'new';
+  }, [mode, initialData?.id]);
 
-    setFormData(mapAppFixRequestToFormData(initialData));
+  const attachmentDirty = attachmentFiles.length > 0;
+
+  const {
+    isDirty,
+    isConfirmOpen,
+    continueEditing,
+    confirmDiscard,
+    requestClose,
+    pendingDraft,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useFormUnsavedGuard({
+    isOpen,
+    isSubmitting,
+    userId: firebaseUser?.uid,
+    formId: 'app-fix-report-form',
+    recordKey,
+    values: formData,
+    baselineValues: baselineFormData,
+    attachmentDirty,
+    onClose,
+    draftEnabled: true,
+  });
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    setFormData(createEmptyAppFixReportFormData());
     setAttachmentFiles([]);
     setFieldErrors({});
     setFormError('');
     setUploadProgressByIndex({});
     setIsSubmitting(false);
     isSubmittingRef.current = false;
-  }, [initialData, isOpen, mode]);
+  }, [isOpen]);
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const mapped = mapAppFixRequestToFormData(initialData);
+      setFormData(mapped);
+      setBaselineFormData(mapped);
+      setAttachmentFiles([]);
+      setFieldErrors({});
+      setFormError('');
+      setUploadProgressByIndex({});
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }, [initialData]),
+  });
 
   const updateField = (field, value) => {
     setFormData((previous) => ({ ...previous, [field]: value }));
@@ -142,6 +188,7 @@ export default function AppFixReportForm({
           }));
         },
       });
+      clearDraft();
       onClose();
     } catch (error) {
       setFormError(getAppFixErrorMessage(error, 'The request could not be saved. Please try again.'));
@@ -151,17 +198,34 @@ export default function AppFixReportForm({
     }
   };
 
+  const handleRestoreDraft = () => {
+    const restoredValues = restoreDraft();
+    if (!restoredValues) return;
+    setFormData(restoredValues);
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? 'Update Request' : 'Report a Problem'}
-      icon={Bug}
-      maxWidth="max-w-2xl"
-      panelClassName="p-4 space-y-4"
-      preventClose={isSubmitting}
-    >
-      {!canEditCurrentRequest ? (
+    <>
+      <Modal
+        {...getModalFormProps({ isSubmitting, isDirty })}
+        confirmBeforeClose={false}
+        isOpen={isOpen}
+        onClose={onClose}
+        onRequestClose={requestClose}
+        title={isEditing ? 'Update Request' : 'Report a Problem'}
+        icon={Bug}
+        maxWidth="max-w-2xl"
+        panelClassName="p-4 space-y-4"
+      >
+        {pendingDraft ? (
+          <FormDraftRestoreBanner
+            savedAt={pendingDraft.savedAt}
+            onRestore={handleRestoreDraft}
+            onDismiss={dismissDraft}
+          />
+        ) : null}
+
+        {!canEditCurrentRequest ? (
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-3 text-xs text-amber-300">
           This request can only be edited while it is Open or Waiting for User.
         </div>
@@ -280,7 +344,7 @@ export default function AppFixReportForm({
         ) : null}
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={requestClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button
@@ -294,5 +358,12 @@ export default function AppFixReportForm({
         </div>
       </form>
     </Modal>
+
+      <UnsavedChangesDialog
+        isOpen={isConfirmOpen}
+        onContinueEditing={continueEditing}
+        onDiscard={confirmDiscard}
+      />
+    </>
   );
 }

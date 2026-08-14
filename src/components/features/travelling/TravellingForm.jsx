@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Plane } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -43,21 +45,29 @@ export default function TravellingForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => {
+    const id = resolveFormRecordKey(initialData);
+    if (id !== 'new') return id;
+    return `new-${defaultTravelExtent}`;
+  }, [initialData?.id, defaultTravelExtent]);
 
-    const mapped = initialData
-      ? mapTravelDestinationToFormData(initialData)
-      : { ...mapTravelDestinationToFormData(null), travelExtent: defaultTravelExtent };
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const mapped = initialData
+        ? mapTravelDestinationToFormData(initialData)
+        : { ...mapTravelDestinationToFormData(null), travelExtent: defaultTravelExtent };
 
-    setFormData(mapped);
-    setImageFile(null);
-    setRemoveImage(false);
-    setFieldErrors({});
-    setFormError('');
-    setIsSubmitting(false);
-    isSubmittingRef.current = false;
-  }, [defaultTravelExtent, initialData, isOpen]);
+      setFormData(mapped);
+      setImageFile(null);
+      setRemoveImage(false);
+      setFieldErrors({});
+      setFormError('');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }, [defaultTravelExtent, initialData]),
+  });
 
   const isInternational = formData.travelExtent === TRAVEL_EXTENT.INTERNATIONAL;
   const isEditing = Boolean(initialData?.id);
@@ -163,6 +173,7 @@ export default function TravellingForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Travel Location' : 'Add Travel Location'}

@@ -12,16 +12,10 @@ import {
   getAppFixAffectedModuleLabel,
 } from './appFixesOptions.js';
 
+import { safeFormatDate } from '@/utils/safeToDate';
+
 function toDisplayDate(value) {
-  if (!value) return '—';
-
-  if (typeof value?.toDate === 'function') {
-    return value.toDate().toLocaleString();
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleString();
+  return safeFormatDate(value, (date) => date.toLocaleString()) || '—';
 }
 
 export function getAppFixStatusLabel(status = '') {

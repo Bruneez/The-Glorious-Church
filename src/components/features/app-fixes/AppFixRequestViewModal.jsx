@@ -114,6 +114,7 @@ export default function AppFixRequestViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title={request?.title || 'Request Details'}

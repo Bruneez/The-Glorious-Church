@@ -204,26 +204,24 @@ export default function MinistriesPage() {
         />
       )}
 
-      {canManage && (
-        <>
-          <MinistryForm
-            isOpen={isFormOpen}
-            onClose={() => {
-              setIsFormOpen(false);
-              setEditingMinistry(null);
-            }}
-            onSubmit={handleFormSubmit}
-            initialData={editingMinistry}
-          />
+      <MinistryForm
+        isOpen={canManage && isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingMinistry(null);
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={editingMinistry}
+      />
 
-          <MinistryDeleteModal
-            ministry={deletingMinistry}
-            isOpen={Boolean(deletingMinistry)}
-            onClose={() => setDeletingMinistry(null)}
-            onConfirm={handleDeleteConfirm}
-            isDeleting={isDeleting}
-          />
-        </>
+      {canManage && (
+        <MinistryDeleteModal
+          ministry={deletingMinistry}
+          isOpen={Boolean(deletingMinistry)}
+          onClose={() => setDeletingMinistry(null)}
+          onConfirm={handleDeleteConfirm}
+          isDeleting={isDeleting}
+        />
       )}
 
       <MinistryViewModal

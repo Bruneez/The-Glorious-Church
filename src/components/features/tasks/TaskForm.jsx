@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Plus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -36,22 +38,26 @@ export default function TaskForm({
 
   const assigneeOptions = useMemo(() => buildStaffAssigneeOptions(staff), [staff]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData({
-      title: initialData?.title || '',
-      description: initialData?.description || '',
-      assignedUserId: initialData?.assignedUserId || '',
-      assignedUserName: initialData?.assignedUserName || '',
-      assignedUserRole: initialData?.assignedUserRole || '',
-      priority: initialData?.priority || TASK_PRIORITY.MEDIUM,
-      status: initialData?.status || TASK_STATUS.OPEN,
-      dueDate: initialData?.dueDate || '',
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData({
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        assignedUserId: initialData?.assignedUserId || '',
+        assignedUserName: initialData?.assignedUserName || '',
+        assignedUserRole: initialData?.assignedUserRole || '',
+        priority: initialData?.priority || TASK_PRIORITY.MEDIUM,
+        status: initialData?.status || TASK_STATUS.OPEN,
+        dueDate: initialData?.dueDate || '',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -99,6 +105,7 @@ export default function TaskForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Task' : 'New Task'}

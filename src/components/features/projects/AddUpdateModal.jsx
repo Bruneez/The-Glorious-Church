@@ -100,6 +100,7 @@ export default function AddUpdateModal({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title="Add Project Update"

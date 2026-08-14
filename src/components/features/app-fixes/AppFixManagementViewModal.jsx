@@ -313,6 +313,7 @@ export default function AppFixManagementViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title={request.title}

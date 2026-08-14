@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Clapperboard } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -70,20 +72,12 @@ export default function MachanehMoviesForm({
 
   const isEditing = Boolean(initialData?.id);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData(mapMachanehMovieToFormData(null));
-      setPosterFile(null);
-      setRemovePoster(false);
-      setPosterError('');
-      setTitleError('');
-      setFormError('');
-      setIsSubmitting(false);
-      isSubmittingRef.current = false;
-      return;
-    }
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData(mapMachanehMovieToFormData(initialData));
+  useEffect(() => {
+    if (isOpen) return;
+
+    setFormData(mapMachanehMovieToFormData(null));
     setPosterFile(null);
     setRemovePoster(false);
     setPosterError('');
@@ -91,7 +85,22 @@ export default function MachanehMoviesForm({
     setFormError('');
     setIsSubmitting(false);
     isSubmittingRef.current = false;
-  }, [initialData, isOpen]);
+  }, [isOpen]);
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData(mapMachanehMovieToFormData(initialData));
+      setPosterFile(null);
+      setRemovePoster(false);
+      setPosterError('');
+      setTitleError('');
+      setFormError('');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }, [initialData]),
+  });
 
   const scrollToErrorBanner = () => {
     requestAnimationFrame(() => {
@@ -228,6 +237,7 @@ export default function MachanehMoviesForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Movie' : 'Add Movie'}

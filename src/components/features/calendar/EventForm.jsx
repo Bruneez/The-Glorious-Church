@@ -37,7 +37,13 @@ export default function EventForm({ isOpen, onClose, onSubmit, initialData = nul
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Event' : 'Add Event'} icon={CalendarPlus}>
+    <Modal
+      variant="form"
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? 'Edit Event' : 'Add Event'}
+      icon={CalendarPlus}
+    >
       <form onSubmit={handleSubmit} className="space-y-3">
         <Input
           label="Event Title"

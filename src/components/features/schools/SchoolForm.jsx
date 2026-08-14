@@ -65,7 +65,7 @@ export default function SchoolForm({ isOpen, onClose, onSubmit, initialData = nu
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Add ${typeLabels[schoolType]} Node`}>
+    <Modal variant="form" isOpen={isOpen} onClose={onClose} title={`Add ${typeLabels[schoolType]} Node`}>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="block text-slate-400 mb-1 text-xs">School Cover Image Photo</label>

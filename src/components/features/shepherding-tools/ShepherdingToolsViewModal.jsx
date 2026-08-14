@@ -49,6 +49,7 @@ export default function ShepherdingToolsViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Resource Details"

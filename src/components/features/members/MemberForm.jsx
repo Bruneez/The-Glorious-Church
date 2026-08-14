@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { UserPlus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import AddressInput from '@/components/ui/AddressInput';
@@ -44,6 +46,11 @@ import {
   resolveMemberReportCardStoragePath,
 } from '@/utils/storagePathUtils';
 import ImageUploadField from '@/components/common/ImageUploadField';
+import FormDraftRestoreBanner from '@/components/common/FormDraftRestoreBanner';
+import UnsavedChangesDialog from '@/components/ui/UnsavedChangesDialog';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
+import { useFormUnsavedGuard } from '@/hooks/useFormUnsavedGuard';
+import { useAuth } from '@/hooks/useAuth';
 
 function CoreSectionHeading({ title }) {
   return (
@@ -93,6 +100,7 @@ export default function MemberForm({
   initialData = null,
   lockCreativeArtsDepartmentName = '',
 }) {
+  const { firebaseUser } = useAuth();
   const { data: primarySchools = [] } = useSchoolsByType(SCHOOL_TYPE.PRIMARY);
   const { data: highSchools = [] } = useSchoolsByType(SCHOOL_TYPE.HIGH);
   const { data: universitySchools = [] } = useSchoolsByType(SCHOOL_TYPE.UNIVERSITY);
@@ -102,6 +110,7 @@ export default function MemberForm({
   const { data: ministries = [] } = useMinistries();
 
   const [formData, setFormData] = useState(mapMemberToFormData(null));
+  const [baselineFormData, setBaselineFormData] = useState(mapMemberToFormData(null));
   const [photoFile, setPhotoFile] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -164,19 +173,49 @@ export default function MemberForm({
     return MEMBER_FORM_OCCUPATION_OPTIONS;
   }, [formData.occupation]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    const mapped = mapMemberToFormData(initialData);
-    setFormData(mapped);
-    setPhotoFile(null);
-    setRemovePhoto(false);
-    setPhotoError('');
-    setReportCardFile(null);
-    setError('');
-    setAddressError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  const attachmentDirty = Boolean(photoFile || removePhoto || reportCardFile);
+
+  const {
+    isDirty,
+    isConfirmOpen,
+    continueEditing,
+    confirmDiscard,
+    requestClose,
+    pendingDraft,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useFormUnsavedGuard({
+    isOpen,
+    isSubmitting,
+    userId: firebaseUser?.uid,
+    formId: 'member-form',
+    recordKey,
+    values: formData,
+    baselineValues: baselineFormData,
+    attachmentDirty,
+    onClose,
+    draftEnabled: true,
+  });
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const mapped = mapMemberToFormData(initialData);
+      setFormData(mapped);
+      setBaselineFormData(mapped);
+      setPhotoFile(null);
+      setRemovePhoto(false);
+      setPhotoError('');
+      setReportCardFile(null);
+      setError('');
+      setAddressError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   useEffect(() => {
     if (!isOpen || !initialData || formData.schoolId || !activeSchoolOptions.length) return;
@@ -192,29 +231,46 @@ export default function MemberForm({
       school: matchedSchool.schoolName || '',
       institution: matchedSchool.schoolName || '',
     }));
-  }, [activeSchoolOptions, formData.schoolId, initialData, isOpen]);
+    setBaselineFormData((prev) => ({
+      ...prev,
+      schoolId: matchedSchool.id,
+      schoolName: matchedSchool.schoolName || '',
+      schoolType: matchedSchool.schoolType || '',
+      school: matchedSchool.schoolName || '',
+      institution: matchedSchool.schoolName || '',
+    }));
+  }, [activeSchoolOptions, formData.schoolId, initialData, isOpen, recordKey]);
 
   useEffect(() => {
     if (!isOpen || !initialData) return;
 
-    setFormData((prev) => ({
-      ...prev,
-      creativeArtsId: resolveCreativeArtsFormSelection(initialData, creativeArtsTeams),
-      creativeArtsName:
-        activeCreativeArtsTeams.find(
-          (team) => team.id === resolveCreativeArtsFormSelection(initialData, creativeArtsTeams),
-        )?.name
-        || initialData.department
-        || '',
-      ministryId: resolveMinistryFormSelection(initialData, ministries),
-      ministryName:
-        activeMinistries.find(
-          (ministry) => ministry.id === resolveMinistryFormSelection(initialData, ministries),
-        )?.ministryName
-        || initialData.ministryName
-        || '',
-    }));
-  }, [activeCreativeArtsTeams, activeMinistries, creativeArtsTeams, initialData, isOpen, ministries]);
+    setFormData((prev) => {
+      const updates = {};
+
+      if (!prev.creativeArtsId) {
+        const creativeArtsId = resolveCreativeArtsFormSelection(initialData, creativeArtsTeams);
+        updates.creativeArtsId = creativeArtsId;
+        updates.creativeArtsName =
+          activeCreativeArtsTeams.find((team) => team.id === creativeArtsId)?.name
+          || initialData.department
+          || '';
+      }
+
+      if (!prev.ministryId) {
+        const ministryId = resolveMinistryFormSelection(initialData, ministries);
+        updates.ministryId = ministryId;
+        updates.ministryName =
+          activeMinistries.find((ministry) => ministry.id === ministryId)?.ministryName
+          || initialData.ministryName
+          || '';
+      }
+
+      if (!Object.keys(updates).length) return prev;
+      const next = { ...prev, ...updates };
+      setBaselineFormData((baseline) => ({ ...baseline, ...updates }));
+      return next;
+    });
+  }, [activeCreativeArtsTeams, activeMinistries, creativeArtsTeams, isOpen, ministries, recordKey]);
 
   useEffect(() => {
     if (!isOpen || !lockCreativeArtsDepartmentName || !lockedCreativeArtsTeam) return;
@@ -531,6 +587,7 @@ export default function MemberForm({
       }
 
       await onSubmit(submitData);
+      clearDraft();
     } catch (submitError) {
       await rollbackUploadedMemberFiles(uploadedPaths);
       console.error('Error saving member:', submitError);
@@ -547,15 +604,32 @@ export default function MemberForm({
   const memberPreviewName = `${formData.name} ${formData.surname}`.trim() || 'Member';
   const existingPhotoUrl = !removePhoto && !photoFile ? formData.photo : '';
 
+  const handleRestoreDraft = () => {
+    const restoredValues = restoreDraft();
+    if (!restoredValues) return;
+    setFormData(restoredValues);
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Member' : 'Add Member'}
-      icon={UserPlus}
-      maxWidth="max-w-2xl"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      <Modal
+        {...getModalFormProps({ isSubmitting, isDirty })}
+        confirmBeforeClose={false}
+        isOpen={isOpen}
+        onClose={onClose}
+        onRequestClose={requestClose}
+        title={initialData ? 'Edit Member' : 'Add Member'}
+        icon={UserPlus}
+        maxWidth="max-w-2xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {pendingDraft ? (
+            <FormDraftRestoreBanner
+              savedAt={pendingDraft.savedAt}
+              onRestore={handleRestoreDraft}
+              onDismiss={dismissDraft}
+            />
+          ) : null}
         <ImageUploadField
           label="Profile Picture"
           existingImageUrl={existingPhotoUrl}
@@ -787,7 +861,7 @@ export default function MemberForm({
         {error && <p className="text-rose-400 text-[11px]">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={requestClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
@@ -796,5 +870,12 @@ export default function MemberForm({
         </div>
       </form>
     </Modal>
+
+      <UnsavedChangesDialog
+        isOpen={isConfirmOpen}
+        onContinueEditing={continueEditing}
+        onDiscard={confirmDiscard}
+      />
+    </>
   );
 }

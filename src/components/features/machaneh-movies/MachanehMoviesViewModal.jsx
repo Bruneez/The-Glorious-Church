@@ -71,6 +71,7 @@ export default function MachanehMoviesViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Movie Details"

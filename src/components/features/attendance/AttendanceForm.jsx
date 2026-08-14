@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { BarChart3 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -7,13 +9,17 @@ import Modal from '@/components/ui/Modal';
 export default function AttendanceForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const [attendanceDate, setAttendanceDate] = useState('');
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setAttendanceDate(
-      initialData?.attendanceDate || initialData?.serviceDate || initialData?.date || '',
-    );
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setAttendanceDate(
+        initialData?.attendanceDate || initialData?.serviceDate || initialData?.date || '',
+      );
+    }, [initialData]),
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -22,6 +28,7 @@ export default function AttendanceForm({ isOpen, onClose, onSubmit, initialData 
 
   return (
     <Modal
+      variant="form"
       isOpen={isOpen}
       onClose={onClose}
       title={initialData?.id ? 'Edit Attendance' : 'New Attendance'}

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { School } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import AddressInput from '@/components/ui/AddressInput';
@@ -51,25 +53,33 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
 
   const isEditing = Boolean(initialData?.id);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => {
+    const id = resolveFormRecordKey(initialData);
+    if (id !== 'new') return id;
+    return `new-${defaultType || ''}`;
+  }, [initialData?.id, defaultType]);
 
-    if (isEditing) {
-      setFormData(mapSchoolToFormData(initialData));
-    } else {
-      setFormData({
-        ...EMPTY_FORM,
-        type: defaultType || '',
-      });
-    }
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      if (isEditing) {
+        setFormData(mapSchoolToFormData(initialData));
+      } else {
+        setFormData({
+          ...EMPTY_FORM,
+          type: defaultType || '',
+        });
+      }
 
-    setBadgeFile(null);
-    setRemoveBadge(false);
-    setBadgeError('');
-    setAddressError('');
-    setError('');
-    setIsSubmitting(false);
-  }, [defaultType, initialData, isEditing, isOpen]);
+      setBadgeFile(null);
+      setRemoveBadge(false);
+      setBadgeError('');
+      setAddressError('');
+      setError('');
+      setIsSubmitting(false);
+    }, [defaultType, initialData, isEditing]),
+  });
 
   const rollbackUploadedBadge = async (badgePath) => {
     if (!badgePath) return;
@@ -225,6 +235,7 @@ export default function SchoolsForm({ isOpen, onClose, onSubmit, initialData = n
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit School' : 'Add School'}

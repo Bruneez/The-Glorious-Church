@@ -1,20 +1,24 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthErrorMessage } from '@/services/authService';
 import AlertBanner from '@/components/ui/AlertBanner';
+import { AUTH_STATUS, resolvePostLoginPath } from '@/utils/authSessionState';
 
 export default function LoginPage() {
-  const { signIn, isAuthenticated, isLoading } = useAuth();
+  const { signIn, authStatus } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isLoading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+  const redirectTarget = resolvePostLoginPath(location.state?.from);
+
+  if (authStatus === AUTH_STATUS.AUTHENTICATED) {
+    return <Navigate to={redirectTarget} replace />;
   }
 
   async function handleSubmit(event) {
@@ -24,7 +28,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email.trim(), password);
-      navigate('/dashboard', { replace: true });
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       console.error('Authentication Failure:', err);
       setError(getAuthErrorMessage(err));

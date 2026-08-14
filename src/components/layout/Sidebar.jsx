@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnsavedChangesNavigation } from '@/hooks/useUnsavedChangesNavigation';
 import { getNavItemsForRole } from '@/config/navConfig';
 import { NAV_DRAWER_ID, useIsDesktopSidebar } from '@/hooks/useMobileMenu';
 
@@ -18,6 +19,7 @@ export default function Sidebar({
   fullHeight = false,
 }) {
   const { role } = useAuth();
+  const guardedNavigate = useUnsavedChangesNavigation();
   const navItems = getNavItemsForRole(role);
   const isDesktopSidebar = useIsDesktopSidebar();
   const isOverlayDrawerClosed = !isDesktopSidebar && !isMobileOpen;
@@ -58,7 +60,12 @@ export default function Sidebar({
             key={path}
             to={path}
             className={navLinkClass}
-            onClick={onCloseMobile}
+            onClick={(event) => {
+              guardedNavigate(path, event);
+              if (!event.defaultPrevented) {
+                onCloseMobile();
+              }
+            }}
           >
             <Icon className="w-[1.125rem] h-[1.125rem] shrink-0" aria-hidden="true" />
             {label}

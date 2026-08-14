@@ -1,4 +1,5 @@
 import { formatCurrencySimple, formatDate } from '@/utils/formatters';
+import { safeToDate } from '@/utils/safeToDate';
 import {
   getProductPrimaryImage,
   getProductTotalStock,
@@ -11,14 +12,9 @@ export function formatMerchandisePrice(amount) {
 }
 
 export function formatMerchandiseDate(value) {
-  if (!value) return '—';
-  if (typeof value?.toDate === 'function') {
-    return formatDate(value.toDate().toISOString(), 'short');
-  }
-  if (value instanceof Date) {
-    return formatDate(value.toISOString(), 'short');
-  }
-  return formatDate(value, 'short') || '—';
+  const date = safeToDate(value);
+  if (!date) return '—';
+  return formatDate(date.toISOString(), 'short');
 }
 
 export function formatPaymentStatus(status) {

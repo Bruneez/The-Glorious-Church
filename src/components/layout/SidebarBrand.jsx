@@ -2,7 +2,7 @@ import { Menu } from 'lucide-react';
 import churchLogo from '@/assets/tgc-logo-trimmed.png';
 import ProfileMenu from '@/components/layout/ProfileMenu';
 import NotificationBell from '@/components/layout/NotificationBell';
-import { NAV_DRAWER_ID } from '@/hooks/useMobileMenu';
+import { NAV_DRAWER_ID, useIsDesktopSidebar } from '@/hooks/useMobileMenu';
 
 const MOBILE_HEADER_HEIGHT =
   'h-[calc(4.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]';
@@ -12,6 +12,8 @@ export default function SidebarBrand({
   onMenuToggle,
   menuButtonRef,
 }) {
+  const isDesktopSidebar = useIsDesktopSidebar();
+
   return (
     <header
       className={`flex ${MOBILE_HEADER_HEIGHT} shrink-0 items-center gap-2 overflow-visible border-b border-slate-800 bg-slate-950 px-3 sm:gap-3 sm:px-5 xl:gap-3 xl:px-7 pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))] sm:pl-[max(1.25rem,env(safe-area-inset-left,0px))] sm:pr-[max(1.25rem,env(safe-area-inset-right,0px))] z-[60]`}
@@ -46,12 +48,7 @@ export default function SidebarBrand({
           <NotificationBell />
         </div>
         <div className="flex h-11 shrink-0 items-center xl:h-auto">
-          <div className="xl:hidden">
-            <ProfileMenu compact />
-          </div>
-          <div className="hidden xl:block">
-            <ProfileMenu />
-          </div>
+          <ProfileMenu compact={!isDesktopSidebar} />
         </div>
       </div>
     </header>

@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { UserPlus, X } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
 import { ROLES, ROLE_SELECT_OPTIONS, normalizeRole } from '@/config/roles';
 import { getCreateStaffUserErrorMessage } from '@/services/staffUserService';
 
@@ -20,21 +23,25 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData({
-      name: initialData?.name || '',
-      email: initialData?.email || '',
-      role: normalizeRole(initialData?.role) || ROLES.LEADER,
-      phone: initialData?.phone || '',
-      photo: initialData?.photo || '',
-      password: '',
-      confirmPassword: ''
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData({
+        name: initialData?.name || '',
+        email: initialData?.email || '',
+        role: normalizeRole(initialData?.role) || ROLES.LEADER,
+        phone: initialData?.phone || '',
+        photo: initialData?.photo || '',
+        password: '',
+        confirmPassword: '',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,7 +90,13 @@ export default function UserForm({ isOpen, onClose, onSubmit, initialData = null
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Staff Member' : 'Provision Authorized Account'} icon={UserPlus}>
+    <Modal
+      {...getModalFormProps({ isSubmitting })}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? 'Edit Staff Member' : 'Provision Authorized Account'}
+      icon={UserPlus}
+    >
       <form onSubmit={handleSubmit} className="space-y-3">
         <Input
           label="Staff Member Name"

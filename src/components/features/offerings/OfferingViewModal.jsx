@@ -20,7 +20,7 @@ export default function OfferingViewModal({ offering, isOpen, onClose }) {
   const totalAmount = getOfferingTotalAmount(offering);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Offering Details" icon={Coins} maxWidth="max-w-lg">
+    <Modal closeOnBackdrop isOpen={isOpen} onClose={onClose} title="Offering Details" icon={Coins} maxWidth="max-w-lg">
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <DetailField

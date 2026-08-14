@@ -35,6 +35,7 @@ export default function TravellingViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Travel Destination Details"
