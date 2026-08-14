@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { FolderKanban, Plus, Trash2 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import UnsavedChangesDialog from '@/components/ui/UnsavedChangesDialog';
+import FormDraftRestoreBanner from '@/components/common/FormDraftRestoreBanner';
 import ImageUploadField from '@/components/common/ImageUploadField';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
+import { useFormUnsavedGuard } from '@/hooks/useFormUnsavedGuard';
+import { useAuth } from '@/hooks/useAuth';
 import { ProjectCoverImage } from '@/components/features/projects/ProjectCard';
 import {
   ACCEPTED_PROJECT_COVER_ACCEPT,
@@ -81,7 +88,9 @@ export default function ProjectForm({
   staff = [],
   mode = 'create',
 }) {
+  const { firebaseUser } = useAuth();
   const [formData, setFormData] = useState(mapProjectToFormData(null));
+  const [baselineFormData, setBaselineFormData] = useState(mapProjectToFormData(null));
   const [coverFile, setCoverFile] = useState(null);
   const [removeCover, setRemoveCover] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -92,17 +101,51 @@ export default function ProjectForm({
   const isEditing = mode === 'edit' && Boolean(initialData?.id);
   const leaderOptions = useMemo(() => buildProjectLeaderOptions(staff), [staff]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => {
+    if (mode === 'edit') return resolveFormRecordKey(initialData);
+    return 'new';
+  }, [mode, initialData?.id]);
 
-    setFormData(mapProjectToFormData(initialData));
-    setCoverFile(null);
-    setRemoveCover(false);
-    setFieldErrors({});
-    setFormError('');
-    setCoverError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  const attachmentDirty = Boolean(coverFile || removeCover);
+
+  const {
+    isDirty,
+    isConfirmOpen,
+    continueEditing,
+    confirmDiscard,
+    requestClose,
+    pendingDraft,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useFormUnsavedGuard({
+    isOpen,
+    isSubmitting,
+    userId: firebaseUser?.uid,
+    formId: 'project-form',
+    recordKey,
+    values: formData,
+    baselineValues: baselineFormData,
+    attachmentDirty,
+    onClose,
+    draftEnabled: true,
+  });
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const mapped = mapProjectToFormData(initialData);
+      setFormData(mapped);
+      setBaselineFormData(mapped);
+      setCoverFile(null);
+      setRemoveCover(false);
+      setFieldErrors({});
+      setFormError('');
+      setCoverError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -206,6 +249,7 @@ export default function ProjectForm({
         coverFile,
         removeCover,
       });
+      clearDraft();
       onClose?.();
     } catch (submitError) {
       setFormError(getProjectErrorMessage(submitError));
@@ -218,17 +262,33 @@ export default function ProjectForm({
     ? getProjectCoverUrl(initialData) || getProjectCoverUrl(formData)
     : '';
 
+  const handleRestoreDraft = () => {
+    const restoredValues = restoreDraft();
+    if (!restoredValues) return;
+    setFormData(restoredValues);
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? 'Edit Project' : 'Create Project'}
-      icon={FolderKanban}
-      maxWidth="max-w-3xl"
-      preventClose={isSubmitting}
-      panelClassName="p-4 space-y-4 max-h-[85vh] overflow-y-auto"
-    >
-      <form onSubmit={handleSubmit} className="space-y-5">
+    <>
+      <Modal
+        {...getModalFormProps({ isSubmitting, isDirty })}
+        confirmBeforeClose={false}
+        isOpen={isOpen}
+        onClose={onClose}
+        onRequestClose={requestClose}
+        title={isEditing ? 'Edit Project' : 'Create Project'}
+        icon={FolderKanban}
+        maxWidth="max-w-3xl"
+        panelClassName="p-4 space-y-4 max-h-[85vh] overflow-y-auto"
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {pendingDraft ? (
+            <FormDraftRestoreBanner
+              savedAt={pendingDraft.savedAt}
+              onRestore={handleRestoreDraft}
+              onDismiss={dismissDraft}
+            />
+          ) : null}
         <FormSection title="Core Information">
           <Input
             label="Title"
@@ -417,7 +477,7 @@ export default function ProjectForm({
         ) : null}
 
         <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-700/60">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={requestClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
@@ -426,5 +486,12 @@ export default function ProjectForm({
         </div>
       </form>
     </Modal>
+
+      <UnsavedChangesDialog
+        isOpen={isConfirmOpen}
+        onContinueEditing={continueEditing}
+        onDiscard={confirmDiscard}
+      />
+    </>
   );
 }

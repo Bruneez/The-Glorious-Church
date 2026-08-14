@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Palette } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -35,23 +37,27 @@ export default function CreativeArtsForm({ isOpen, onClose, onSubmit, initialDat
 
   const isEditing = Boolean(initialData?.id);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData({
-      name: initialData?.name || '',
-      leader: initialData?.leader || '',
-      description: initialData?.description || '',
-      status: initialData?.status || DEPARTMENT_STATUS.ACTIVE,
-      logoUrl: initialData?.logoUrl || initialData?.photo || '',
-      logoPath: initialData?.logoPath || '',
-    });
-    setLogoFile(null);
-    setRemoveLogo(false);
-    setLogoError('');
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData({
+        name: initialData?.name || '',
+        leader: initialData?.leader || '',
+        description: initialData?.description || '',
+        status: initialData?.status || DEPARTMENT_STATUS.ACTIVE,
+        logoUrl: initialData?.logoUrl || initialData?.photo || '',
+        logoPath: initialData?.logoPath || '',
+      });
+      setLogoFile(null);
+      setRemoveLogo(false);
+      setLogoError('');
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const rollbackUploadedLogo = async (logoPath) => {
     if (!logoPath) return;
@@ -157,6 +163,7 @@ export default function CreativeArtsForm({ isOpen, onClose, onSubmit, initialDat
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Department' : 'Add Department'}

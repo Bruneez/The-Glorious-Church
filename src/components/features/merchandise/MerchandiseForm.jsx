@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
@@ -56,18 +58,23 @@ export default function MerchandiseForm({
   const [customColour, setCustomColour] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setFormData(mapMerchandiseToFormData(initialData));
-    setImageFiles([]);
-    setRemovedImagePaths([]);
-    setPrimaryFile(null);
-    setFormError('');
-    setImageError('');
-    setCustomCategory('');
-    setCustomColour('');
-    setIsSubmitting(false);
-  }, [isOpen, initialData]);
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData(mapMerchandiseToFormData(initialData));
+      setImageFiles([]);
+      setRemovedImagePaths([]);
+      setPrimaryFile(null);
+      setFormError('');
+      setImageError('');
+      setCustomCategory('');
+      setCustomColour('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const visibleImages = (formData.images || []).filter(
     (image) => !removedImagePaths.includes(String(image.storagePath || '').trim()),
@@ -191,6 +198,7 @@ export default function MerchandiseForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Merchandise' : 'Add Merchandise'}

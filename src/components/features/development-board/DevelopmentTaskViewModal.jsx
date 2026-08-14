@@ -27,6 +27,7 @@ export default function DevelopmentTaskViewModal({ task, isOpen, onClose, onEdit
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Task Details"

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -29,22 +31,30 @@ export default function MerchandiseSaleForm({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const selected = product || products[0] || null;
-    const variants = normalizeVariants(selected?.variants);
-    setFormData({
-      productId: selected?.id || '',
-      colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
-      size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
-      quantity: '1',
-      buyerName: '',
-      phoneNumber: '',
-      paymentStatus: 'paid',
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [isOpen, product, products]);
+  const recordKey = useMemo(
+    () => resolveFormRecordKey(product || products[0]),
+    [product?.id, products[0]?.id],
+  );
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const selected = product || products[0] || null;
+      const variants = normalizeVariants(selected?.variants);
+      setFormData({
+        productId: selected?.id || '',
+        colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
+        size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
+        quantity: '1',
+        buyerName: '',
+        phoneNumber: '',
+        paymentStatus: 'paid',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [product, products]),
+  });
 
   const selectedProduct = useMemo(
     () => products.find((item) => item.id === formData.productId) || product,
@@ -99,6 +109,7 @@ export default function MerchandiseSaleForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title="Record Sale"

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { BarChart3 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -26,19 +28,26 @@ export default function AttendanceSummaryForm({
 
   const isEditing = Boolean(initialData?.recordId);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(
+    () => resolveFormRecordKey(initialData, { idField: 'recordId' }),
+    [initialData?.recordId, initialData?.id],
+  );
 
-    setFormData({
-      totalAttendance: initialData?.totalAttendance ?? '',
-      visitors: initialData?.visitors ?? '',
-      firstTimeVisitors: initialData?.firstTimeVisitors ?? '',
-      salvations: initialData?.salvations ?? '',
-      notes: initialData?.notes || '',
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData({
+        totalAttendance: initialData?.totalAttendance ?? '',
+        visitors: initialData?.visitors ?? '',
+        firstTimeVisitors: initialData?.firstTimeVisitors ?? '',
+        salvations: initialData?.salvations ?? '',
+        notes: initialData?.notes || '',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -70,6 +79,7 @@ export default function AttendanceSummaryForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Service Attendance' : 'Record Service Attendance'}

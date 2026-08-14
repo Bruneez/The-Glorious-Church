@@ -118,6 +118,8 @@ export default function UserViewModal({ user, staffDirectory = [], isOpen, onClo
 
     <Modal
 
+      closeOnBackdrop
+
       isOpen={isOpen}
 
       onClose={onClose}

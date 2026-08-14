@@ -344,6 +344,7 @@ export function useAppFixRequestDetails(requestId, { enabled = true } = {}) {
       return undefined;
     }
 
+    let active = true;
     setLoading(true);
     setError(null);
 
@@ -361,11 +362,20 @@ export function useAppFixRequestDetails(requestId, { enabled = true } = {}) {
     let attachmentsSnapshot = [];
 
     const finishIfReady = () => {
+      if (!active) return;
+
       pending -= 1;
       if (pending > 0) return;
 
       setUpdates(filterVisibleUpdates(updatesSnapshot, role));
       setAttachments(attachmentsSnapshot.filter((attachment) => !attachment.deletedAt));
+      setLoading(false);
+    };
+
+    const handleSnapshotError = (snapshotError) => {
+      if (!active) return;
+      setError(snapshotError);
+      pending = 0;
       setLoading(false);
     };
 
@@ -378,10 +388,7 @@ export function useAppFixRequestDetails(requestId, { enabled = true } = {}) {
         }));
         finishIfReady();
       },
-      (snapshotError) => {
-        setError(snapshotError);
-        setLoading(false);
-      },
+      handleSnapshotError,
     );
 
     const unsubscribeAttachments = onSnapshot(
@@ -393,13 +400,11 @@ export function useAppFixRequestDetails(requestId, { enabled = true } = {}) {
         }));
         finishIfReady();
       },
-      (snapshotError) => {
-        setError(snapshotError);
-        setLoading(false);
-      },
+      handleSnapshotError,
     );
 
     return () => {
+      active = false;
       unsubscribeUpdates();
       unsubscribeAttachments();
     };

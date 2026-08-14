@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { BookOpen } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import UnsavedChangesDialog from '@/components/ui/UnsavedChangesDialog';
+import FormDraftRestoreBanner from '@/components/common/FormDraftRestoreBanner';
 import ImageUploadField from '@/components/common/ImageUploadField';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
+import { useFormUnsavedGuard } from '@/hooks/useFormUnsavedGuard';
+import { useAuth } from '@/hooks/useAuth';
 import {
   BOOK_CATEGORY_OPTIONS,
   BOOK_LINK_ACTION_OPTIONS,
@@ -74,7 +81,11 @@ export default function ShepherdingToolsForm({
   onSubmit,
   initialData = null,
 }) {
+  const { firebaseUser } = useAuth();
   const [formData, setFormData] = useState(mapShepherdingResourceToFormData(null, resourceType));
+  const [baselineFormData, setBaselineFormData] = useState(
+    mapShepherdingResourceToFormData(null, resourceType),
+  );
   const [coverFile, setCoverFile] = useState(null);
   const [removeCover, setRemoveCover] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -88,26 +99,64 @@ export default function ShepherdingToolsForm({
   const isDevotional = resourceType === SHEPHERDING_RESOURCE_TYPES.DAILY_DEVOTIONAL;
   const hasExistingCover = Boolean(getResourceCoverUrl(initialData));
 
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData(mapShepherdingResourceToFormData(null, resourceType));
-      setCoverFile(null);
-      setRemoveCover(false);
-      setFieldErrors({});
-      setFormError('');
-      setIsSubmitting(false);
-      isSubmittingRef.current = false;
-      return;
-    }
+  const recordKey = useMemo(() => {
+    const id = resolveFormRecordKey(initialData);
+    if (id !== 'new') return id;
+    return `new-${resourceType}`;
+  }, [initialData?.id, resourceType]);
 
-    setFormData(mapShepherdingResourceToFormData(initialData, resourceType));
+  const attachmentDirty = Boolean(coverFile || removeCover);
+
+  const {
+    isDirty,
+    isConfirmOpen,
+    continueEditing,
+    confirmDiscard,
+    requestClose,
+    pendingDraft,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useFormUnsavedGuard({
+    isOpen,
+    isSubmitting,
+    userId: firebaseUser?.uid,
+    formId: 'shepherding-tools-form',
+    recordKey,
+    values: formData,
+    baselineValues: baselineFormData,
+    attachmentDirty,
+    onClose,
+    draftEnabled: true,
+  });
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    setFormData(mapShepherdingResourceToFormData(null, resourceType));
     setCoverFile(null);
     setRemoveCover(false);
     setFieldErrors({});
     setFormError('');
     setIsSubmitting(false);
     isSubmittingRef.current = false;
-  }, [initialData, isOpen, resourceType]);
+  }, [isOpen, resourceType]);
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      const mapped = mapShepherdingResourceToFormData(initialData, resourceType);
+      setFormData(mapped);
+      setBaselineFormData(mapped);
+      setCoverFile(null);
+      setRemoveCover(false);
+      setFieldErrors({});
+      setFormError('');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }, [initialData, resourceType]),
+  });
 
   const updateField = (field, value) => {
     setFormData((previous) => ({ ...previous, [field]: value }));
@@ -149,6 +198,7 @@ export default function ShepherdingToolsForm({
         coverFile,
         removeCover,
       });
+      clearDraft();
     } catch (error) {
       console.error('Failed to save Shepherding Tools resource:', error);
       setFormError(getShepherdingToolsSubmitErrorMessage(error));
@@ -162,18 +212,36 @@ export default function ShepherdingToolsForm({
   const platformOptions = getPlatformOptions(resourceType);
   const categoryOptions = getCategoryOptions(resourceType);
 
+  const handleRestoreDraft = () => {
+    const restoredValues = restoreDraft();
+    if (!restoredValues) return;
+    setFormData(restoredValues);
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? `Edit ${tabConfig.label.replace(/s$/, '')}` : tabConfig.addLabel}
-      icon={BookOpen}
-      maxWidth="max-w-2xl"
-      panelClassName="p-0"
-    >
-      <form id={FORM_ID} onSubmit={handleSubmit} noValidate className="flex flex-col max-h-[80vh]">
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {formError ? (
+    <>
+      <Modal
+        {...getModalFormProps({ isSubmitting, isDirty })}
+        confirmBeforeClose={false}
+        isOpen={isOpen}
+        onClose={onClose}
+        onRequestClose={requestClose}
+        title={isEditing ? `Edit ${tabConfig.label.replace(/s$/, '')}` : tabConfig.addLabel}
+        icon={BookOpen}
+        maxWidth="max-w-2xl"
+        panelClassName="p-0"
+      >
+        <form id={FORM_ID} onSubmit={handleSubmit} noValidate className="flex flex-col max-h-[80vh]">
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            {pendingDraft ? (
+              <FormDraftRestoreBanner
+                savedAt={pendingDraft.savedAt}
+                onRestore={handleRestoreDraft}
+                onDismiss={dismissDraft}
+              />
+            ) : null}
+
+            {formError ? (
             <div
               ref={errorBannerRef}
               className="rounded-lg border border-rose-500/20 bg-rose-950/30 p-3 text-xs text-rose-400"
@@ -391,7 +459,7 @@ export default function ShepherdingToolsForm({
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 border-t border-slate-700 bg-slate-900/80">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={requestClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" isLoading={isSubmitting}>
@@ -400,5 +468,12 @@ export default function ShepherdingToolsForm({
         </div>
       </form>
     </Modal>
+
+      <UnsavedChangesDialog
+        isOpen={isConfirmOpen}
+        onContinueEditing={continueEditing}
+        onDiscard={confirmDiscard}
+      />
+    </>
   );
 }

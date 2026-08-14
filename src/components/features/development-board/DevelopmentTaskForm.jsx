@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Plus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -31,20 +33,24 @@ export default function DevelopmentTaskForm({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData({
-      title: initialData?.title || '',
-      description: initialData?.description || '',
-      priority: initialData?.priority || TASK_PRIORITY.MEDIUM,
-      assignedTo: initialData?.assignedTo || '',
-      requestedBy: initialData?.requestedBy || '',
-      status: getTaskBoardStatus(initialData?.status) || TASK_STATUS.OPEN,
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData({
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        priority: initialData?.priority || TASK_PRIORITY.MEDIUM,
+        assignedTo: initialData?.assignedTo || '',
+        requestedBy: initialData?.requestedBy || '',
+        status: getTaskBoardStatus(initialData?.status) || TASK_STATUS.OPEN,
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -80,6 +86,7 @@ export default function DevelopmentTaskForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Task' : 'New Task'}

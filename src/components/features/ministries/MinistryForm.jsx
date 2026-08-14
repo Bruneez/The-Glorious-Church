@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Church } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -36,16 +38,20 @@ export default function MinistryForm({ isOpen, onClose, onSubmit, initialData = 
 
   const isEditing = Boolean(initialData?.id);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData(mapMinistryToFormData(initialData));
-    setAvatarFile(null);
-    setRemoveAvatar(false);
-    setAvatarError('');
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData(mapMinistryToFormData(initialData));
+      setAvatarFile(null);
+      setRemoveAvatar(false);
+      setAvatarError('');
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const rollbackUploadedAvatar = async (avatarPath) => {
     if (!avatarPath) return;
@@ -150,6 +156,7 @@ export default function MinistryForm({ isOpen, onClose, onSubmit, initialData = 
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Edit Ministry' : 'Add Ministry'}

@@ -5,19 +5,10 @@ import {
   isAppFixRequestDeleted,
 } from '../config/appFixesRequestOptions.js';
 
+import { safeToMillis } from '../utils/safeToDate.js';
+
 function toUpdatedAtMillis(value) {
-  if (!value) return 0;
-
-  if (typeof value?.toDate === 'function') {
-    return value.toDate().getTime() || 0;
-  }
-
-  if (value instanceof Date) {
-    return value.getTime() || 0;
-  }
-
-  const parsed = Date.parse(String(value));
-  return Number.isNaN(parsed) ? 0 : parsed;
+  return safeToMillis(value);
 }
 
 export function sortAppFixRequests(requests = []) {

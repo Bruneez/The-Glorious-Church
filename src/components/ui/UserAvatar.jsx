@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react';
 import { getInitials } from '@/utils/formatters';
-
 const SIZE_CLASSES = {
   xs: 'w-7 h-7 text-[10px]',
   sm: 'w-8 h-8 text-xs',
@@ -17,18 +17,25 @@ export default function UserAvatar({
   className = '',
   alt,
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.sm;
   const displayName = name || 'User';
+  const showPhoto = Boolean(photo) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photo]);
 
   return (
     <div
       className={`${sizeClass} rounded-full bg-indigo-600 border border-indigo-400/30 overflow-hidden flex items-center justify-center font-bold uppercase text-white shrink-0 ${className}`}
     >
-      {photo ? (
+      {showPhoto ? (
         <img
           src={photo}
           alt={alt || displayName}
           className="w-full h-full object-cover"
+          onError={() => setImageFailed(true)}
         />
       ) : (
         getInitials(displayName) || displayName.charAt(0).toUpperCase()

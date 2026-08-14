@@ -1,17 +1,42 @@
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import SidebarBackdrop from './SidebarBackdrop';
 import Sidebar from './Sidebar';
 import SidebarBrand from './SidebarBrand';
 import PageHeader from './PageHeader';
+import StaffProfileErrorBanner from './StaffProfileErrorBanner';
+import SectionErrorBoundary from '@/components/ui/SectionErrorBoundary';
 import { useStaffLastSeen } from '@/hooks/useStaffLastSeen';
 import { useMobileMenu } from '@/hooks/useMobileMenu';
+import { useAuth } from '@/hooks/useAuth';
+
+function getSectionModuleName(pathname) {
+  const segment = pathname.split('/').filter(Boolean)[0] || 'page';
+  return segment
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 
 export default function AppLayout() {
   const mobileMenu = useMobileMenu();
   const { pathname } = useLocation();
   const isMapPage = pathname === '/map';
+  const {
+    staffProfileError,
+    refreshStaffProfile,
+    isStaffSessionLoading,
+  } = useAuth();
+  const [dismissedProfileError, setDismissedProfileError] = useState(null);
 
   useStaffLastSeen();
+
+  useEffect(() => {
+    setDismissedProfileError(null);
+  }, [staffProfileError]);
+
+  const showStaffProfileBanner =
+    Boolean(staffProfileError) && dismissedProfileError !== staffProfileError;
 
   return (
     <div className="bg-slate-900 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
@@ -20,6 +45,14 @@ export default function AppLayout() {
         onMenuToggle={mobileMenu.toggle}
         menuButtonRef={mobileMenu.menuButtonRef}
       />
+      {showStaffProfileBanner ? (
+        <StaffProfileErrorBanner
+          message={staffProfileError}
+          onRetry={refreshStaffProfile}
+          isRetrying={isStaffSessionLoading}
+          onDismiss={() => setDismissedProfileError(staffProfileError)}
+        />
+      ) : null}
       <SidebarBackdrop isOpen={mobileMenu.isOpen} onClose={mobileMenu.close} />
 
       <div
@@ -44,7 +77,13 @@ export default function AppLayout() {
               : 'overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-5 xl:row-start-2 xl:px-7 xl:py-6 2xl:px-8'
           }`}
         >
-          <Outlet />
+          <SectionErrorBoundary
+            key={pathname}
+            moduleName={getSectionModuleName(pathname)}
+            fallbackPath="/dashboard"
+          >
+            <Outlet />
+          </SectionErrorBoundary>
         </main>
       </div>
     </div>

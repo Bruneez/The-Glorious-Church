@@ -30,6 +30,7 @@ import AppFixesPage from '@/pages/AppFixesPage';
 import ProjectsPage from '@/pages/ProjectsPage';
 import ProjectDetailPage from '@/pages/ProjectDetailPage';
 import ProjectTeamPage from '@/pages/ProjectTeamPage';
+import NotFoundRedirect from '@/components/auth/NotFoundRedirect';
 export default function AppRoutes() {
   return (
     <Routes>
@@ -76,7 +77,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<NotFoundRedirect />} />
     </Routes>
   );
 }

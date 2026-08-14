@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -47,18 +49,28 @@ export default function MerchandiseStockForm({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !product) return;
-    const variants = normalizeVariants(product.variants);
-    setFormData({
-      colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
-      size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
-      quantity: mode === 'adjust' ? String(variants[0]?.quantity ?? '0') : '',
-      reason: '',
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [isOpen, product, mode]);
+  const recordKey = useMemo(
+    () => `${resolveFormRecordKey(product)}-${mode}`,
+    [mode, product?.id],
+  );
+
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      if (!product) return;
+
+      const variants = normalizeVariants(product.variants);
+      setFormData({
+        colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
+        size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
+        quantity: mode === 'adjust' ? String(variants[0]?.quantity ?? '0') : '',
+        reason: '',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [mode, product]),
+  });
 
   const variantOptions = normalizeVariants(product?.variants);
   const colourOptions = [...new Set([
@@ -107,6 +119,7 @@ export default function MerchandiseStockForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={`${copy.title}${product?.name ? `: ${product.name}` : ''}`}

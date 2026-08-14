@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { hasOpenModals } from '@/utils/modalStack';
 import {
   X,
   Edit2,
@@ -131,6 +132,7 @@ export default function MemberCard({
 
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
+        if (hasOpenModals()) return;
         onClose();
       }
     }

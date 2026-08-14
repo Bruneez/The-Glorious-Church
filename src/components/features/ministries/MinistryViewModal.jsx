@@ -70,6 +70,7 @@ export default function MinistryViewModal({
   return (
     <>
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Ministry Details"

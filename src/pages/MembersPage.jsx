@@ -6,6 +6,8 @@ import MembersTable from '@/components/features/members/MembersTable';
 import MembersMobileList from '@/components/features/members/MembersMobileList';
 import MemberForm from '@/components/features/members/MemberForm';
 import MemberProfileModal from '@/components/features/members/MemberProfileModal';
+import DataQueryErrorState from '@/components/common/DataQueryErrorState';
+import Button from '@/components/ui/Button';
 import {
   useMembers,
   createMember,
@@ -28,6 +30,7 @@ import {
   resolveMemberTableSort,
   sortMembersTable,
 } from '@/config/memberTableOptions';
+import { getFirestoreQueryErrorMessage } from '@/utils/sessionResilience';
 function FeedbackBanner({ feedback, onDismiss }) {
   if (!feedback?.message) return null;
 
@@ -56,7 +59,13 @@ function FeedbackBanner({ feedback, onDismiss }) {
 }
 
 export default function MembersPage() {
-  const { data: members = [], loading, error } = useMembers();
+  const {
+    data: members = [],
+    isInitialLoading,
+    isSyncing,
+    error,
+    retry,
+  } = useMembers();
   const { data: creativeArtsTeams = [] } = useCreativeArts();
   const { data: ministries = [] } = useMinistries();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,7 +84,7 @@ export default function MembersPage() {
 
   useEffect(() => {
     const memberId = searchParams.get('memberId');
-    if (!memberId || loading) return;
+    if (!memberId || isInitialLoading) return;
 
     if (!members.some((item) => item.id === memberId)) return;
 
@@ -84,7 +93,7 @@ export default function MembersPage() {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('memberId');
     setSearchParams(nextParams, { replace: true });
-  }, [loading, members, searchParams, setSearchParams]);
+  }, [isInitialLoading, members, searchParams, setSearchParams]);
 
   const normalizedRole = normalizeRole(role);
   const isChurchWideUser = isChurchWideStaff(normalizedRole);
@@ -247,6 +256,11 @@ export default function MembersPage() {
     }
   };
 
+  const queryErrorMessage = error ? getFirestoreQueryErrorMessage(error) : '';
+  const showInitialSpinner = isInitialLoading && members.length === 0;
+  const showBlockingQueryError = Boolean(error) && members.length === 0;
+  const showStaleQueryError = Boolean(error) && members.length > 0;
+
   return (
     <div className="page-root">
       <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback({ type: '', message: '' })} />
@@ -270,20 +284,30 @@ export default function MembersPage() {
             onAddMember={canManageMembers ? handleAddMember : undefined}
             totalCount={scopedMembers.length}
             filteredCount={filteredMembers.length}
-            isLoading={loading}
+            isLoading={isInitialLoading}
           />
         </div>
 
-        {loading ? (
+        {showInitialSpinner ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
           </div>
-        ) : error ? (
-          <div className="p-6 text-center">
-            <p className="text-rose-400 text-xs">Failed to load members. Please refresh and try again.</p>
-          </div>
+        ) : showBlockingQueryError ? (
+          <DataQueryErrorState
+            message={queryErrorMessage}
+            onRetry={retry}
+            isRetrying={isSyncing}
+          />
         ) : (
           <>
+            {showStaleQueryError ? (
+              <div className="mx-4 mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-xs text-rose-300">{queryErrorMessage}</p>
+                <Button type="button" variant="secondary" onClick={retry} isLoading={isSyncing}>
+                  Retry
+                </Button>
+              </div>
+            ) : null}
             <div className="hidden md:block p-4 pt-0">
               <MembersTable
                 members={filteredMembers}

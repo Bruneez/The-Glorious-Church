@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -34,23 +35,39 @@ export default function MerchandiseRequestForm({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useFormSessionInit({
+    isOpen,
+    recordKey: 'new',
+    initialize: useCallback(() => {
+      const first = activeProducts[0];
+      const variants = normalizeVariants(first?.variants);
+      setFormData({
+        requesterName: '',
+        contactNumber: '',
+        productId: first?.id || '',
+        colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
+        size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
+        quantity: '1',
+        notes: '',
+        status: 'waiting',
+      });
+      setError('');
+      setIsSubmitting(false);
+    }, [activeProducts]),
+  });
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || formData.productId || !activeProducts.length) return;
+
     const first = activeProducts[0];
     const variants = normalizeVariants(first?.variants);
-    setFormData({
-      requesterName: '',
-      contactNumber: '',
-      productId: first?.id || '',
+    setFormData((prev) => ({
+      ...prev,
+      productId: first.id,
       colour: variants[0]?.colour || MERCHANDISE_COLOUR_OPTIONS[0].value,
       size: variants[0]?.size || MERCHANDISE_SIZE_OPTIONS[2].value,
-      quantity: '1',
-      notes: '',
-      status: 'waiting',
-    });
-    setError('');
-    setIsSubmitting(false);
-  }, [isOpen, activeProducts]);
+    }));
+  }, [activeProducts, formData.productId, isOpen]);
 
   const selectedProduct = activeProducts.find((product) => product.id === formData.productId);
   const variantOptions = normalizeVariants(selectedProduct?.variants);
@@ -91,6 +108,7 @@ export default function MerchandiseRequestForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title="Record Merchandise Request"

@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Bus } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -32,17 +34,21 @@ export default function TransportForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setFormData(mapTransportToFormData(initialData));
-    setImageFile(null);
-    setRemoveImage(false);
-    setImageError('');
-    setError('');
-    setIsSubmitting(false);
-    isSubmittingRef.current = false;
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setFormData(mapTransportToFormData(initialData));
+      setImageFile(null);
+      setRemoveImage(false);
+      setImageError('');
+      setError('');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }, [initialData]),
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,6 +134,7 @@ export default function TransportForm({
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData?.id ? 'Edit Driver' : 'Add Driver'}

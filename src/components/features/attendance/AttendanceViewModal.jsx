@@ -74,6 +74,7 @@ export default function AttendanceViewModal({ record, isOpen, onClose }) {
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title="Attendance Details"

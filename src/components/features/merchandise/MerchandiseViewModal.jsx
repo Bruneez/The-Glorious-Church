@@ -54,6 +54,7 @@ export default function MerchandiseViewModal({
 
   return (
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       title={product.name || 'Merchandise Details'}

@@ -11,6 +11,7 @@ import {
 import { extractStoragePathFromDownloadUrl } from '@/utils/storagePathUtils';
 import { getStorageErrorMessage } from '@/utils/storageErrors';
 import Modal from '@/components/ui/Modal';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
 import ImageUploadField from '@/components/common/ImageUploadField';
 
 export default function AccountSettingsModal({ isOpen, onClose }) {
@@ -167,7 +168,13 @@ export default function AccountSettingsModal({ isOpen, onClose }) {
   const existingPhotoUrl = !removePhoto && !photoFile ? staffProfile?.photo || '' : '';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Account Settings" icon={UserCog}>
+    <Modal
+      {...getModalFormProps({ isSubmitting: isSaving })}
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Account Settings"
+      icon={UserCog}
+    >
       <form onSubmit={handleSubmit} className="space-y-3">
         {error ? (
           <p className="text-rose-400 text-[11px]">{error}</p>

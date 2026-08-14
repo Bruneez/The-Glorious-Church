@@ -18,7 +18,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: [
         'icons/tgc-icon-v3-48.png',
         'icons/tgc-icon-v3-96.png',

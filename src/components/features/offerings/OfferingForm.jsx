@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { Coins } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
 import { validateOfferingForm } from '@/config/offeringsOptions';
 
 export default function OfferingForm({ isOpen, onClose, onSubmit, initialData = null }) {
@@ -11,18 +14,22 @@ export default function OfferingForm({ isOpen, onClose, onSubmit, initialData = 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const recordKey = useMemo(() => resolveFormRecordKey(initialData), [initialData?.id]);
 
-    setServiceDate(initialData?.serviceDate || initialData?.date || '');
-    setTotalAmount(
-      initialData?.totalAmount !== undefined && initialData?.totalAmount !== null
-        ? String(initialData.totalAmount ?? initialData.amount ?? '')
-        : '',
-    );
-    setError('');
-    setIsSubmitting(false);
-  }, [initialData, isOpen]);
+  useFormSessionInit({
+    isOpen,
+    recordKey,
+    initialize: useCallback(() => {
+      setServiceDate(initialData?.serviceDate || initialData?.date || '');
+      setTotalAmount(
+        initialData?.totalAmount !== undefined && initialData?.totalAmount !== null
+          ? String(initialData.totalAmount ?? initialData.amount ?? '')
+          : '',
+      );
+      setError('');
+      setIsSubmitting(false);
+    }, [initialData]),
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,6 +56,7 @@ export default function OfferingForm({ isOpen, onClose, onSubmit, initialData = 
 
   return (
     <Modal
+      {...getModalFormProps({ isSubmitting: isSubmitting })}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData?.id ? 'Edit Offering' : 'Add Offering'}

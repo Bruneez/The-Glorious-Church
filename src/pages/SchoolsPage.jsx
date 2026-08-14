@@ -360,15 +360,13 @@ export default function SchoolsPage() {
         })}
       </div>
 
-      {canManageSchools && (
-        <SchoolsForm
-          isOpen={isFormOpen}
-          onClose={handleCloseForm}
-          onSubmit={handleFormSubmit}
-          initialData={editingSchool}
-          defaultType={activeCategory}
-        />
-      )}
+      <SchoolsForm
+        isOpen={canManageSchools && isFormOpen}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        initialData={editingSchool}
+        defaultType={activeCategory}
+      />
 
       {canOpenSchoolRecord && (
         <SchoolsViewModal

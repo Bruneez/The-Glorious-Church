@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createFormSessionKey } from '@/utils/formSessionUtils';
 import ShepherdingToolsTabs from '@/components/features/shepherding-tools/ShepherdingToolsTabs';
 import ShepherdingToolsTabPanel, {
   ShepherdingToolsToolbar,
@@ -76,6 +77,10 @@ export default function ShepherdingToolsPage() {
   };
 
   const handleTabChange = (tabId) => {
+    if (isFormOpen) {
+      setIsFormOpen(false);
+      setEditingResource(null);
+    }
     setActiveTab(tabId);
     resetFilters();
   };
@@ -274,19 +279,20 @@ export default function ShepherdingToolsPage() {
         </div>
       </div>
 
-      {canManage ? (
-        <ShepherdingToolsForm
-          key={`${formSessionKey}-${activeTab}-${editingResource?.id || 'new'}`}
-          resourceType={editingResource?.resourceType || activeTab}
-          isOpen={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingResource(null);
-          }}
-          onSubmit={handleFormSubmit}
-          initialData={editingResource}
-        />
-      ) : null}
+      <ShepherdingToolsForm
+        key={createFormSessionKey({
+          formSessionKey,
+          recordKey: editingResource?.id || `new-${activeTab}`,
+        })}
+        resourceType={editingResource?.resourceType || activeTab}
+        isOpen={canManage && isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingResource(null);
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={editingResource}
+      />
 
       <ShepherdingToolsViewModal
         resource={viewingResource}

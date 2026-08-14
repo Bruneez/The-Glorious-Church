@@ -70,6 +70,7 @@ export default function CreativeArtsViewModal({
   return (
     <>
     <Modal
+      closeOnBackdrop
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="max-w-xl"
