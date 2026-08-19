@@ -17,6 +17,7 @@ import {
 } from '@/config/projectsOptions';
 import { filterProjectsForDashboard } from '@/config/projectsDisplay';
 import { getProjectErrorMessage } from '@/config/projectsOptions';
+import { getFirestoreQueryErrorMessage } from '@/utils/sessionResilience';
 import { useCollection } from '@/hooks/useFirestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -64,6 +65,7 @@ export default function ProjectsPage() {
     memberships = [],
     loading,
     error,
+    membershipError,
     canView,
     userId,
   } = useProjects({ reloadNonce });
@@ -88,6 +90,12 @@ export default function ProjectsPage() {
   const hasActiveFilters = Boolean(
     searchTerm.trim() || statusFilter !== 'all' || priorityFilter !== 'all',
   );
+
+  const showBlockingLoadError = Boolean(error) && !loading && projects.length === 0;
+  const showMembershipWarning = Boolean(membershipError) && projects.length > 0;
+  const queryErrorMessage = error
+    ? getFirestoreQueryErrorMessage(error)
+    : 'Failed to load projects. Please try again.';
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -260,25 +268,35 @@ export default function ProjectsPage() {
 
             {!canView ? (
               <ProjectsErrorState message="You do not have permission to view Projects." />
-            ) : error ? (
+            ) : showBlockingLoadError ? (
               <ProjectsLoadErrorState
-                message="Failed to load projects. Please try again."
+                message={queryErrorMessage}
                 onRetry={() => setReloadNonce((value) => value + 1)}
               />
             ) : (
-              <ProjectsGrid
-                projects={filteredProjects}
-                loading={loading}
-                hasFilters={hasActiveFilters}
-                canCreateProject={canCreate}
-                onCreateProject={() => setIsCreateOpen(true)}
-                canEditProject={canEditProject}
-                onEditProject={setEditingProject}
-                canDeleteProject={canDeleteProjectForUser}
-                onDeleteProject={setDeletingProject}
-                membershipActionProjectId={membershipActionProjectId}
-                onMembershipAction={handleMembershipAction}
-              />
+              <>
+                {showMembershipWarning ? (
+                  <div
+                    role="status"
+                    className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200"
+                  >
+                    Project membership data could not be refreshed. Join/leave actions may be unavailable until you retry.
+                  </div>
+                ) : null}
+                <ProjectsGrid
+                  projects={filteredProjects}
+                  loading={loading && projects.length === 0}
+                  hasFilters={hasActiveFilters}
+                  canCreateProject={canCreate}
+                  onCreateProject={() => setIsCreateOpen(true)}
+                  canEditProject={canEditProject}
+                  onEditProject={setEditingProject}
+                  canDeleteProject={canDeleteProjectForUser}
+                  onDeleteProject={setDeletingProject}
+                  membershipActionProjectId={membershipActionProjectId}
+                  onMembershipAction={handleMembershipAction}
+                />
+              </>
             )}
           </div>
         </div>

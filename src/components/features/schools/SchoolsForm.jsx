@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFormSessionInit } from '@/hooks/useFormSessionInit';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
 import { resolveFormRecordKey } from '@/utils/formSessionUtils';
 import { School } from 'lucide-react';
 import Input from '@/components/ui/Input';

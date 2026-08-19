@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   collection,
   onSnapshot,
@@ -11,102 +11,160 @@ import {
   isProjectMembershipDeleted,
 } from '@/config/projectsOptions';
 import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/config/firebase';
-import { VIEW_DENIED_MESSAGE } from '@/services/projectGuards';
+import { auth, db } from '@/config/firebase';
 import {
   getProjectMembershipsByUserQueryConstraints,
   getProjectsQueryConstraints,
   normalizeProjects,
+  sortProjectMemberships,
 } from '@/services/projectsQueryUtils';
+import { subscribeFirestoreReconnect } from '@/utils/firestoreReconnect';
 
 export function useProjects({ reloadNonce = 0 } = {}) {
-  const { role, firebaseUser } = useAuth();
+  const {
+    role,
+    firebaseUser,
+    isLoading: authLoading,
+    isStaffSessionLoading,
+  } = useAuth();
   const userId = firebaseUser?.uid || '';
+  const sessionReady = !authLoading && Boolean(firebaseUser) && !isStaffSessionLoading;
   const canView = canPerformAction(role, 'VIEW_PROJECTS');
 
-  const [projects, setProjects] = useState([]);
+  const [rawProjects, setRawProjects] = useState([]);
   const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [membershipsLoading, setMembershipsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [membershipError, setMembershipError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const retry = useCallback(() => {
+    setRefreshKey((value) => value + 1);
+  }, []);
+
+  const projects = useMemo(
+    () => normalizeProjects(rawProjects, role, userId),
+    [rawProjects, role, userId],
+  );
 
   useEffect(() => {
-    if (!canView || !userId) {
-      setProjects([]);
-      setMemberships([]);
-      setLoading(false);
-      setError(canView ? null : new Error(VIEW_DENIED_MESSAGE));
+    if (!sessionReady) {
+      setLoading(true);
+      setMembershipsLoading(true);
+      setError(null);
+      setMembershipError(null);
       return undefined;
     }
 
-    setLoading(true);
-    setError(null);
+    if (!userId || !canView) {
+      setRawProjects([]);
+      setMemberships([]);
+      setLoading(false);
+      setMembershipsLoading(false);
+      setError(null);
+      setMembershipError(null);
+      return undefined;
+    }
 
-    const projectQuery = query(
-      collection(db, COLLECTIONS.PROJECTS),
-      ...getProjectsQueryConstraints(),
-    );
-    const membershipQuery = query(
-      collection(db, COLLECTIONS.PROJECT_MEMBERSHIPS),
-      ...getProjectMembershipsByUserQueryConstraints(userId),
-    );
+    let active = true;
+    let unsubscribeProjects = () => {};
+    let unsubscribeMemberships = () => {};
 
-    let projectsReady = false;
-    let membershipsReady = false;
+    const startSubscriptions = async () => {
+      setLoading(true);
+      setMembershipsLoading(true);
+      setError(null);
+      setMembershipError(null);
 
-    const maybeFinishLoading = () => {
-      if (projectsReady && membershipsReady) {
-        setLoading(false);
+      try {
+        await auth.authStateReady();
+      } catch (readyError) {
+        if (!active) return;
+        console.error('useProjects auth readiness error:', readyError);
       }
+
+      if (!active || !auth.currentUser) {
+        return;
+      }
+
+      const projectQuery = query(
+        collection(db, COLLECTIONS.PROJECTS),
+        ...getProjectsQueryConstraints(),
+      );
+      const membershipQuery = query(
+        collection(db, COLLECTIONS.PROJECT_MEMBERSHIPS),
+        ...getProjectMembershipsByUserQueryConstraints(userId),
+      );
+
+      unsubscribeProjects = onSnapshot(
+        projectQuery,
+        (snapshot) => {
+          if (!active) return;
+
+          const nextProjects = snapshot.docs.map((docSnapshot) => ({
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          }));
+
+          setRawProjects(nextProjects);
+          setLoading(false);
+          setError(null);
+        },
+        (snapshotError) => {
+          if (!active) return;
+
+          console.error('useProjects projects subscription error:', snapshotError);
+          setError(snapshotError);
+          setLoading(false);
+        },
+      );
+
+      unsubscribeMemberships = onSnapshot(
+        membershipQuery,
+        (snapshot) => {
+          if (!active) return;
+
+          const nextMemberships = snapshot.docs.map((docSnapshot) => ({
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          }));
+
+          setMemberships(
+            sortProjectMemberships(
+              nextMemberships.filter((membership) => !isProjectMembershipDeleted(membership)),
+            ),
+          );
+          setMembershipsLoading(false);
+          setMembershipError(null);
+        },
+        (snapshotError) => {
+          if (!active) return;
+
+          console.error('useProjects memberships subscription error:', snapshotError);
+          setMemberships([]);
+          setMembershipsLoading(false);
+          setMembershipError(snapshotError);
+        },
+      );
     };
 
-    const unsubscribeProjects = onSnapshot(
-      projectQuery,
-      (snapshot) => {
-        const nextProjects = snapshot.docs.map((docSnapshot) => ({
-          id: docSnapshot.id,
-          ...docSnapshot.data(),
-        }));
-
-        setProjects(normalizeProjects(nextProjects, role, userId));
-        projectsReady = true;
-        maybeFinishLoading();
-        setError(null);
-      },
-      (snapshotError) => {
-        console.error('useProjects projects subscription error:', snapshotError);
-        setError(snapshotError);
-        projectsReady = true;
-        setLoading(false);
-      },
-    );
-
-    const unsubscribeMemberships = onSnapshot(
-      membershipQuery,
-      (snapshot) => {
-        const nextMemberships = snapshot.docs.map((docSnapshot) => ({
-          id: docSnapshot.id,
-          ...docSnapshot.data(),
-        }));
-
-        setMemberships(
-          nextMemberships.filter((membership) => !isProjectMembershipDeleted(membership)),
-        );
-        membershipsReady = true;
-        maybeFinishLoading();
-      },
-      (snapshotError) => {
-        console.error('useProjects memberships subscription error:', snapshotError);
-        setError((current) => current || snapshotError);
-        membershipsReady = true;
-        setLoading(false);
-      },
-    );
+    startSubscriptions();
 
     return () => {
+      active = false;
       unsubscribeProjects();
       unsubscribeMemberships();
     };
-  }, [canView, role, userId, reloadNonce]);
+  }, [sessionReady, canView, userId, reloadNonce, refreshKey]);
+
+  useEffect(() => {
+    if (!error) return undefined;
+
+    return subscribeFirestoreReconnect(() => {
+      retry();
+    });
+  }, [error, retry]);
 
   const membershipByProjectId = useMemo(() => {
     const map = new Map();
@@ -134,9 +192,13 @@ export function useProjects({ reloadNonce = 0 } = {}) {
     projects,
     memberships,
     loading,
+    membershipsLoading,
     error,
+    membershipError,
     canView,
     userId,
     role,
+    isInitialLoading: loading && rawProjects.length === 0,
+    retry,
   };
 }

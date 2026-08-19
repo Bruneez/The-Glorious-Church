@@ -37,8 +37,19 @@ export function getProjectMembershipsQueryConstraints(projectId) {
 export function getProjectMembershipsByUserQueryConstraints(userId) {
   return [
     where('userId', '==', userId),
-    orderBy('updatedAt', 'desc'),
   ];
+}
+
+export function sortProjectMemberships(memberships = []) {
+  return [...memberships].sort((left, right) => {
+    const leftTime = left.updatedAt?.toDate?.()?.getTime?.()
+      || Date.parse(left.updatedAt || 0)
+      || 0;
+    const rightTime = right.updatedAt?.toDate?.()?.getTime?.()
+      || Date.parse(right.updatedAt || 0)
+      || 0;
+    return rightTime - leftTime;
+  });
 }
 
 export function getProjectUpdatesQueryConstraints(projectId) {

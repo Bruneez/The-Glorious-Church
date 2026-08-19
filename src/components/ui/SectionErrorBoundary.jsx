@@ -20,6 +20,16 @@ export default class SectionErrorBoundary extends Component {
     });
   }
 
+  renderErrorDetails() {
+    if (!import.meta.env.DEV || !this.state.error?.message) return null;
+
+    return (
+      <p className="text-[11px] text-rose-300/80 mt-3 break-words font-mono">
+        {this.state.error.message}
+      </p>
+    );
+  }
+
   handleRetry() {
     this.setState({ error: null });
     this.props.onRetry?.();
@@ -36,6 +46,7 @@ export default class SectionErrorBoundary extends Component {
             <p className="text-xs text-slate-400 mt-2">
               {this.props.description || 'Something went wrong while rendering this page. Your session is still active.'}
             </p>
+            {this.renderErrorDetails()}
             <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-2">
               <Button type="button" onClick={this.handleRetry}>
                 Try Again

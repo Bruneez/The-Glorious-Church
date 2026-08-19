@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { getModalFormProps } from '@/hooks/useModalFormProps';
 import ProjectAttachmentUploadField from '@/components/features/projects/ProjectAttachmentUploadField';
 import { getProjectErrorMessage } from '@/config/projectsOptions';
 
