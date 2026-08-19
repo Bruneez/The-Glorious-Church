@@ -14,33 +14,35 @@ import { db } from '@/config/firebase';
 import { subscribeFirestoreReconnect } from '@/utils/firestoreReconnect';
 import { logStability } from '@/utils/stabilityDebug';
 
-function useFirestoreSubscription({
-  enabled = true,
-  queryKey = '',
-  subscribe,
-}) {
+export function useCollection(collectionName, options = {}) {
+  const constraints = options.constraints || [];
+  const constraintsSignature = JSON.stringify(constraints);
+
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(Boolean(enabled));
+  const [loading, setLoading] = useState(Boolean(collectionName));
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const hasLoadedOnceRef = useRef(false);
-  const queryKeyRef = useRef(queryKey);
+  const queryKeyRef = useRef('');
 
   const retry = useCallback(() => {
     setRefreshKey((value) => value + 1);
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!collectionName) {
       setLoading(false);
       setIsSyncing(false);
       return undefined;
     }
 
-    if (queryKeyRef.current !== queryKey) {
-      queryKeyRef.current = queryKey;
-      hasLoadedOnceRef.current = false;
+    const nextQueryKey = `${collectionName}:${constraintsSignature}:${refreshKey}`;
+    if (queryKeyRef.current !== nextQueryKey) {
+      queryKeyRef.current = nextQueryKey;
+      if (refreshKey === 0) {
+        hasLoadedOnceRef.current = false;
+      }
     }
 
     let active = true;
@@ -52,33 +54,128 @@ function useFirestoreSubscription({
       setLoading(true);
     }
 
-    const unsubscribe = subscribe({
-      active: () => active,
-      onData: (nextData) => {
+    let q = collection(db, collectionName);
+    if (constraints.length > 0) {
+      q = query(collection(db, collectionName), ...constraints);
+    }
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
         if (!active) return;
-        setData(nextData);
+
+        const documents = snapshot.docs.map((docSnapshot) => ({
+          id: docSnapshot.id,
+          ...docSnapshot.data(),
+        }));
+
+        setData(documents);
         hasLoadedOnceRef.current = true;
         setLoading(false);
         setIsSyncing(false);
         setError(null);
       },
-      onError: (err) => {
+      (err) => {
         if (!active) return;
+
         logStability('query.subscription.error', {
           code: err?.code || 'unknown',
-          message: err?.message || 'Unknown error',
         });
         setError(err);
         setLoading(false);
         setIsSyncing(false);
       },
-    });
+    );
 
     return () => {
       active = false;
-      unsubscribe?.();
+      unsubscribe();
     };
-  }, [enabled, queryKey, refreshKey, subscribe]);
+  }, [collectionName, constraintsSignature, refreshKey]);
+
+  useEffect(() => {
+    if (!collectionName || !error) return undefined;
+
+    return subscribeFirestoreReconnect(() => {
+      retry();
+    });
+  }, [collectionName, error, retry]);
+
+  return {
+    data: data ?? [],
+    loading,
+    isSyncing,
+    error,
+    retry,
+    isInitialLoading: loading,
+  };
+}
+
+export function useDocument(collectionName, docId, externalRefreshKey = 0) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(Boolean(collectionName && docId));
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const hasLoadedOnceRef = useRef(false);
+
+  const retry = useCallback(() => {
+    setRefreshKey((value) => value + 1);
+  }, []);
+
+  const enabled = Boolean(collectionName && docId);
+  const subscriptionKey = `${collectionName}:${docId}:${externalRefreshKey}:${refreshKey}`;
+
+  useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setLoading(false);
+      setIsSyncing(false);
+      return undefined;
+    }
+
+    let active = true;
+    setError(null);
+
+    if (hasLoadedOnceRef.current) {
+      setIsSyncing(true);
+    } else {
+      setLoading(true);
+    }
+
+    const unsubscribe = onSnapshot(
+      doc(db, collectionName, docId),
+      (docSnapshot) => {
+        if (!active) return;
+
+        if (docSnapshot.exists()) {
+          setData({ id: docSnapshot.id, ...docSnapshot.data() });
+        } else {
+          setData(null);
+        }
+
+        hasLoadedOnceRef.current = true;
+        setLoading(false);
+        setIsSyncing(false);
+        setError(null);
+      },
+      (err) => {
+        if (!active) return;
+
+        logStability('query.subscription.error', {
+          code: err?.code || 'unknown',
+        });
+        setError(err);
+        setLoading(false);
+        setIsSyncing(false);
+      },
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [collectionName, docId, enabled, subscriptionKey]);
 
   useEffect(() => {
     if (!enabled || !error) return undefined;
@@ -89,87 +186,12 @@ function useFirestoreSubscription({
   }, [enabled, error, retry]);
 
   return {
-    data,
+    data: data ?? null,
     loading,
     isSyncing,
     error,
     retry,
     isInitialLoading: loading,
-  };
-}
-
-export function useCollection(collectionName, options = {}) {
-  const constraintsKey = JSON.stringify(options.constraints || []);
-  const queryKey = `${collectionName}:${constraintsKey}`;
-
-  const result = useFirestoreSubscription({
-    enabled: Boolean(collectionName),
-    queryKey,
-    subscribe: useCallback(({ active, onData, onError }) => {
-      let q = collection(db, collectionName);
-      if (options.constraints?.length) {
-        q = query(collection(db, collectionName), ...options.constraints);
-      }
-
-      return onSnapshot(
-        q,
-        (snapshot) => {
-          if (!active()) return;
-          const documents = snapshot.docs.map((docSnapshot) => ({
-            id: docSnapshot.id,
-            ...docSnapshot.data(),
-          }));
-          onData(documents);
-        },
-        onError,
-      );
-    }, [collectionName, constraintsKey]),
-  });
-
-  return {
-    data: result.data ?? [],
-    loading: result.loading,
-    isSyncing: result.isSyncing,
-    error: result.error,
-    retry: result.retry,
-    isInitialLoading: result.isInitialLoading,
-  };
-}
-
-export function useDocument(collectionName, docId, externalRefreshKey = 0) {
-  const queryKey = `${collectionName}:${docId}:${externalRefreshKey}`;
-
-  const result = useFirestoreSubscription({
-    enabled: Boolean(collectionName && docId),
-    queryKey,
-    subscribe: useCallback(({ active, onData, onError }) => {
-      if (!docId) {
-        onData(null);
-        return undefined;
-      }
-
-      return onSnapshot(
-        doc(db, collectionName, docId),
-        (docSnapshot) => {
-          if (!active()) return;
-          if (docSnapshot.exists()) {
-            onData({ id: docSnapshot.id, ...docSnapshot.data() });
-          } else {
-            onData(null);
-          }
-        },
-        onError,
-      );
-    }, [collectionName, docId]),
-  });
-
-  return {
-    data: result.data ?? null,
-    loading: result.loading,
-    isSyncing: result.isSyncing,
-    error: result.error,
-    retry: result.retry,
-    isInitialLoading: result.isInitialLoading,
   };
 }
 

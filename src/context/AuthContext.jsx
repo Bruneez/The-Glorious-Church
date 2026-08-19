@@ -172,29 +172,23 @@ export function AuthProvider({ children }) {
       previousAuthUidRef.current = nextUid;
       intentionalSignOutRef.current = false;
 
+      firebaseUserRef.current = user;
       setFirebaseUser(user);
       setAuthError(null);
 
-      if (!user) {
-        clearStaffSession();
-        setIsStaffSessionLoading(false);
+      try {
+        if (!user) {
+          clearStaffSession();
+          setIsStaffSessionLoading(false);
+          return;
+        }
 
+        await runStaffSessionLoad(user);
+      } finally {
         if (!authBootstrapCompleteRef.current) {
           authBootstrapCompleteRef.current = true;
           setIsLoading(false);
         }
-        return;
-      }
-
-      await runStaffSessionLoad(user);
-
-      if (user.uid !== firebaseUserRef.current?.uid) {
-        return;
-      }
-
-      if (!authBootstrapCompleteRef.current) {
-        authBootstrapCompleteRef.current = true;
-        setIsLoading(false);
       }
     });
 
@@ -222,6 +216,7 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     intentionalSignOutRef.current = true;
     await authSignOut();
+    firebaseUserRef.current = null;
     clearStaffSession();
     setIsStaffSessionLoading(false);
     setFirebaseUser(null);

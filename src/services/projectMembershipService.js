@@ -46,6 +46,7 @@ import {
 import {
   getProjectMembershipsByUserQueryConstraints,
   getProjectMembershipsQueryConstraints,
+  sortProjectMemberships,
 } from '@/services/projectsQueryUtils';
 
 function assertNoBlockingMembership(membership) {
@@ -104,7 +105,9 @@ export async function listMembershipsForUser(userId, { role, currentUserId = '' 
     getProjectMembershipsByUserQueryConstraints(userId),
   );
 
-  return memberships.filter((membership) => !isProjectMembershipDeleted(membership));
+  return sortProjectMemberships(
+    memberships.filter((membership) => !isProjectMembershipDeleted(membership)),
+  );
 }
 
 export async function getMembership(membershipId, { role, userId = '' } = {}) {
